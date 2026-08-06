@@ -26,7 +26,7 @@ const listings = [
 ];
 
 export default function Home() {
-  const [view, setView] = useState<View>("overview");
+  const [view, setView] = useState<View>("templates");
   const [toast, setToast] = useState("");
 
   function flash(message: string) {
@@ -38,26 +38,31 @@ export default function Home() {
     <main className="app-shell">
       <aside className="sidebar">
         <button className="brand" onClick={() => setView("overview")} aria-label="Homie overview">homie<span>.</span></button>
-        <div className="workspace"><span className="avatar">NW</span><span><b>North & West</b><small>Realty team</small></span><i>⌄</i></div>
         <nav aria-label="Main navigation">
-          <p className="nav-label">Workspace</p>
-          {nav.map((item) => <button key={item.id} className={view === item.id ? "active" : ""} onClick={() => setView(item.id)}><span>{item.icon}</span>{item.label}{item.id === "review" && <em>3</em>}</button>)}
-          <p className="nav-label billing-label">Manage</p>
-          <button onClick={() => flash("Zillow is connected and synced")}><span>↗</span>Integrations</button>
-          <button onClick={() => flash("Team management is coming next")}><span>♙</span>Team</button>
-          <button onClick={() => flash("Subscription settings opened")}><span>◒</span>Subscription</button>
+          <button onClick={() => setView("overview")} className={view === "overview" ? "active" : ""}><span>•</span>Getting started <small>2/3</small></button>
+          <button onClick={() => setView("templates")} className={view === "templates" ? "active" : ""}><span>•</span>Explore</button>
+          <button onClick={() => setView("review")} className={view === "review" ? "active" : ""}><span>•</span>My videos</button>
+          <button onClick={() => flash("Favorites opened")}><span>•</span>Favorites</button>
+          <p className="nav-label">Business</p>
+          <button onClick={() => setView("listings")} className={view === "listings" ? "active" : ""}><span>•</span>My listings</button>
+          <button onClick={() => flash("Zillow is connected and synced")}><span>•</span>Integrations</button>
+          <p className="nav-label">Team</p>
+          <button onClick={() => flash("Team management is coming next")}><span>•</span>Members</button>
+          <div className="sidebar-divider" />
+          <button onClick={() => flash("Subscription settings opened")}><span>•</span>Subscribe</button>
+          <button onClick={() => flash("Credit top-ups are coming soon")}><span>•</span>Buy credits</button>
+          <button onClick={() => flash("Activity opened")}><span className="activity-dot">•</span>Activity</button>
         </nav>
         <div className="sidebar-bottom">
-          <div className="credits-row"><span><small>Available credits</small><b>142</b></span><button onClick={() => flash("Credit top-ups are coming soon")}>＋</button></div>
-          <button className="profile"><span className="profile-avatar">YA</span><span><b>Yakir A.</b><small>Admin</small></span><i>•••</i></button>
+          <button className="profile"><span className="profile-avatar">♙</span><span><b>yakir.15</b><small>142 credits</small></span><i>⌄</i></button>
         </div>
       </aside>
 
       <section className="main-panel">
         <header className="topbar">
           <button className="mobile-brand" onClick={() => setView("overview")}>homie<span>.</span></button>
-          <div className="breadcrumb"><span>North & West</span><b>/</b>{view === "review" ? "My videos" : view[0].toUpperCase() + view.slice(1)}</div>
-          <div className="top-actions"><button aria-label="Search">⌕</button><button aria-label="Notifications">♢<i /></button><button className="create-btn" onClick={() => setView("templates")}>＋ Create video</button></div>
+          <label className="global-search"><span>⌕</span><input aria-label="Search Homie" placeholder={view === "templates" ? "Search templates..." : "Search Homie..."} /></label>
+          <button className="filter-square" onClick={() => flash("Filters opened")} aria-label="Open filters">☷</button>
         </header>
 
         {view === "overview" && <Overview setView={setView} />}
@@ -100,9 +105,8 @@ function Overview({ setView }: { setView: (v: View) => void }) {
 function Templates({ setView, flash }: { setView: (v: View) => void; flash: (m: string) => void }) {
   const [filter, setFilter] = useState("All");
   return <div className="page templates-page">
-    <div className="page-intro"><p className="eyebrow">Curated video styles</p><h1>Find your perfect tour.</h1><p>Professional templates designed to make every room feel worth stepping into.</p></div>
-    <div className="search-row"><label><span>⌕</span><input aria-label="Search templates" placeholder="Search templates..." /></label><button onClick={() => flash("Filters opened")}>☷ <span>Filters</span></button></div>
-    <div className="filter-row">{["All", "Reels", "TikTok", "Stories", "Zillow", "Cinematic", "Luxury"].map((name) => <button key={name} onClick={() => setFilter(name)} className={filter === name ? "active" : ""}>{name}</button>)}</div>
+    <div className="content-tabs"><button className="active">Templates</button><button onClick={() => setView("review")}>My videos</button><button onClick={() => flash("Favorites opened")}>Favorites</button></div>
+    <div className="filter-row">{["All", "Luxury", "Modern", "Warm", "Cinematic", "Minimal", "Coastal", "Urban", "Family", "Fast-paced", "Zillow"].map((name) => <button key={name} onClick={() => setFilter(name)} className={filter === name ? "active" : ""}>{name}</button>)}</div>
     <div className="template-grid">
       <article className="template-start"><span className="eyebrow">Not sure where to start?</span><h2>Let the home<br /><i>lead the way.</i></h2><p>Choose a listing and we'll recommend templates that fit its mood and architecture.</p><button onClick={() => setView("listings")}>Choose a listing →</button></article>
       {templates.map((template, index) => <article className={`template-card ${template.size}`} key={template.title} onClick={() => setView("review")} tabIndex={0} onKeyDown={(e) => e.key === "Enter" && setView("review")}>
