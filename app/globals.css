@@ -227,3 +227,32 @@
 .faq-answer p{color:var(--muted);font-size:14px;line-height:1.7;margin:0 4px 22px;max-width:640px}
 @media(max-width:900px){.templates-preview-grid{grid-template-columns:1fr 1fr}.use-cases-grid,.pricing-grid{grid-template-columns:1fr}}
 @media(max-width:600px){.templates-preview-grid{grid-template-columns:1fr}}
+
+/* Integrations */
+.sources-count{font:9px var(--mono);text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);border:1px solid var(--line);padding:9px 12px;border-radius:20px;white-space:nowrap}
+.panel-heading.standalone{margin:0 0 16px}
+.panel-heading.standalone h3{font:400 20px var(--serif)}
+.source-card{display:flex;align-items:center;gap:20px;border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:22px;margin-bottom:36px}
+.source-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex:none}
+.source-icon.zillow{background:#006aff}
+.source-icon.airbnb{background:#ff385c}
+.source-copy{flex:1;min-width:0}
+.source-copy h3{font:400 20px var(--serif);margin:0 0 6px}
+.source-copy p{font-size:12px;color:var(--muted);margin:0 0 4px}
+.source-copy p b{color:var(--ink);font-weight:600}
+.source-copy small{font-size:10px;color:var(--muted)}
+.source-actions{display:flex;gap:10px;flex:none}
+.source-actions button{border:1px solid var(--line);background:transparent;color:var(--ink);padding:10px 16px;font-size:11px;border-radius:8px}
+.source-actions button:hover{border-color:var(--sage);color:var(--sage-dark)}
+.source-actions button.danger:hover{border-color:#b8564f;color:#b8564f}
+.integrations-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.integration-card{border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:26px;transition:transform .3s ease,box-shadow .3s ease}
+.integration-card:not(.disabled):hover{transform:translateY(-4px);box-shadow:0 20px 40px rgba(0,0,0,.06)}
+.integration-card h3{font:400 20px var(--serif);margin:16px 0 8px}
+.integration-card p{font-size:12px;color:var(--muted);line-height:1.6;margin:0 0 20px;min-height:36px}
+.integration-card button{width:100%;height:42px;border:1px solid var(--line);background:transparent;color:var(--ink);font-size:11px;border-radius:8px}
+.integration-card:not(.disabled) button{background:var(--sage);border-color:var(--sage);color:#fff}
+.integration-card.disabled{opacity:.72}
+.integration-card.disabled button{cursor:not-allowed;color:var(--muted)}
+@media(max-width:900px){.integrations-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:760px){.integrations-grid{grid-template-columns:1fr}.source-card{flex-wrap:wrap}.source-actions{width:100%}.source-actions button{flex:1}}

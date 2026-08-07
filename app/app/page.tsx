@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { getSupabaseBrowserClient } from "../../lib/supabase/client";
 
-type View = "overview" | "templates" | "listings" | "review" | "videos";
+type View = "overview" | "templates" | "listings" | "review" | "videos" | "integrations";
 
 const nav = [
   { id: "overview" as View, label: "Overview", icon: "⌂" },
@@ -172,7 +172,7 @@ export default function Home() {
           <button onClick={() => flash("Favorites opened")}><span>•</span>Favorites</button>
           <p className="nav-label">Business</p>
           <button onClick={() => changeView("listings")} className={view === "listings" ? "active" : ""}><span>•</span>My listings</button>
-          <button onClick={() => flash("Zillow is connected and synced")}><span>•</span>Integrations</button>
+          <button onClick={() => changeView("integrations")} className={view === "integrations" ? "active" : ""}><span>•</span>Integrations</button>
           <div className="sidebar-divider" />
           <button onClick={() => flash("Subscription settings opened")}><span>•</span>Subscribe</button>
           <button onClick={() => flash("Credit top-ups are coming soon")}><span>•</span>Buy credits</button>
@@ -225,6 +225,7 @@ export default function Home() {
         {view === "templates" && <Templates items={templateItems} setView={setView} flash={flash} search={search} onClearSearch={clearAllFilters} category={category} setCategory={setCategory} sort={sort} formatFilter={formatFilter} creditsFilter={creditsFilter} />}
         {view === "listings" && <Listings items={listingItems} setView={setView} />}
         {view === "videos" && <MyVideos items={videoItems} onOpenVideo={setSelectedVideo} />}
+        {view === "integrations" && <Integrations flash={flash} />}
         {view === "review" && <Review flash={flash} />}
 
         <nav className="mobile-nav" aria-label="Mobile navigation">
@@ -342,6 +343,47 @@ function VideoModal({ video, onClose, flash }: { video: VideoItem; onClose: () =
       </div>
     </div>
   </div>;
+}
+
+function Integrations({ flash }: { flash: (m: string) => void }) {
+  return <div className="page integrations-page">
+    <div className="page-intro intro-row">
+      <div><p className="eyebrow">Workspace</p><h1>Integrations.</h1><p>Connect your listing sources to import properties automatically.</p></div>
+      <span className="sources-count">1/2 SOURCES</span>
+    </div>
+
+    <div className="panel-heading standalone"><p className="eyebrow">Connected sources</p><h3>1 active</h3></div>
+    <div className="source-card">
+      <span className="source-icon zillow"><ZillowMark /></span>
+      <div className="source-copy">
+        <h3>Zillow</h3>
+        <p>Connected as <b>North &amp; West Realty</b> · 3 listings synced</p>
+        <small>Last synced 2 hours ago</small>
+      </div>
+      <div className="source-actions">
+        <button onClick={() => flash("Syncing your Zillow listings…")}>↻ Sync now</button>
+        <button className="danger" onClick={() => flash("Disconnecting Zillow would remove synced listings")}>Disconnect</button>
+      </div>
+    </div>
+
+    <div className="panel-heading standalone"><p className="eyebrow">Available integrations</p><h3>1 more platform</h3></div>
+    <div className="integrations-grid">
+      <article className="integration-card disabled">
+        <span className="source-icon airbnb"><AirbnbMark /></span>
+        <h3>Airbnb</h3>
+        <p>Import your short-term rental listings and turn them into home tours.</p>
+        <button disabled onClick={() => flash("Airbnb sync is coming soon")}>Coming soon</button>
+      </article>
+    </div>
+  </div>;
+}
+
+function ZillowMark() {
+  return <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2 3 9v13h6v-7h6v7h6V9L12 2z" fill="#fff" /></svg>;
+}
+
+function AirbnbMark() {
+  return <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2C9 7 4 12.5 4 16a8 8 0 0 0 16 0c0-3.5-5-9-8-14z" fill="#fff" /></svg>;
 }
 
 function Review({ flash }: { flash: (m: string) => void }) {
