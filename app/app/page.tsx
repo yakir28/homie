@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { getSupabaseBrowserClient } from "../../lib/supabase/client";
 
-type View = "overview" | "templates" | "favorites" | "listings" | "review" | "videos" | "integrations";
+type View = "overview" | "templates" | "favorites" | "listings" | "review" | "videos" | "integrations" | "profile";
 
 const nav = [
   { id: "overview" as View, label: "Overview", icon: "⌂" },
@@ -69,6 +69,8 @@ export default function Home() {
   const [displayName, setDisplayName] = useState("Agent");
   const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set());
   const [userId, setUserId] = useState("");
+  const [profileDetails, setProfileDetails] = useState({ email: "", displayName: "", bio: "", phone: "", jobTitle: "", companyName: "" });
+  const [savingProfile, setSavingProfile] = useState(false);
 
   useEffect(() => {
     const supabase = getSupabaseBrowserClient();
@@ -84,15 +86,17 @@ export default function Home() {
       if (!active) return;
       setUserId(session.user.id);
       setDisplayName(session.user.user_metadata.display_name ?? session.user.email?.split("@")[0] ?? "Agent");
+      setProfileDetails((current) => ({ ...current, email: session.user.email ?? "" }));
       const { data: workspaceId, error: workspaceError } = await supabase.rpc("bootstrap_workspace", { workspace_name: "My Homie Workspace" });
       if (workspaceError) flash(workspaceError.message);
 
-      const [{ data: catalog }, { data: wallet }, { data: homes }, { data: projects }, { data: savedFavorites }] = await Promise.all([
+      const [{ data: catalog }, { data: wallet }, { data: homes }, { data: projects }, { data: savedFavorites }, { data: profile }] = await Promise.all([
         supabase.from("video_templates").select("id, name, style_label, format, duration_seconds, credits_cost, thumbnail_url, is_featured, sort_order").eq("is_active", true).order("sort_order"),
         workspaceId ? supabase.from("credit_wallets").select("balance").eq("workspace_id", workspaceId).maybeSingle() : Promise.resolve({ data: null }),
         workspaceId ? supabase.from("listings").select("id, address_line1, city, region, price, cover_photo_url, status, listing_photos(count), video_projects(count)").eq("workspace_id", workspaceId).order("created_at", { ascending: false }) : Promise.resolve({ data: null }),
         workspaceId ? supabase.from("video_projects").select("title, status, output_format, duration_seconds, credits_charged, created_at, listings(address_line1, city, region, price, cover_photo_url, listing_photos(count)), video_templates(style_label, thumbnail_url)").eq("workspace_id", workspaceId).order("created_at", { ascending: false }) : Promise.resolve({ data: null }),
         supabase.from("template_favorites").select("template_id").eq("user_id", session.user.id),
+        supabase.from("profiles").select("display_name, bio, phone, job_title, company_name").eq("id", session.user.id).maybeSingle(),
       ]);
 
       if (!active) return;
@@ -107,6 +111,18 @@ export default function Home() {
         size: index === 0 ? "tall" : item.format === "16:9" ? "wide" : "normal",
       })));
       setFavoriteIds(new Set(savedFavorites?.map((favorite) => favorite.template_id) ?? []));
+      if (profile) {
+        const nextName = profile.display_name ?? session.user.email?.split("@")[0] ?? "Agent";
+        setDisplayName(nextName);
+        setProfileDetails({
+          email: session.user.email ?? "",
+          displayName: nextName,
+          bio: profile.bio ?? "",
+          phone: profile.phone ?? "",
+          jobTitle: profile.job_title ?? "",
+          companyName: profile.company_name ?? "",
+        });
+      }
       if (homes?.length) setListingItems(homes.map((home) => ({
         address: home.address_line1,
         city: [home.city, home.region].filter(Boolean).join(", "),
@@ -192,6 +208,22 @@ export default function Home() {
     flash(isFavorite ? "Removed from favorites" : "Saved to favorites");
   }
 
+  async function saveProfile() {
+    if (!userId) return;
+    setSavingProfile(true);
+    const { error } = await getSupabaseBrowserClient().from("profiles").update({
+      display_name: profileDetails.displayName.trim() || null,
+      bio: profileDetails.bio.trim() || null,
+      phone: profileDetails.phone.trim() || null,
+      job_title: profileDetails.jobTitle.trim() || null,
+      company_name: profileDetails.companyName.trim() || null,
+    }).eq("id", userId);
+    setSavingProfile(false);
+    if (error) return flash(error.message);
+    setDisplayName(profileDetails.displayName.trim() || "Agent");
+    flash("Profile saved");
+  }
+
   return (
     <main className="app-shell" data-theme={theme}>
       <aside className="sidebar">
@@ -216,7 +248,7 @@ export default function Home() {
           {profileOpen && <>
             <button className="menu-backdrop" aria-hidden="true" onClick={() => setProfileOpen(false)} />
             <div className="profile-menu" role="menu">
-              <button role="menuitem" onClick={() => { flash("Profile opened"); setProfileOpen(false); }}><UserIcon />Profile</button>
+              <button role="menuitem" onClick={() => { changeView("profile"); setProfileOpen(false); }}><UserIcon />Profile</button>
               <button role="menuitem" onClick={() => { flash("Settings opened"); setProfileOpen(false); }}><SettingsIcon />Settings</button>
               <button role="menuitem" onClick={() => { flash("Help opened"); setProfileOpen(false); }}><HelpIcon />Help</button>
               <button role="menuitem" onClick={() => { setTheme((t) => (t === "dark" ? "light" : "dark")); setProfileOpen(false); }}>{theme === "dark" ? <SunIcon /> : <MoonIcon />}{theme === "dark" ? "Light Mode" : "Dark Mode"}</button>
@@ -257,6 +289,7 @@ export default function Home() {
         {view === "listings" && <Listings items={listingItems} setView={setView} />}
         {view === "videos" && <MyVideos items={videoItems} onOpenVideo={setSelectedVideo} />}
         {view === "integrations" && <Integrations flash={flash} />}
+        {view === "profile" && <ProfilePage details={profileDetails} onChange={setProfileDetails} onSave={saveProfile} saving={savingProfile} favoriteCount={favoriteIds.size} videoCount={videoItems.length} />}
         {view === "review" && <Review flash={flash} />}
 
         <nav className="mobile-nav" aria-label="Mobile navigation">
@@ -325,8 +358,7 @@ function Templates({ items, favoriteIds, onToggleFavorite, favoritesOnly = false
 
 function Listings({ items, setView }: { items: ListingItem[]; setView: (v: View) => void }) {
   return <div className="page listings-page">
-    <div className="page-intro intro-row"><div><p className="eyebrow">Synced from Zillow</p><h1>Your listings.</h1><p>Select a home and turn its photos into a polished video tour.</p></div><button className="outline-btn">↻ Sync listings</button></div>
-    <div className="listing-tools"><div><button className="active">All <b>3</b></button><button>Active <b>2</b></button><button>Pending <b>1</b></button></div></div>
+    <div className="page-intro intro-row"><div><p className="eyebrow">Synced from Zillow</p><h1>My listings.</h1><p>Select a home and turn its photos into a polished video tour.</p></div><button className="outline-btn">↻ Sync listings</button></div>
     <div className="listings-grid">{items.map((listing) => <article className="listing-card" key={listing.address}><div className="listing-image"><img src={listing.image} alt={listing.address} /><span className={listing.status === "Active" ? "active" : "pending"}>● {listing.status}</span><button aria-label="More options">•••</button></div><div className="listing-copy"><p className="eyebrow">{listing.city}</p><h2>{listing.address}</h2><p className="price">{listing.price}</p><div className="listing-meta"><span><b>{listing.photos}</b> Photos</span><span><b>{listing.videos}</b> Videos</span></div><button onClick={() => setView("templates")}>{listing.videos ? "Create another video" : "Create video"}<span>→</span></button></div></article>)}</div>
   </div>;
 }
@@ -377,6 +409,52 @@ function VideoModal({ video, onClose, flash }: { video: VideoItem; onClose: () =
   </div>;
 }
 
+type ProfileDetails = { email: string; displayName: string; bio: string; phone: string; jobTitle: string; companyName: string };
+
+function ProfilePage({ details, onChange, onSave, saving, favoriteCount, videoCount }: { details: ProfileDetails; onChange: (details: ProfileDetails) => void; onSave: () => Promise<void>; saving: boolean; favoriteCount: number; videoCount: number }) {
+  const initials = details.displayName.trim().split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase() || "H";
+  const update = (field: keyof ProfileDetails, value: string) => onChange({ ...details, [field]: value });
+
+  return <div className="page profile-page">
+    <section className="profile-cover">
+      <div className="profile-cover-pattern" />
+      <div className="profile-avatar-large" aria-label={`${details.displayName || "Homie agent"} avatar`}>{initials}</div>
+    </section>
+
+    <section className="profile-heading">
+      <div>
+        <p className="eyebrow">Agent profile</p>
+        <h1>{details.displayName || "Your profile"}.</h1>
+        <p>{details.jobTitle || "Real estate agent"}{details.companyName ? ` · ${details.companyName}` : ""}</p>
+      </div>
+      <button className="profile-save-top" onClick={() => void onSave()} disabled={saving}>{saving ? "Saving…" : "Save profile"}</button>
+    </section>
+
+    <div className="profile-layout">
+      <section className="profile-form-card">
+        <div className="profile-section-title"><div><p className="eyebrow">Personal details</p><h2>About you</h2></div><span>Visible to your workspace</span></div>
+        <div className="profile-form-grid">
+          <label><span>Display name</span><input value={details.displayName} onChange={(event) => update("displayName", event.target.value)} placeholder="Your name" maxLength={120} /></label>
+          <label><span>Email address</span><input value={details.email} readOnly aria-readonly="true" /></label>
+          <label><span>Job title</span><input value={details.jobTitle} onChange={(event) => update("jobTitle", event.target.value)} placeholder="Real estate agent" maxLength={100} /></label>
+          <label><span>Company</span><input value={details.companyName} onChange={(event) => update("companyName", event.target.value)} placeholder="Your brokerage or office" maxLength={120} /></label>
+          <label><span>Phone</span><input type="tel" value={details.phone} onChange={(event) => update("phone", event.target.value)} placeholder="+1 555 000 0000" /></label>
+          <label className="profile-bio"><span>Bio <small>{details.bio.length}/280</small></span><textarea value={details.bio} onChange={(event) => update("bio", event.target.value)} placeholder="Tell your team a little about yourself and the homes you represent." maxLength={280} rows={5} /></label>
+        </div>
+        <div className="profile-form-actions"><button onClick={() => void onSave()} disabled={saving}>{saving ? "Saving…" : "Save changes"}</button></div>
+      </section>
+
+      <aside className="profile-side-card">
+        <p className="eyebrow">Your Homie</p><h2>Workspace activity</h2>
+        <div className="profile-stats"><span><b>{videoCount}</b><small>Videos</small></span><span><b>{favoriteCount}</b><small>Favorites</small></span></div>
+        <div className="profile-completion"><div><b>Profile strength</b><small>{details.displayName && details.bio && details.jobTitle ? "Complete" : "Add more details"}</small></div><span>{details.displayName && details.bio && details.jobTitle ? "100%" : "60%"}</span></div>
+        <div className="profile-progress"><i style={{ width: details.displayName && details.bio && details.jobTitle ? "100%" : "60%" }} /></div>
+        <p className="profile-tip">A complete profile helps office teams recognize who created and approved each home tour.</p>
+      </aside>
+    </div>
+  </div>;
+}
+
 function Integrations({ flash }: { flash: (m: string) => void }) {
   return <div className="page integrations-page">
     <div className="page-intro intro-row">
@@ -384,7 +462,7 @@ function Integrations({ flash }: { flash: (m: string) => void }) {
       <span className="sources-count">1/2 SOURCES</span>
     </div>
 
-    <div className="panel-heading standalone"><p className="eyebrow">Connected sources</p><h3>1 active</h3></div>
+    <div className="panel-heading standalone"><p className="eyebrow">Platforms</p><h3>2 total · 1 connected</h3></div>
     <div className="integrations-grid">
       <article className="integration-card connected">
         <span className="source-icon"><img src="/integrations/zillow-logo.jpeg" alt="Zillow logo" /></span>
@@ -396,10 +474,6 @@ function Integrations({ flash }: { flash: (m: string) => void }) {
           <button className="danger" onClick={() => flash("Disconnecting Zillow would remove synced listings")}>Disconnect</button>
         </div>
       </article>
-    </div>
-
-    <div className="panel-heading standalone"><p className="eyebrow">Available integrations</p><h3>1 more platform</h3></div>
-    <div className="integrations-grid">
       <article className="integration-card disabled">
         <span className="source-icon"><img src="/integrations/airbnb-logo.webp" alt="Airbnb logo" /></span>
         <h3>Airbnb</h3>
