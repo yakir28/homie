@@ -71,6 +71,7 @@ export default function Home() {
   const [userId, setUserId] = useState("");
   const [profileDetails, setProfileDetails] = useState({ email: "", displayName: "", bio: "", phone: "", jobTitle: "", companyName: "" });
   const [savingProfile, setSavingProfile] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
     const supabase = getSupabaseBrowserClient();
@@ -224,6 +225,12 @@ export default function Home() {
     flash("Profile saved");
   }
 
+  async function changePassword(password: string) {
+    const { error } = await getSupabaseBrowserClient().auth.updateUser({ password });
+    if (error) return flash(error.message);
+    flash("Password updated");
+  }
+
   return (
     <main className="app-shell" data-theme={theme}>
       <aside className="sidebar">
@@ -249,7 +256,7 @@ export default function Home() {
             <button className="menu-backdrop" aria-hidden="true" onClick={() => setProfileOpen(false)} />
             <div className="profile-menu" role="menu">
               <button role="menuitem" onClick={() => { changeView("profile"); setProfileOpen(false); }}><UserIcon />Profile</button>
-              <button role="menuitem" onClick={() => { flash("Settings opened"); setProfileOpen(false); }}><SettingsIcon />Settings</button>
+              <button role="menuitem" onClick={() => { setSettingsOpen(true); setProfileOpen(false); }}><SettingsIcon />Settings</button>
               <button role="menuitem" onClick={() => { flash("Help opened"); setProfileOpen(false); }}><HelpIcon />Help</button>
               <button role="menuitem" onClick={() => { setTheme((t) => (t === "dark" ? "light" : "dark")); setProfileOpen(false); }}>{theme === "dark" ? <SunIcon /> : <MoonIcon />}{theme === "dark" ? "Light Mode" : "Dark Mode"}</button>
               <div className="profile-menu-divider" />
@@ -298,6 +305,7 @@ export default function Home() {
       </section>
       {toast && <div className="toast"><span>✓</span>{toast}</div>}
       {selectedVideo && <VideoModal video={selectedVideo} onClose={() => setSelectedVideo(null)} flash={flash} />}
+      {settingsOpen && <SettingsModal details={profileDetails} onChange={setProfileDetails} onSave={saveProfile} saving={savingProfile} theme={theme} onThemeChange={setTheme} credits={creditBalance} onPasswordChange={changePassword} onClose={() => setSettingsOpen(false)} flash={flash} />}
     </main>
   );
 }
@@ -410,6 +418,83 @@ function VideoModal({ video, onClose, flash }: { video: VideoItem; onClose: () =
 }
 
 type ProfileDetails = { email: string; displayName: string; bio: string; phone: string; jobTitle: string; companyName: string };
+type SettingsSection = "profile" | "preferences" | "billing" | "security" | "storage";
+
+function SettingsModal({ details, onChange, onSave, saving, theme, onThemeChange, credits, onPasswordChange, onClose, flash }: { details: ProfileDetails; onChange: (details: ProfileDetails) => void; onSave: () => Promise<void>; saving: boolean; theme: "dark" | "light"; onThemeChange: (theme: "dark" | "light") => void; credits: number; onPasswordChange: (password: string) => Promise<void>; onClose: () => void; flash: (message: string) => void }) {
+  const [section, setSection] = useState<SettingsSection>("profile");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
+  const names = details.displayName.trim().split(/\s+/);
+  const firstName = names[0] ?? "";
+  const lastName = names.slice(1).join(" ");
+  const initials = details.displayName.trim().split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase() || "H";
+
+  useEffect(() => {
+    const closeOnEscape = (event: KeyboardEvent) => event.key === "Escape" && onClose();
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [onClose]);
+
+  function updateName(first: string, last: string) {
+    onChange({ ...details, displayName: `${first} ${last}`.trim() });
+  }
+
+  async function submitPassword() {
+    if (password.length < 6) return flash("Password must contain at least 6 characters");
+    if (password !== confirmPassword) return flash("Passwords do not match");
+    setChangingPassword(true);
+    await onPasswordChange(password);
+    setChangingPassword(false);
+    setPassword("");
+    setConfirmPassword("");
+  }
+
+  const sections: { id: SettingsSection; label: string; icon: string }[] = [
+    { id: "profile", label: "Profile", icon: "@" },
+    { id: "preferences", label: "Preferences", icon: "☼" },
+    { id: "billing", label: "Billing", icon: "▭" },
+    { id: "security", label: "Security", icon: "♙" },
+    { id: "storage", label: "Storage", icon: "▱" },
+  ];
+
+  return <div className="settings-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+    <section className="settings-modal" role="dialog" aria-modal="true" aria-label="Settings">
+      <aside className="settings-nav"><p className="eyebrow">Sections</p>{sections.map((item) => <button key={item.id} className={section === item.id ? "active" : ""} onClick={() => setSection(item.id)}><span>{item.icon}</span>{item.label}</button>)}</aside>
+      <div className="settings-content">
+        <button className="settings-close" aria-label="Close settings" onClick={onClose}>×</button>
+
+        {section === "profile" && <div className="settings-section">
+          <h2>Profile</h2><p className="settings-lead">Your name, photo and identity across Homie.</p>
+          <div className="settings-avatar-row"><div className="settings-avatar">{initials}</div><div><b>Profile Photo</b><small>Click to upload (max 5MB)</small></div><button onClick={() => flash("Profile photo upload is coming next")}>Upload →</button></div>
+          <div className="settings-field"><label>Display name</label><input value={details.displayName} onChange={(event) => onChange({ ...details, displayName: event.target.value })} placeholder="Your name" /></div>
+          <div className="settings-field-row"><div className="settings-field"><label>First name</label><input value={firstName} onChange={(event) => updateName(event.target.value, lastName)} /></div><div className="settings-field"><label>Last name</label><input value={lastName} onChange={(event) => updateName(firstName, event.target.value)} /></div></div>
+          <div className="settings-field"><label>Email</label><input value={details.email} readOnly /><small>Email cannot be changed</small></div>
+          <div className="settings-field"><label>Bio</label><textarea value={details.bio} onChange={(event) => onChange({ ...details, bio: event.target.value })} maxLength={280} rows={3} /></div>
+          <div className="settings-actions"><button onClick={() => void onSave()} disabled={saving}>{saving ? "Saving…" : "Save changes"}</button></div>
+        </div>}
+
+        {section === "preferences" && <div className="settings-section"><h2>Preferences</h2><p className="settings-lead">Appearance and language — how Homie feels for you.</p>
+          <div className="settings-option"><div><b>Appearance</b><small>Switch between light and dark theme</small></div><div className="theme-choice"><button className={theme === "light" ? "active" : ""} onClick={() => onThemeChange("light")} aria-label="Light mode">☼</button><button className={theme === "dark" ? "active" : ""} onClick={() => onThemeChange("dark")} aria-label="Dark mode">◐</button></div></div>
+          <div className="settings-option"><div><b>Language</b><small>Choose your interface language</small></div><div className="language-choice"><button className="active">EN</button><button onClick={() => flash("More languages are coming soon")}>HE</button></div></div>
+        </div>}
+
+        {section === "billing" && <div className="settings-section"><h2>Billing</h2><p className="settings-lead">Your subscription and what is left this cycle.</p>
+          <div className="billing-card"><div><p className="eyebrow">Current plan</p><h3>Free Trial<span>.</span></h3><small>{credits} credits remaining</small></div><button onClick={() => flash("Plans opened")}>Upgrade →</button></div>
+        </div>}
+
+        {section === "security" && <div className="settings-section"><h2>Security</h2><p className="settings-lead">Password and connected accounts.</p>
+          <div className="security-block"><div><b>Change password</b><small>Use at least 6 characters</small></div><div className="password-fields"><input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="New password" /><input type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} placeholder="Confirm password" /><button onClick={() => void submitPassword()} disabled={changingPassword}>{changingPassword ? "Saving…" : "Update →"}</button></div></div>
+          <div className="settings-option"><div><b>Email</b><small>{details.email}</small></div><span className="connected-label">✓ Connected</span></div>
+        </div>}
+
+        {section === "storage" && <div className="settings-section"><h2>Storage</h2><p className="settings-lead">Used and remaining space for your listing media.</p>
+          <div className="storage-heading"><div><b>0</b><span>GB of 5 GB</span></div><small>0%</small></div><div className="storage-bar"><i /></div><p className="storage-note">Free plan · Uploaded listing photos and generated videos will appear here.</p>
+        </div>}
+      </div>
+    </section>
+  </div>;
+}
 
 function ProfilePage({ details, onChange, onSave, saving, favoriteCount, videoCount }: { details: ProfileDetails; onChange: (details: ProfileDetails) => void; onSave: () => Promise<void>; saving: boolean; favoriteCount: number; videoCount: number }) {
   const initials = details.displayName.trim().split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase() || "H";
