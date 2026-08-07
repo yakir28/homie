@@ -2,135 +2,193 @@
 
 import { useState } from "react";
 
-type View = "overview" | "templates" | "listings" | "review";
-
-const nav = [
-  { id: "overview" as View, label: "Overview", icon: "⌂" },
-  { id: "templates" as View, label: "Templates", icon: "◇" },
-  { id: "listings" as View, label: "Listings", icon: "▤" },
-  { id: "review" as View, label: "My videos", icon: "▷" },
+const navLinks = [
+  { label: "Product", href: "#top" },
+  { label: "How it works", href: "#how-it-works" },
+  { label: "Templates", href: "#templates" },
+  { label: "Use cases", href: "#use-cases" },
+  { label: "Pricing", href: "#pricing" },
+  { label: "FAQ", href: "#faq" },
 ];
 
-const templates = [
-  { title: "Quiet Luxury", tag: "Cinematic", format: "9:16", time: "24 sec", credits: 18, image: "/homes/modern-villa.jpg", size: "tall" },
-  { title: "Sunday Light", tag: "Warm & airy", format: "9:16", time: "18 sec", credits: 14, image: "/homes/living-room.jpg", size: "normal" },
-  { title: "The Detail Edit", tag: "Editorial", format: "1:1", time: "20 sec", credits: 16, image: "/homes/kitchen.jpg", size: "normal" },
-  { title: "Modern Living", tag: "Minimal", format: "16:9", time: "30 sec", credits: 22, image: "/homes/lounge.jpg", size: "wide" },
-  { title: "Welcome Home", tag: "Family", format: "9:16", time: "22 sec", credits: 16, image: "/homes/dining.jpg", size: "normal" },
+const steps = [
+  { n: "01", title: "Connect Zillow", body: "Import a listing and its photos in one click — no re-uploading, no re-typing." },
+  { n: "02", title: "Choose a template", body: "Pick a curated visual style. No prompting, no video-editing experience needed." },
+  { n: "03", title: "Approve & share", body: "Review your tour, approve it, and download it for Reels, TikTok, Stories, or Zillow." },
 ];
 
-const listings = [
-  { address: "814 Palisade Avenue", city: "Austin, TX", price: "$1,285,000", photos: 28, videos: 2, image: "/homes/modern-villa.jpg", status: "Active" },
-  { address: "2904 Hollow Creek", city: "Austin, TX", price: "$925,000", photos: 34, videos: 0, image: "/homes/living-room.jpg", status: "Active" },
-  { address: "62 Juniper Lane", city: "Round Rock, TX", price: "$748,000", photos: 22, videos: 1, image: "/homes/dining.jpg", status: "Pending" },
+const logos = ["Compass", "Redfin Partners", "eXp Realty", "North & West", "Century Realty"];
+
+const templatePreviews = [
+  { title: "Quiet Luxury", tag: "Cinematic", image: "/homes/modern-villa.jpg" },
+  { title: "Sunday Light", tag: "Warm & airy", image: "/homes/living-room.jpg" },
+  { title: "The Detail Edit", tag: "Editorial", image: "/homes/kitchen.jpg" },
 ];
 
-export default function Home() {
-  const [view, setView] = useState<View>("templates");
-  const [toast, setToast] = useState("");
+const useCases = [
+  { title: "Solo agents", body: "Turn every new listing into a polished tour in minutes — no editing skills, no extra hires, no waiting on a videographer.", cta: "For solo agents" },
+  { title: "Office teams", body: "Give every agent on your team the same premium look, synced straight from Zillow, with shared templates and brand-consistent output.", cta: "For teams" },
+];
 
-  function flash(message: string) {
-    setToast(message);
-    window.setTimeout(() => setToast(""), 2600);
+const pricingTiers = [
+  { name: "Solo Agent", tagline: "For individual agents just getting started with video.", features: ["Zillow sync for one account", "Curated template library", "Reels, TikTok & Stories exports", "Included monthly credits"] },
+  { name: "Office Team", tagline: "For real-estate teams who want a consistent, on-brand look.", features: ["Everything in Solo Agent", "Shared team workspace", "Multiple agent seats", "Priority support"], highlighted: true },
+];
+
+const faqs = [
+  { q: "Do I need any video-editing experience?", a: "No. You choose a template and Homie handles the rest — no timelines, no prompts, no software to learn." },
+  { q: "Will anything publish without my approval?", a: "Never. Every generated video goes into an awaiting-approval state. Nothing is published, downloaded, or shared until you explicitly approve it." },
+  { q: "What happens during the free trial?", a: "You get a set number of credits to generate real tours from your own listings — no credit card required to start." },
+  { q: "Can I use my own photos instead of Zillow?", a: "Zillow sync is the fastest way to start, and direct photo upload is on our roadmap for listings outside of Zillow." },
+];
+
+export default function Marketing() {
+  const [announceOpen, setAnnounceOpen] = useState(true);
+  const [cookieOpen, setCookieOpen] = useState(true);
+  const [navOpen, setNavOpen] = useState(false);
+  const [openFaq, setOpenFaq] = useState(0);
+
+  function jumpTo(e: React.MouseEvent, id: string) {
+    e.preventDefault();
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+    history.replaceState(null, "", `#${id}`);
+    setNavOpen(false);
   }
 
   return (
-    <main className="app-shell">
-      <aside className="sidebar">
-        <button className="brand" onClick={() => setView("overview")} aria-label="Homie overview">homie<span>.</span></button>
-        <nav aria-label="Main navigation">
-          <button onClick={() => setView("overview")} className={view === "overview" ? "active" : ""}><span>•</span>Getting started <small>2/3</small></button>
-          <button onClick={() => setView("templates")} className={view === "templates" ? "active" : ""}><span>•</span>Explore</button>
-          <button onClick={() => setView("review")} className={view === "review" ? "active" : ""}><span>•</span>My videos</button>
-          <button onClick={() => flash("Favorites opened")}><span>•</span>Favorites</button>
-          <p className="nav-label">Business</p>
-          <button onClick={() => setView("listings")} className={view === "listings" ? "active" : ""}><span>•</span>My listings</button>
-          <button onClick={() => flash("Zillow is connected and synced")}><span>•</span>Integrations</button>
-          <p className="nav-label">Team</p>
-          <button onClick={() => flash("Team management is coming next")}><span>•</span>Members</button>
-          <div className="sidebar-divider" />
-          <button onClick={() => flash("Subscription settings opened")}><span>•</span>Subscribe</button>
-          <button onClick={() => flash("Credit top-ups are coming soon")}><span>•</span>Buy credits</button>
-          <button onClick={() => flash("Activity opened")}><span className="activity-dot">•</span>Activity</button>
-        </nav>
-        <div className="sidebar-bottom">
-          <button className="profile"><span className="profile-avatar">♙</span><span><b>yakir.15</b><small>142 credits</small></span><i>⌄</i></button>
+    <main className="marketing-page" id="top">
+      {announceOpen && (
+        <div className="announce-bar">
+          <p><span className="announce-tag">● New</span>Zillow-synced templates are live. <a href="/login">Try it free →</a></p>
+          <button aria-label="Dismiss announcement" onClick={() => setAnnounceOpen(false)}>×</button>
         </div>
-      </aside>
+      )}
 
-      <section className="main-panel">
-        <header className="topbar">
-          <button className="mobile-brand" onClick={() => setView("overview")}>homie<span>.</span></button>
-          <label className="global-search"><span>⌕</span><input aria-label="Search Homie" placeholder={view === "templates" ? "Search templates..." : "Search Homie..."} /></label>
-          <button className="filter-square" onClick={() => flash("Filters opened")} aria-label="Open filters">☷</button>
-        </header>
-
-        {view === "overview" && <Overview setView={setView} />}
-        {view === "templates" && <Templates setView={setView} flash={flash} />}
-        {view === "listings" && <Listings setView={setView} />}
-        {view === "review" && <Review flash={flash} />}
-
-        <nav className="mobile-nav" aria-label="Mobile navigation">
-          {nav.map((item) => <button key={item.id} className={view === item.id ? "active" : ""} onClick={() => setView(item.id)}><span>{item.icon}</span>{item.label === "My videos" ? "Videos" : item.label}</button>)}
+      <header className="marketing-nav">
+        <a className="marketing-brand" href="#top" onClick={(e) => jumpTo(e, "top")}>homie<span>.</span></a>
+        <nav className="marketing-links" aria-label="Main">
+          {navLinks.map((l) => <a key={l.label} href={l.href} onClick={(e) => jumpTo(e, l.href.slice(1))}>{l.label}</a>)}
         </nav>
+        <div className="marketing-actions">
+          <a className="marketing-login" href="/login">Log in</a>
+          <a className="marketing-cta" href="/login">Get started <span>→</span></a>
+        </div>
+        <button className="marketing-burger" aria-label="Open menu" aria-expanded={navOpen} onClick={() => setNavOpen((v) => !v)}><span /><span /><span /></button>
+      </header>
+
+      {navOpen && (
+        <div className="marketing-mobile-menu">
+          {navLinks.map((l) => <a key={l.label} href={l.href} onClick={(e) => jumpTo(e, l.href.slice(1))}>{l.label}</a>)}
+          <div className="marketing-mobile-actions">
+            <a href="/login">Log in</a>
+            <a className="marketing-cta" href="/login">Get started <span>→</span></a>
+          </div>
+        </div>
+      )}
+
+      <section className="marketing-hero">
+        <p className="hero-kicker">— The listing video, rewritten —</p>
+        <h1>Turn listing photos into<br />home tours that <i>move.</i></h1>
+        <p className="hero-sub">Turn ordinary listing photos into scroll-stopping video tours that get more views, saves, and offers.</p>
+        <a className="hero-cta" href="/login">Create your first tour <span>→</span></a>
+        <p className="hero-note">Free trial · No credit card needed</p>
+
+        <div className="compare-grid">
+          <figure className="compare-before">
+            <figcaption>Your listing</figcaption>
+            <img src="/homes/modern-villa.jpg" alt="Original listing photo" />
+          </figure>
+          <div className="compare-arrow" aria-hidden="true">→</div>
+          <figure className="compare-after">
+            <figcaption>The result</figcaption>
+            <div className="compare-video">
+              <span className="compare-badge">9:16</span>
+              <img src="/homes/modern-villa.jpg" alt="Generated home tour video" />
+              <div className="compare-shade" />
+              <div className="compare-brand">homie.</div>
+              <div className="compare-copy"><p>Now presenting</p><h3>814 Palisade<br />Avenue</h3></div>
+              <button aria-label="Play preview">▶</button>
+            </div>
+          </figure>
+        </div>
       </section>
-      {toast && <div className="toast"><span>✓</span>{toast}</div>}
+
+      <section className="marketing-logos">
+        <p>Trusted by agents and teams at</p>
+        <div>{logos.map((l) => <span key={l}>{l}</span>)}</div>
+      </section>
+
+      <section className="marketing-steps" id="how-it-works">
+        <p className="section-kicker">How it works</p>
+        <h2>From listing to home tour<br /><i>in three steps.</i></h2>
+        <div className="steps-grid">
+          {steps.map((s) => <div className="step-card" key={s.n}><span>{s.n}</span><h3>{s.title}</h3><p>{s.body}</p></div>)}
+        </div>
+      </section>
+
+      <section className="marketing-templates" id="templates">
+        <p className="section-kicker">Templates</p>
+        <h2>A style for every<br /><i>listing and mood.</i></h2>
+        <div className="templates-preview-grid">
+          {templatePreviews.map((t) => <article className="template-preview-card" key={t.title}>
+            <img src={t.image} alt={`${t.title} template preview`} /><div className="card-shade" />
+            <div className="card-copy"><p className="eyebrow">{t.tag}</p><h3>{t.title}</h3></div>
+          </article>)}
+        </div>
+        <a className="marketing-inline-link" href="/login">Explore the full template library <span>→</span></a>
+      </section>
+
+      <section className="marketing-use-cases" id="use-cases">
+        <p className="section-kicker">Use cases</p>
+        <h2>Built for solo agents<br /><i>and office teams.</i></h2>
+        <div className="use-cases-grid">
+          {useCases.map((u) => <div className="use-case-card" key={u.title}><span>{u.cta}</span><h3>{u.title}</h3><p>{u.body}</p></div>)}
+        </div>
+      </section>
+
+      <section className="marketing-pricing" id="pricing">
+        <p className="section-kicker">Pricing</p>
+        <h2>Simple plans that<br /><i>grow with you.</i></h2>
+        <div className="pricing-grid">
+          {pricingTiers.map((t) => <div className={t.highlighted ? "pricing-card highlighted" : "pricing-card"} key={t.name}>
+            {t.highlighted && <span className="pricing-badge">Most popular</span>}
+            <h3>{t.name}</h3><p className="pricing-tagline">{t.tagline}</p>
+            <ul>{t.features.map((f) => <li key={f}>✓ {f}</li>)}</ul>
+            <a className={t.highlighted ? "hero-cta" : "outline-cta"} href="/login">Start free trial <span>→</span></a>
+          </div>)}
+        </div>
+        <p className="pricing-note">Final pricing is confirmed before your trial ends — no surprise charges.</p>
+      </section>
+
+      <section className="marketing-faq" id="faq">
+        <p className="section-kicker">FAQ</p>
+        <h2>Questions,<br /><i>answered.</i></h2>
+        <div className="faq-list">
+          {faqs.map((f, i) => <div className={openFaq === i ? "faq-item open" : "faq-item"} key={f.q}>
+            <button onClick={() => setOpenFaq(openFaq === i ? -1 : i)} aria-expanded={openFaq === i}>{f.q}<span>{openFaq === i ? "−" : "+"}</span></button>
+            {openFaq === i && <p>{f.a}</p>}
+          </div>)}
+        </div>
+      </section>
+
+      <section className="marketing-cta-band">
+        <h2>Your next listing deserves<br /><i>more than a slideshow.</i></h2>
+        <a className="hero-cta" href="/login">Start free <span>→</span></a>
+      </section>
+
+      <footer className="marketing-footer">
+        <div className="marketing-brand">homie<span>.</span></div>
+        <p>© 2026 Homie. Listing photos in. Home tours out.</p>
+        <div className="marketing-footer-links"><a href="#">Terms</a><a href="#">Privacy</a><a href="/login">Log in</a></div>
+      </footer>
+
+      {cookieOpen && (
+        <div className="cookie-banner">
+          <p className="announce-tag">● Cookies</p>
+          <p>We use cookies for authentication and analytics, to keep this studio running. <a href="#">Learn more</a></p>
+          <div><button className="cookie-accept" onClick={() => setCookieOpen(false)}>Accept</button><button className="cookie-dismiss" onClick={() => setCookieOpen(false)}>Dismiss</button></div>
+        </div>
+      )}
     </main>
   );
-}
-
-function Overview({ setView }: { setView: (v: View) => void }) {
-  return <div className="page overview-page">
-    <div className="page-intro intro-row"><div><p className="eyebrow">Thursday, August 6</p><h1>Good evening, Yakir.</h1><p>Three listings are ready to turn into something worth watching.</p></div><button className="outline-btn" onClick={() => setView("listings")}>View all listings <span>→</span></button></div>
-    <section className="hero-card">
-      <img src="/homes/modern-villa.jpg" alt="Contemporary home at 814 Palisade Avenue" />
-      <div className="hero-shade" />
-      <div className="hero-copy"><span className="live-pill">● Zillow synced</span><p className="eyebrow">Featured listing</p><h2>814 Palisade Avenue</h2><p>Austin, TX · $1,285,000 · 28 photos</p><button onClick={() => setView("templates")}>Create a home tour <span>→</span></button></div>
-      <div className="hero-count"><b>01</b><span /><small>03</small></div>
-    </section>
-    <div className="dashboard-grid">
-      <section className="panel recent-panel"><div className="panel-heading"><div><p className="eyebrow">In progress</p><h3>Your recent videos</h3></div><button onClick={() => setView("review")}>View all →</button></div>
-        <div className="video-row"><div className="video-thumb"><img src="/homes/kitchen.jpg" alt="Bright modern kitchen" /><button aria-label="Play video">▶</button></div><div className="video-info"><span className="status amber">Awaiting approval</span><h4>Sunday Light</h4><p>2904 Hollow Creek</p><small>Story · 18 sec</small></div><button className="review-btn" onClick={() => setView("review")}>Review</button></div>
-        <div className="video-row compact"><div className="video-thumb"><img src="/homes/dining.jpg" alt="Modern dining room" /><button aria-label="Play video">▶</button></div><div className="video-info"><span className="status green">Approved</span><h4>Welcome Home</h4><p>62 Juniper Lane</p><small>Reel · 22 sec</small></div><button className="dots">•••</button></div>
-      </section>
-      <aside className="panel setup-panel"><div className="panel-heading"><div><p className="eyebrow">Quick start</p><h3>You're almost set</h3></div><b>2/3</b></div><div className="progress"><i /></div>
-        <div className="check-row done"><span>✓</span><div><b>Create your workspace</b><small>North & West Realty</small></div></div>
-        <div className="check-row done"><span>✓</span><div><b>Connect Zillow</b><small>3 listings synced</small></div></div>
-        <button className="check-row current" onClick={() => setView("templates")}><span>3</span><div><b>Create your first tour</b><small>Choose a template to begin</small></div><i>→</i></button>
-      </aside>
-    </div>
-  </div>;
-}
-
-function Templates({ setView, flash }: { setView: (v: View) => void; flash: (m: string) => void }) {
-  const [filter, setFilter] = useState("All");
-  return <div className="page templates-page">
-    <div className="content-tabs"><button className="active">Templates</button><button onClick={() => setView("review")}>My videos</button><button onClick={() => flash("Favorites opened")}>Favorites</button></div>
-    <div className="filter-row">{["All", "Luxury", "Modern", "Warm", "Cinematic", "Minimal", "Coastal", "Urban", "Family", "Fast-paced", "Zillow"].map((name) => <button key={name} onClick={() => setFilter(name)} className={filter === name ? "active" : ""}>{name}</button>)}</div>
-    <div className="template-grid">
-      <article className="template-start"><span className="eyebrow">Not sure where to start?</span><h2>Let the home<br /><i>lead the way.</i></h2><p>Choose a listing and we'll recommend templates that fit its mood and architecture.</p><button onClick={() => setView("listings")}>Choose a listing →</button></article>
-      {templates.map((template, index) => <article className={`template-card ${template.size}`} key={template.title} onClick={() => setView("review")} tabIndex={0} onKeyDown={(e) => e.key === "Enter" && setView("review")}>
-        <img src={template.image} alt={`${template.title} real estate video template`} /><div className="card-shade" /><div className="card-top"><span>{index === 0 ? "Featured" : template.tag}</span><button aria-label={`Favorite ${template.title}`} onClick={(e) => { e.stopPropagation(); flash("Saved to favorites"); }}>♡</button></div><button className="play" aria-label={`Preview ${template.title}`}>▶</button><div className="card-copy"><p className="eyebrow">{template.tag}</p><h3>{template.title}</h3><div><span>{template.time}</span><span>{template.format}</span><span>{template.credits} credits</span></div></div>
-      </article>)}
-    </div>
-  </div>;
-}
-
-function Listings({ setView }: { setView: (v: View) => void }) {
-  return <div className="page listings-page">
-    <div className="page-intro intro-row"><div><p className="eyebrow">Synced from Zillow</p><h1>Your listings.</h1><p>Select a home and turn its photos into a polished video tour.</p></div><button className="outline-btn">↻ Sync listings</button></div>
-    <div className="listing-tools"><label><span>⌕</span><input aria-label="Search listings" placeholder="Search by address or city" /></label><div><button className="active">All <b>3</b></button><button>Active <b>2</b></button><button>Pending <b>1</b></button></div></div>
-    <div className="listings-grid">{listings.map((listing) => <article className="listing-card" key={listing.address}><div className="listing-image"><img src={listing.image} alt={listing.address} /><span className={listing.status === "Active" ? "active" : "pending"}>● {listing.status}</span><button aria-label="More options">•••</button></div><div className="listing-copy"><p className="eyebrow">{listing.city}</p><h2>{listing.address}</h2><p className="price">{listing.price}</p><div className="listing-meta"><span><b>{listing.photos}</b> Photos</span><span><b>{listing.videos}</b> Videos</span></div><button onClick={() => setView("templates")}>{listing.videos ? "Create another video" : "Create video"}<span>→</span></button></div></article>)}</div>
-  </div>;
-}
-
-function Review({ flash }: { flash: (m: string) => void }) {
-  const [approved, setApproved] = useState(false);
-  return <div className="page review-page">
-    <div className="review-heading"><button className="back-btn">←</button><div><p className="eyebrow">Video review</p><h1>{approved ? "Your tour is ready." : "One last look."}</h1><p>{approved ? "Approved and ready to download." : "Review the details, then approve your video when it feels right."}</p></div><span className={approved ? "approval-badge approved" : "approval-badge"}>● {approved ? "Approved" : "Awaiting approval"}</span></div>
-    <div className="review-layout">
-      <section className="player-wrap"><div className="phone-video"><img src="/homes/modern-villa.jpg" alt="Video preview for 814 Palisade Avenue" /><div className="phone-shade" /><div className="video-brand">homie.</div><div className="video-overlay"><p>Now presenting</p><h2>814 Palisade<br />Avenue</h2><span>Austin, Texas</span></div><button aria-label="Play home tour">▶</button><div className="timeline"><i /></div></div><div className="player-controls"><button>▶</button><span>00:00 / 00:24</span><div><button>↗</button><button>⛶</button></div></div></section>
-      <aside className="review-details"><div className="detail-block"><p className="eyebrow">Listing</p><div className="mini-listing"><img src="/homes/modern-villa.jpg" alt="814 Palisade Avenue" /><span><b>814 Palisade Avenue</b><small>Austin, TX · $1,285,000</small></span></div></div><div className="detail-block"><p className="eyebrow">Template</p><div className="template-summary"><span><b>Quiet Luxury</b><small>Cinematic · Reel</small></span><button>Change</button></div></div><div className="detail-grid"><span><small>Duration</small><b>24 sec</b></span><span><small>Format</small><b>9:16</b></span><span><small>Photos used</small><b>12 of 28</b></span><span><small>Created</small><b>Aug 6, 2026</b></span></div><div className="credit-note"><span>◒</span><p><b>18 credits used</b><small>Regenerating creates a new version for 18 credits.</small></p></div><div className="review-actions">{!approved ? <><button className="approve-btn" onClick={() => { setApproved(true); flash("Video approved — ready to download"); }}>✓ Approve video</button><button className="regenerate" onClick={() => flash("A new version would cost 18 credits")}>↻ Generate another version</button></> : <><button className="approve-btn" onClick={() => flash("Download started")}>↓ Download video</button><button className="regenerate" onClick={() => flash("Share options opened")}>↗ Share video</button></>}</div><p className="approval-note">Your video won't be published anywhere without your approval.</p></aside>
-    </div>
-  </div>;
 }
