@@ -69,7 +69,7 @@ export default function Login() {
           ))}
         </div>
         <div className="auth-scrim" />
-        <div className="auth-brand">homie<span>.</span></div>
+        <a className="auth-brand" href="/" aria-label="Homie home page">homie<span>.</span></a>
         <div className="auth-collage-copy">
           <p className="eyebrow">● {mode === "login" ? "Welcome back" : "Start free"}</p>
           <h1>

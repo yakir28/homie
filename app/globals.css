@@ -27,7 +27,7 @@
 .auth-grid{position:absolute;inset:0;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:2px}
 .auth-grid img{width:100%;height:100%;object-fit:cover;filter:brightness(.72)}
 .auth-scrim{position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,12,8,.55) 0%,rgba(10,12,8,.15) 38%,rgba(8,10,6,.9) 100%)}
-.auth-brand{position:absolute;top:36px;left:44px;font:700 27px var(--serif);color:#fff;letter-spacing:-1px;z-index:2}
+.auth-brand{position:absolute;top:36px;left:44px;font:700 27px var(--serif);color:#fff;letter-spacing:-1px;text-decoration:none;z-index:2}
 .auth-brand span{color:#a9bb98}
 .auth-collage-copy{position:absolute;left:44px;right:64px;bottom:58px;color:#fff;z-index:2}
 .auth-collage-copy .eyebrow{color:#d7dacd;margin:0 0 16px;font-size:9px}
