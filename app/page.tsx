@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 const navLinks = [
   { label: "Product", href: "#top" },
@@ -17,7 +17,7 @@ const steps = [
   { n: "03", title: "Approve & share", body: "Review your tour, approve it, and download it for Reels, TikTok, Stories, or Zillow." },
 ];
 
-const logos = ["Compass", "Redfin Partners", "eXp Realty", "North & West", "Century Realty"];
+const logos = ["North & West Realty", "Lakeside Properties", "Sierra Home Group", "Maple & Co.", "Harbor District"];
 
 const templatePreviews = [
   { title: "Quiet Luxury", tag: "Cinematic", image: "/homes/modern-villa.jpg" },
@@ -42,11 +42,54 @@ const faqs = [
   { q: "Can I use my own photos instead of Zillow?", a: "Zillow sync is the fastest way to start, and direct photo upload is on our roadmap for listings outside of Zillow." },
 ];
 
+function Reveal({ children, className = "", delay = 0, as: Tag = "div" }: { children: ReactNode; className?: string; delay?: number; as?: "div" | "li" }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          obs.disconnect();
+        }
+      },
+      { threshold: 0.15, rootMargin: "0px 0px -60px 0px" }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
+  const Comp = Tag as "div";
+  return (
+    <Comp ref={ref} className={`reveal ${visible ? "is-visible" : ""} ${className}`} style={{ transitionDelay: `${delay}ms` }}>
+      {children}
+    </Comp>
+  );
+}
+
 export default function Marketing() {
   const [announceOpen, setAnnounceOpen] = useState(true);
   const [cookieOpen, setCookieOpen] = useState(true);
   const [navOpen, setNavOpen] = useState(false);
   const [openFaq, setOpenFaq] = useState(0);
+  const [scrolled, setScrolled] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [tilt, setTilt] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    function onScroll() {
+      const y = window.scrollY;
+      setScrolled(y > 40);
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      setProgress(max > 0 ? Math.min(100, (y / max) * 100) : 0);
+    }
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   function jumpTo(e: React.MouseEvent, id: string) {
     e.preventDefault();
@@ -55,8 +98,17 @@ export default function Marketing() {
     setNavOpen(false);
   }
 
+  function tiltMove(e: React.MouseEvent<HTMLDivElement>) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const px = (e.clientX - rect.left) / rect.width - 0.5;
+    const py = (e.clientY - rect.top) / rect.height - 0.5;
+    setTilt({ x: py * -10, y: px * 14 });
+  }
+
   return (
     <main className="marketing-page" id="top">
+      <div className="scroll-progress" style={{ width: `${progress}%` }} />
+
       {announceOpen && (
         <div className="announce-bar">
           <p><span className="announce-tag">● New</span>Zillow-synced templates are live. <a href="/login">Try it free →</a></p>
@@ -64,7 +116,7 @@ export default function Marketing() {
         </div>
       )}
 
-      <header className="marketing-nav">
+      <header className={scrolled ? "marketing-nav scrolled" : "marketing-nav"}>
         <a className="marketing-brand" href="#top" onClick={(e) => jumpTo(e, "top")}>homie<span>.</span></a>
         <nav className="marketing-links" aria-label="Main">
           {navLinks.map((l) => <a key={l.label} href={l.href} onClick={(e) => jumpTo(e, l.href.slice(1))}>{l.label}</a>)}
@@ -87,21 +139,23 @@ export default function Marketing() {
       )}
 
       <section className="marketing-hero">
-        <p className="hero-kicker">— The listing video, rewritten —</p>
-        <h1>Turn listing photos into<br />home tours that <i>move.</i></h1>
-        <p className="hero-sub">Turn ordinary listing photos into scroll-stopping video tours that get more views, saves, and offers.</p>
-        <a className="hero-cta" href="/login">Create your first tour <span>→</span></a>
-        <p className="hero-note">Free trial · No credit card needed</p>
+        <div className="hero-blob a" aria-hidden="true" />
+        <div className="hero-blob b" aria-hidden="true" />
+        <p className="hero-kicker hero-in" style={{ animationDelay: "40ms" }}>— The listing video, rewritten —</p>
+        <h1 className="hero-in" style={{ animationDelay: "140ms" }}>Turn listing photos into<br />home tours that <i>move.</i></h1>
+        <p className="hero-sub hero-in" style={{ animationDelay: "280ms" }}>Turn ordinary listing photos into scroll-stopping video tours that get more views, saves, and offers.</p>
+        <a className="hero-cta hero-in" style={{ animationDelay: "400ms" }} href="/login">Create your first tour <span>→</span></a>
+        <p className="hero-note hero-in" style={{ animationDelay: "500ms" }}>Free trial · No credit card needed</p>
 
-        <div className="compare-grid">
+        <div className="compare-grid hero-in" style={{ animationDelay: "600ms" }}>
           <figure className="compare-before">
             <figcaption>Your listing</figcaption>
             <img src="/homes/modern-villa.jpg" alt="Original listing photo" />
           </figure>
           <div className="compare-arrow" aria-hidden="true">→</div>
-          <figure className="compare-after">
+          <figure className="compare-after" onMouseMove={tiltMove} onMouseLeave={() => setTilt({ x: 0, y: 0 })}>
             <figcaption>The result</figcaption>
-            <div className="compare-video">
+            <div className="compare-video" style={{ transform: `perspective(900px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) rotate(2deg)` }}>
               <span className="compare-badge">9:16</span>
               <img src="/homes/modern-villa.jpg" alt="Generated home tour video" />
               <div className="compare-shade" />
@@ -114,66 +168,79 @@ export default function Marketing() {
       </section>
 
       <section className="marketing-logos">
-        <p>Trusted by agents and teams at</p>
-        <div>{logos.map((l) => <span key={l}>{l}</span>)}</div>
+        <Reveal><p>Trusted by agents and teams at</p></Reveal>
+        <div className="logos-marquee">
+          <div className="logos-track">
+            {[...logos, ...logos].map((l, i) => <span key={i}>{l}</span>)}
+          </div>
+        </div>
       </section>
 
       <section className="marketing-steps" id="how-it-works">
-        <p className="section-kicker">How it works</p>
-        <h2>From listing to home tour<br /><i>in three steps.</i></h2>
+        <Reveal><p className="section-kicker">How it works</p></Reveal>
+        <Reveal delay={80}><h2>From listing to home tour<br /><i>in three steps.</i></h2></Reveal>
         <div className="steps-grid">
-          {steps.map((s) => <div className="step-card" key={s.n}><span>{s.n}</span><h3>{s.title}</h3><p>{s.body}</p></div>)}
+          {steps.map((s, i) => <Reveal delay={i * 110} key={s.n}><div className="step-card"><span>{s.n}</span><h3>{s.title}</h3><p>{s.body}</p></div></Reveal>)}
         </div>
       </section>
 
       <section className="marketing-templates" id="templates">
-        <p className="section-kicker">Templates</p>
-        <h2>A style for every<br /><i>listing and mood.</i></h2>
+        <Reveal><p className="section-kicker">Templates</p></Reveal>
+        <Reveal delay={80}><h2>A style for every<br /><i>listing and mood.</i></h2></Reveal>
         <div className="templates-preview-grid">
-          {templatePreviews.map((t) => <article className="template-preview-card" key={t.title}>
-            <img src={t.image} alt={`${t.title} template preview`} /><div className="card-shade" />
-            <div className="card-copy"><p className="eyebrow">{t.tag}</p><h3>{t.title}</h3></div>
-          </article>)}
+          {templatePreviews.map((t, i) => <Reveal delay={i * 110} key={t.title}>
+            <article className="template-preview-card">
+              <img src={t.image} alt={`${t.title} template preview`} /><div className="card-shade" />
+              <div className="card-copy"><p className="eyebrow">{t.tag}</p><h3>{t.title}</h3></div>
+            </article>
+          </Reveal>)}
         </div>
-        <a className="marketing-inline-link" href="/login">Explore the full template library <span>→</span></a>
+        <Reveal delay={200}><a className="marketing-inline-link" href="/login">Explore the full template library <span>→</span></a></Reveal>
       </section>
 
       <section className="marketing-use-cases" id="use-cases">
-        <p className="section-kicker">Use cases</p>
-        <h2>Built for solo agents<br /><i>and office teams.</i></h2>
+        <Reveal><p className="section-kicker">Use cases</p></Reveal>
+        <Reveal delay={80}><h2>Built for solo agents<br /><i>and office teams.</i></h2></Reveal>
         <div className="use-cases-grid">
-          {useCases.map((u) => <div className="use-case-card" key={u.title}><span>{u.cta}</span><h3>{u.title}</h3><p>{u.body}</p></div>)}
+          {useCases.map((u, i) => <Reveal delay={i * 120} key={u.title}><div className="use-case-card"><span>{u.cta}</span><h3>{u.title}</h3><p>{u.body}</p></div></Reveal>)}
         </div>
       </section>
 
       <section className="marketing-pricing" id="pricing">
-        <p className="section-kicker">Pricing</p>
-        <h2>Simple plans that<br /><i>grow with you.</i></h2>
+        <Reveal><p className="section-kicker">Pricing</p></Reveal>
+        <Reveal delay={80}><h2>Simple plans that<br /><i>grow with you.</i></h2></Reveal>
         <div className="pricing-grid">
-          {pricingTiers.map((t) => <div className={t.highlighted ? "pricing-card highlighted" : "pricing-card"} key={t.name}>
-            {t.highlighted && <span className="pricing-badge">Most popular</span>}
-            <h3>{t.name}</h3><p className="pricing-tagline">{t.tagline}</p>
-            <ul>{t.features.map((f) => <li key={f}>✓ {f}</li>)}</ul>
-            <a className={t.highlighted ? "hero-cta" : "outline-cta"} href="/login">Start free trial <span>→</span></a>
-          </div>)}
+          {pricingTiers.map((t, i) => <Reveal delay={i * 120} key={t.name}>
+            <div className={t.highlighted ? "pricing-card highlighted" : "pricing-card"}>
+              {t.highlighted && <span className="pricing-badge">Most popular</span>}
+              <h3>{t.name}</h3><p className="pricing-tagline">{t.tagline}</p>
+              <ul>{t.features.map((f) => <li key={f}>✓ {f}</li>)}</ul>
+              <a className={t.highlighted ? "hero-cta" : "outline-cta"} href="/login">Start free trial <span>→</span></a>
+            </div>
+          </Reveal>)}
         </div>
-        <p className="pricing-note">Final pricing is confirmed before your trial ends — no surprise charges.</p>
+        <Reveal delay={200}><p className="pricing-note">Final pricing is confirmed before your trial ends — no surprise charges.</p></Reveal>
       </section>
 
       <section className="marketing-faq" id="faq">
-        <p className="section-kicker">FAQ</p>
-        <h2>Questions,<br /><i>answered.</i></h2>
+        <Reveal><p className="section-kicker">FAQ</p></Reveal>
+        <Reveal delay={80}><h2>Questions,<br /><i>answered.</i></h2></Reveal>
         <div className="faq-list">
-          {faqs.map((f, i) => <div className={openFaq === i ? "faq-item open" : "faq-item"} key={f.q}>
-            <button onClick={() => setOpenFaq(openFaq === i ? -1 : i)} aria-expanded={openFaq === i}>{f.q}<span>{openFaq === i ? "−" : "+"}</span></button>
-            {openFaq === i && <p>{f.a}</p>}
-          </div>)}
+          {faqs.map((f, i) => <Reveal delay={i * 70} key={f.q}>
+            <div className={openFaq === i ? "faq-item open" : "faq-item"}>
+              <button onClick={() => setOpenFaq(openFaq === i ? -1 : i)} aria-expanded={openFaq === i}>
+                {f.q}
+                <span className="faq-toggle-icon" aria-hidden="true"><i /><i /></span>
+              </button>
+              <div className="faq-answer"><div><p>{f.a}</p></div></div>
+            </div>
+          </Reveal>)}
         </div>
       </section>
 
       <section className="marketing-cta-band">
-        <h2>Your next listing deserves<br /><i>more than a slideshow.</i></h2>
-        <a className="hero-cta" href="/login">Start free <span>→</span></a>
+        <Reveal><h2>Your next listing deserves<br /><i>more than a slideshow.</i></h2></Reveal>
+        <Reveal delay={120}><a className="hero-cta" href="/login">Start free <span>→</span></a></Reveal>
       </section>
 
       <footer className="marketing-footer">
