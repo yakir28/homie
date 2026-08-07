@@ -3,16 +3,11 @@
 import { useState, type FormEvent } from "react";
 import { getSupabaseBrowserClient } from "../../lib/supabase/client";
 
-const collage = [
-  "/homes/modern-villa.jpg",
-  "/homes/kitchen.jpg",
-  "/homes/living-room.jpg",
-  "/homes/dining.jpg",
-  "/homes/lounge.jpg",
-  "/homes/modern-villa.jpg",
-  "/homes/living-room.jpg",
-  "/homes/kitchen.jpg",
-  "/homes/lounge.jpg",
+const collageColumns = [
+  { images: ["/homes/modern-villa.jpg", "/homes/kitchen.jpg", "/homes/living-room.jpg", "/homes/dining.jpg", "/homes/lounge.jpg"], duration: 32 },
+  { images: ["/homes/living-room.jpg", "/homes/dining.jpg", "/homes/lounge.jpg", "/homes/modern-villa.jpg", "/homes/kitchen.jpg"], duration: 38, reverse: true },
+  { images: ["/homes/kitchen.jpg", "/homes/lounge.jpg", "/homes/modern-villa.jpg", "/homes/living-room.jpg", "/homes/dining.jpg"], duration: 30 },
+  { images: ["/homes/dining.jpg", "/homes/modern-villa.jpg", "/homes/kitchen.jpg", "/homes/lounge.jpg", "/homes/living-room.jpg"], duration: 36, reverse: true },
 ];
 
 export default function Login() {
@@ -64,8 +59,14 @@ export default function Login() {
     <main className="auth-page">
       <section className="auth-collage">
         <div className="auth-grid">
-          {collage.map((src, i) => (
-            <img key={i} src={src} alt="" />
+          {collageColumns.map((col, i) => (
+            <div className={col.reverse ? "auth-col reverse" : "auth-col"} key={i}>
+              <div className="auth-col-track" style={{ animationDuration: `${col.duration}s` }}>
+                {[...col.images, ...col.images].map((src, j) => (
+                  <img key={j} src={src} alt="" />
+                ))}
+              </div>
+            </div>
           ))}
         </div>
         <div className="auth-scrim" />

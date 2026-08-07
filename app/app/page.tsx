@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { getSupabaseBrowserClient } from "../../lib/supabase/client";
 
-type View = "overview" | "templates" | "listings" | "review" | "videos" | "integrations";
+type View = "overview" | "templates" | "favorites" | "listings" | "review" | "videos" | "integrations";
 
 const nav = [
   { id: "overview" as View, label: "Overview", icon: "⌂" },
@@ -29,15 +29,15 @@ const formatOptions = ["All", "9:16", "1:1", "16:9"];
 const creditsOptions = ["All", "Under 15", "15+"];
 
 const templates = [
-  { title: "Quiet Luxury", tag: "Cinematic", format: "9:16", time: "24 sec", credits: 18, image: "/homes/modern-villa.jpg", size: "tall" },
-  { title: "Sunday Light", tag: "Warm & airy", format: "9:16", time: "18 sec", credits: 14, image: "/homes/living-room.jpg", size: "normal" },
-  { title: "The Detail Edit", tag: "Editorial", format: "1:1", time: "20 sec", credits: 16, image: "/homes/kitchen.jpg", size: "normal" },
-  { title: "Modern Living", tag: "Minimal", format: "16:9", time: "30 sec", credits: 22, image: "/homes/lounge.jpg", size: "wide" },
-  { title: "Welcome Home", tag: "Family", format: "9:16", time: "22 sec", credits: 16, image: "/homes/dining.jpg", size: "normal" },
-  { title: "Coastal Morning", tag: "Coastal", format: "9:16", time: "20 sec", credits: 15, image: "/homes/living-room.jpg", size: "normal" },
-  { title: "City Edge", tag: "Urban", format: "16:9", time: "26 sec", credits: 19, image: "/homes/kitchen.jpg", size: "normal" },
-  { title: "Listing Ready", tag: "Zillow", format: "1:1", time: "15 sec", credits: 12, image: "/homes/dining.jpg", size: "normal" },
-  { title: "Quick Cuts", tag: "Fast-paced", format: "9:16", time: "12 sec", credits: 10, image: "/homes/lounge.jpg", size: "normal" },
+  { id: 1, title: "Quiet Luxury", tag: "Cinematic", format: "9:16", time: "24 sec", credits: 18, image: "/homes/modern-villa.jpg", size: "tall" },
+  { id: 2, title: "Sunday Light", tag: "Warm & airy", format: "9:16", time: "18 sec", credits: 14, image: "/homes/living-room.jpg", size: "normal" },
+  { id: 3, title: "The Detail Edit", tag: "Editorial", format: "1:1", time: "20 sec", credits: 16, image: "/homes/kitchen.jpg", size: "normal" },
+  { id: 4, title: "Modern Living", tag: "Minimal", format: "16:9", time: "30 sec", credits: 22, image: "/homes/lounge.jpg", size: "wide" },
+  { id: 5, title: "Welcome Home", tag: "Family", format: "9:16", time: "22 sec", credits: 16, image: "/homes/dining.jpg", size: "normal" },
+  { id: 6, title: "Coastal Morning", tag: "Coastal", format: "9:16", time: "20 sec", credits: 15, image: "/homes/living-room.jpg", size: "normal" },
+  { id: 7, title: "City Edge", tag: "Urban", format: "16:9", time: "26 sec", credits: 19, image: "/homes/kitchen.jpg", size: "normal" },
+  { id: 8, title: "Listing Ready", tag: "Zillow", format: "1:1", time: "15 sec", credits: 12, image: "/homes/dining.jpg", size: "normal" },
+  { id: 9, title: "Quick Cuts", tag: "Fast-paced", format: "9:16", time: "12 sec", credits: 10, image: "/homes/lounge.jpg", size: "normal" },
 ];
 
 const listings = [
@@ -67,6 +67,8 @@ export default function Home() {
   const [videoItems, setVideoItems] = useState<VideoItem[]>(myVideos);
   const [creditBalance, setCreditBalance] = useState(0);
   const [displayName, setDisplayName] = useState("Agent");
+  const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set());
+  const [userId, setUserId] = useState("");
 
   useEffect(() => {
     const supabase = getSupabaseBrowserClient();
@@ -80,19 +82,22 @@ export default function Home() {
       }
 
       if (!active) return;
+      setUserId(session.user.id);
       setDisplayName(session.user.user_metadata.display_name ?? session.user.email?.split("@")[0] ?? "Agent");
       const { data: workspaceId, error: workspaceError } = await supabase.rpc("bootstrap_workspace", { workspace_name: "My Homie Workspace" });
       if (workspaceError) flash(workspaceError.message);
 
-      const [{ data: catalog }, { data: wallet }, { data: homes }, { data: projects }] = await Promise.all([
-        supabase.from("video_templates").select("name, style_label, format, duration_seconds, credits_cost, thumbnail_url, is_featured, sort_order").eq("is_active", true).order("sort_order"),
+      const [{ data: catalog }, { data: wallet }, { data: homes }, { data: projects }, { data: savedFavorites }] = await Promise.all([
+        supabase.from("video_templates").select("id, name, style_label, format, duration_seconds, credits_cost, thumbnail_url, is_featured, sort_order").eq("is_active", true).order("sort_order"),
         workspaceId ? supabase.from("credit_wallets").select("balance").eq("workspace_id", workspaceId).maybeSingle() : Promise.resolve({ data: null }),
         workspaceId ? supabase.from("listings").select("id, address_line1, city, region, price, cover_photo_url, status, listing_photos(count), video_projects(count)").eq("workspace_id", workspaceId).order("created_at", { ascending: false }) : Promise.resolve({ data: null }),
         workspaceId ? supabase.from("video_projects").select("title, status, output_format, duration_seconds, credits_charged, created_at, listings(address_line1, city, region, price, cover_photo_url, listing_photos(count)), video_templates(style_label, thumbnail_url)").eq("workspace_id", workspaceId).order("created_at", { ascending: false }) : Promise.resolve({ data: null }),
+        supabase.from("template_favorites").select("template_id").eq("user_id", session.user.id),
       ]);
 
       if (!active) return;
       if (catalog?.length) setTemplateItems(catalog.map((item, index) => ({
+        id: item.id,
         title: item.name,
         tag: item.style_label,
         format: item.format,
@@ -101,6 +106,7 @@ export default function Home() {
         image: item.thumbnail_url ?? "/homes/modern-villa.jpg",
         size: index === 0 ? "tall" : item.format === "16:9" ? "wide" : "normal",
       })));
+      setFavoriteIds(new Set(savedFavorites?.map((favorite) => favorite.template_id) ?? []));
       if (homes?.length) setListingItems(homes.map((home) => ({
         address: home.address_line1,
         city: [home.city, home.region].filter(Boolean).join(", "),
@@ -162,6 +168,30 @@ export default function Home() {
     setCreditsFilter("All");
   }
 
+  async function toggleFavorite(templateId: number) {
+    if (!userId) return;
+    const supabase = getSupabaseBrowserClient();
+    const isFavorite = favoriteIds.has(templateId);
+    setFavoriteIds((current) => {
+      const next = new Set(current);
+      if (isFavorite) next.delete(templateId); else next.add(templateId);
+      return next;
+    });
+    const { error } = isFavorite
+      ? await supabase.from("template_favorites").delete().eq("user_id", userId).eq("template_id", templateId)
+      : await supabase.from("template_favorites").upsert({ user_id: userId, template_id: templateId }, { onConflict: "user_id,template_id" });
+    if (error) {
+      setFavoriteIds((current) => {
+        const next = new Set(current);
+        if (isFavorite) next.add(templateId); else next.delete(templateId);
+        return next;
+      });
+      flash(error.message);
+      return;
+    }
+    flash(isFavorite ? "Removed from favorites" : "Saved to favorites");
+  }
+
   return (
     <main className="app-shell" data-theme={theme}>
       <aside className="sidebar">
@@ -169,7 +199,7 @@ export default function Home() {
         <nav aria-label="Main navigation">
           <button onClick={() => changeView("templates")} className={view === "templates" ? "active" : ""}><span>•</span>Explore</button>
           <button onClick={() => changeView("videos")} className={view === "videos" ? "active" : ""}><span>•</span>My videos</button>
-          <button onClick={() => flash("Favorites opened")}><span>•</span>Favorites</button>
+          <button onClick={() => changeView("favorites")} className={view === "favorites" ? "active" : ""}><span>•</span>Favorites</button>
           <p className="nav-label">Business</p>
           <button onClick={() => changeView("listings")} className={view === "listings" ? "active" : ""}><span>•</span>My listings</button>
           <button onClick={() => changeView("integrations")} className={view === "integrations" ? "active" : ""}><span>•</span>Integrations</button>
@@ -202,13 +232,13 @@ export default function Home() {
           <button className="mobile-brand" onClick={() => changeView("overview")}>homie<span>.</span></button>
           <label className="global-search">
             <SearchIcon />
-            <input aria-label="Search Homie" placeholder={view === "templates" ? "Search templates..." : "Search Homie..."} value={search} onChange={(e) => setSearch(e.target.value)} />
+            <input aria-label="Search Homie" placeholder={view === "templates" || view === "favorites" ? "Search templates..." : "Search Homie..."} value={search} onChange={(e) => setSearch(e.target.value)} />
             {search && <button type="button" className="search-clear" aria-label="Clear search" onClick={() => setSearch("")}>×</button>}
           </label>
-          <button className={filtersOpen ? "filter-square active" : "filter-square"} onClick={() => (view === "templates" ? setFiltersOpen((v) => !v) : flash("Filters opened"))} aria-label="Open filters" aria-expanded={view === "templates" ? filtersOpen : undefined}><SlidersIcon /></button>
+          <button className={filtersOpen ? "filter-square active" : "filter-square"} onClick={() => (view === "templates" || view === "favorites" ? setFiltersOpen((v) => !v) : flash("Filters opened"))} aria-label="Open filters" aria-expanded={view === "templates" || view === "favorites" ? filtersOpen : undefined}><SlidersIcon /></button>
         </header>
 
-        {filtersOpen && view === "templates" && (
+        {filtersOpen && (view === "templates" || view === "favorites") && (
           <div className="filters-panel">
             <div className="filters-head"><p className="eyebrow">Filters</p><button aria-label="Close filters" onClick={() => setFiltersOpen(false)}>×</button></div>
             <div className="filters-row">
@@ -222,7 +252,8 @@ export default function Home() {
         )}
 
         {view === "overview" && <Overview setView={changeView} onOpenVideo={setSelectedVideo} />}
-        {view === "templates" && <Templates items={templateItems} setView={setView} flash={flash} search={search} onClearSearch={clearAllFilters} category={category} setCategory={setCategory} sort={sort} formatFilter={formatFilter} creditsFilter={creditsFilter} />}
+        {view === "templates" && <Templates items={templateItems} favoriteIds={favoriteIds} onToggleFavorite={toggleFavorite} setView={setView} search={search} onClearSearch={clearAllFilters} category={category} setCategory={setCategory} sort={sort} formatFilter={formatFilter} creditsFilter={creditsFilter} />}
+        {view === "favorites" && <Templates items={templateItems} favoriteIds={favoriteIds} onToggleFavorite={toggleFavorite} favoritesOnly setView={setView} search={search} onClearSearch={clearAllFilters} category={category} setCategory={setCategory} sort={sort} formatFilter={formatFilter} creditsFilter={creditsFilter} />}
         {view === "listings" && <Listings items={listingItems} setView={setView} />}
         {view === "videos" && <MyVideos items={videoItems} onOpenVideo={setSelectedVideo} />}
         {view === "integrations" && <Integrations flash={flash} />}
@@ -261,9 +292,10 @@ function Overview({ setView, onOpenVideo }: { setView: (v: View) => void; onOpen
   </div>;
 }
 
-function Templates({ items, setView, flash, search, onClearSearch, category, setCategory, sort, formatFilter, creditsFilter }: { items: TemplateItem[]; setView: (v: View) => void; flash: (m: string) => void; search: string; onClearSearch: () => void; category: string; setCategory: (v: string) => void; sort: string; formatFilter: string; creditsFilter: string }) {
+function Templates({ items, favoriteIds, onToggleFavorite, favoritesOnly = false, setView, search, onClearSearch, category, setCategory, sort, formatFilter, creditsFilter }: { items: TemplateItem[]; favoriteIds: Set<number>; onToggleFavorite: (templateId: number) => Promise<void>; favoritesOnly?: boolean; setView: (v: View) => void; search: string; onClearSearch: () => void; category: string; setCategory: (v: string) => void; sort: string; formatFilter: string; creditsFilter: string }) {
   const q = search.trim().toLowerCase();
   const filteredTemplates = items
+    .filter((template) => !favoritesOnly || favoriteIds.has(template.id))
     .filter((t) => {
       const matchesCategory = category === "All" || t.tag.toLowerCase().includes(category.toLowerCase()) || t.title.toLowerCase().includes(category.toLowerCase());
       const matchesSearch = !q || t.title.toLowerCase().includes(q) || t.tag.toLowerCase().includes(q);
@@ -274,18 +306,18 @@ function Templates({ items, setView, flash, search, onClearSearch, category, set
     .sort((a, b) => (sort === "Popular" ? b.credits - a.credits : sort === "Top" ? a.credits - b.credits : 0));
   const activeLabel = q ? `“${search.trim()}”` : category !== "All" ? `“${category}”` : formatFilter !== "All" ? `“${formatFilter}”` : `“${creditsFilter}”`;
   return <div className="page templates-page">
-    <div className="content-tabs"><button className="active">Templates</button><button onClick={() => setView("videos")}>My videos</button><button onClick={() => flash("Favorites opened")}>Favorites</button></div>
+    <div className="content-tabs"><button className={!favoritesOnly ? "active" : ""} onClick={() => setView("templates")}>Templates</button><button onClick={() => setView("videos")}>My videos</button><button className={favoritesOnly ? "active" : ""} onClick={() => setView("favorites")}>Favorites <span>{favoriteIds.size}</span></button></div>
     <div className="filter-row">{categoryOptions.map((name) => <button key={name} onClick={() => setCategory(name)} className={category === name ? "active" : ""}>{name}</button>)}</div>
     <div className="template-grid">
-      <article className="template-start"><span className="eyebrow">Not sure where to start?</span><h2>Let the home<br /><i>lead the way.</i></h2><p>Choose a listing and we'll recommend templates that fit its mood and architecture.</p><button onClick={() => setView("listings")}>Choose a listing →</button></article>
+      {!favoritesOnly && <article className="template-start"><span className="eyebrow">Not sure where to start?</span><h2>Let the home<br /><i>lead the way.</i></h2><p>Choose a listing and we'll recommend templates that fit its mood and architecture.</p><button onClick={() => setView("listings")}>Choose a listing →</button></article>}
       {filteredTemplates.map((template, index) => <article className={`template-card ${template.size}`} key={template.title} onClick={() => setView("review")} tabIndex={0} onKeyDown={(e) => e.key === "Enter" && setView("review")}>
-        <img src={template.image} alt={`${template.title} real estate video template`} /><div className="card-shade" /><div className="card-top"><span>{index === 0 ? "Featured" : template.tag}</span><div className="card-top-actions"><button className="use-badge" onClick={(e) => { e.stopPropagation(); setView("review"); }}>Use</button><button className="fav-btn" aria-label={`Favorite ${template.title}`} onClick={(e) => { e.stopPropagation(); flash("Saved to favorites"); }}>♡</button></div></div><button className="play" aria-label={`Preview ${template.title}`}>▶</button><div className="card-copy"><p className="eyebrow">{template.tag}</p><h3>{template.title}</h3><div><span>{template.time}</span><span>{template.format}</span><span>{template.credits} credits</span></div></div>
+        <img src={template.image} alt={`${template.title} real estate video template`} /><div className="card-shade" /><div className="card-top"><span>{index === 0 && !favoritesOnly ? "Featured" : template.tag}</span><div className="card-top-actions"><button className="use-badge" onClick={(e) => { e.stopPropagation(); setView("review"); }}>Use</button><button className={`fav-btn ${favoriteIds.has(template.id) ? "active" : ""}`} aria-label={`${favoriteIds.has(template.id) ? "Remove" : "Add"} ${template.title} ${favoriteIds.has(template.id) ? "from" : "to"} favorites`} aria-pressed={favoriteIds.has(template.id)} onClick={(e) => { e.stopPropagation(); void onToggleFavorite(template.id); }}>{favoriteIds.has(template.id) ? "♥" : "♡"}</button></div></div><button className="play" aria-label={`Preview ${template.title}`}>▶</button><div className="card-copy"><p className="eyebrow">{template.tag}</p><h3>{template.title}</h3><div><span>{template.time}</span><span>{template.format}</span><span>{template.credits} credits</span></div></div>
       </article>)}
       {filteredTemplates.length === 0 && <article className="template-empty">
-        <p className="eyebrow">No matches</p>
-        <h3>Nothing fits {activeLabel} yet.</h3>
-        <p>Try another category or clear your search.</p>
-        <button onClick={onClearSearch}>Clear filters →</button>
+        <p className="eyebrow">{favoritesOnly ? "Your favorites" : "No matches"}</p>
+        <h3>{favoritesOnly && favoriteIds.size === 0 ? "No favorite templates yet." : `Nothing fits ${activeLabel} yet.`}</h3>
+        <p>{favoritesOnly && favoriteIds.size === 0 ? "Tap the heart on any template to save it here for later." : "Try another category or clear your search."}</p>
+        <button onClick={() => favoritesOnly && favoriteIds.size === 0 ? setView("templates") : onClearSearch()}>{favoritesOnly && favoriteIds.size === 0 ? "Explore templates" : "Clear filters"} →</button>
       </article>}
     </div>
   </div>;
@@ -294,7 +326,7 @@ function Templates({ items, setView, flash, search, onClearSearch, category, set
 function Listings({ items, setView }: { items: ListingItem[]; setView: (v: View) => void }) {
   return <div className="page listings-page">
     <div className="page-intro intro-row"><div><p className="eyebrow">Synced from Zillow</p><h1>Your listings.</h1><p>Select a home and turn its photos into a polished video tour.</p></div><button className="outline-btn">↻ Sync listings</button></div>
-    <div className="listing-tools"><label><span>⌕</span><input aria-label="Search listings" placeholder="Search by address or city" /></label><div><button className="active">All <b>3</b></button><button>Active <b>2</b></button><button>Pending <b>1</b></button></div></div>
+    <div className="listing-tools"><div><button className="active">All <b>3</b></button><button>Active <b>2</b></button><button>Pending <b>1</b></button></div></div>
     <div className="listings-grid">{items.map((listing) => <article className="listing-card" key={listing.address}><div className="listing-image"><img src={listing.image} alt={listing.address} /><span className={listing.status === "Active" ? "active" : "pending"}>● {listing.status}</span><button aria-label="More options">•••</button></div><div className="listing-copy"><p className="eyebrow">{listing.city}</p><h2>{listing.address}</h2><p className="price">{listing.price}</p><div className="listing-meta"><span><b>{listing.photos}</b> Photos</span><span><b>{listing.videos}</b> Videos</span></div><button onClick={() => setView("templates")}>{listing.videos ? "Create another video" : "Create video"}<span>→</span></button></div></article>)}</div>
   </div>;
 }
@@ -353,17 +385,17 @@ function Integrations({ flash }: { flash: (m: string) => void }) {
     </div>
 
     <div className="panel-heading standalone"><p className="eyebrow">Connected sources</p><h3>1 active</h3></div>
-    <div className="source-card">
-      <span className="source-icon"><img src="/integrations/zillow-logo.jpeg" alt="Zillow logo" /></span>
-      <div className="source-copy">
+    <div className="integrations-grid">
+      <article className="integration-card connected">
+        <span className="source-icon"><img src="/integrations/zillow-logo.jpeg" alt="Zillow logo" /></span>
         <h3>Zillow</h3>
         <p>Connected as <b>North &amp; West Realty</b> · 3 listings synced</p>
-        <small>Last synced 2 hours ago</small>
-      </div>
-      <div className="source-actions">
-        <button onClick={() => flash("Syncing your Zillow listings…")}>↻ Sync now</button>
-        <button className="danger" onClick={() => flash("Disconnecting Zillow would remove synced listings")}>Disconnect</button>
-      </div>
+        <small className="sync-time">Last synced 2 hours ago</small>
+        <div className="card-actions">
+          <button onClick={() => flash("Syncing your Zillow listings…")}>↻ Sync</button>
+          <button className="danger" onClick={() => flash("Disconnecting Zillow would remove synced listings")}>Disconnect</button>
+        </div>
+      </article>
     </div>
 
     <div className="panel-heading standalone"><p className="eyebrow">Available integrations</p><h3>1 more platform</h3></div>
