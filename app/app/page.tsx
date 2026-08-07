@@ -28,7 +28,22 @@ const sortOptions = ["Recent", "Popular", "Top"];
 const formatOptions = ["All", "9:16", "1:1", "16:9"];
 const creditsOptions = ["All", "Under 15", "15+"];
 
-const templates = [
+type TemplateItem = {
+  id: number;
+  title: string;
+  tag: string;
+  format: string;
+  time: string;
+  credits: number;
+  image: string;
+  preview?: string;
+  size: string;
+};
+
+const templates: TemplateItem[] = [
+  { id: 10, title: "Mediterranean Light", tag: "Luxury", format: "9:16", time: "25 sec", credits: 24, image: "/templates/mediterranean-luxe/poster.jpg", preview: "/templates/mediterranean-luxe/preview.mp4", size: "tall" },
+  { id: 11, title: "Forest Stillness", tag: "Warm", format: "9:16", time: "25 sec", credits: 24, image: "/templates/scandinavian-calm/poster.jpg", preview: "/templates/scandinavian-calm/preview.mp4", size: "normal" },
+  { id: 12, title: "City After Dark", tag: "Urban", format: "9:16", time: "25 sec", credits: 24, image: "/templates/urban-penthouse/poster.jpg", preview: "/templates/urban-penthouse/preview.mp4", size: "normal" },
   { id: 1, title: "Quiet Luxury", tag: "Cinematic", format: "9:16", time: "24 sec", credits: 18, image: "/homes/modern-villa.jpg", size: "tall" },
   { id: 2, title: "Sunday Light", tag: "Warm & airy", format: "9:16", time: "18 sec", credits: 14, image: "/homes/living-room.jpg", size: "normal" },
   { id: 3, title: "The Detail Edit", tag: "Editorial", format: "1:1", time: "20 sec", credits: 16, image: "/homes/kitchen.jpg", size: "normal" },
@@ -46,7 +61,6 @@ const listings = [
   { address: "62 Juniper Lane", city: "Round Rock, TX", price: "$748,000", photos: 22, videos: 1, image: "/homes/dining.jpg", status: "Pending" },
 ];
 
-type TemplateItem = (typeof templates)[number];
 type VideoItem = (typeof myVideos)[number];
 type ListingItem = (typeof listings)[number];
 
@@ -92,7 +106,7 @@ export default function Home() {
       if (workspaceError) flash(workspaceError.message);
 
       const [{ data: catalog }, { data: wallet }, { data: homes }, { data: projects }, { data: savedFavorites }, { data: profile }] = await Promise.all([
-        supabase.from("video_templates").select("id, name, style_label, format, duration_seconds, credits_cost, thumbnail_url, is_featured, sort_order").eq("is_active", true).order("sort_order"),
+        supabase.from("video_templates").select("id, name, style_label, format, duration_seconds, credits_cost, preview_url, thumbnail_url, is_featured, sort_order").eq("is_active", true).order("sort_order"),
         workspaceId ? supabase.from("credit_wallets").select("balance").eq("workspace_id", workspaceId).maybeSingle() : Promise.resolve({ data: null }),
         workspaceId ? supabase.from("listings").select("id, address_line1, city, region, price, cover_photo_url, status, listing_photos(count), video_projects(count)").eq("workspace_id", workspaceId).order("created_at", { ascending: false }) : Promise.resolve({ data: null }),
         workspaceId ? supabase.from("video_projects").select("title, status, output_format, duration_seconds, credits_charged, created_at, listings(address_line1, city, region, price, cover_photo_url, listing_photos(count)), video_templates(style_label, thumbnail_url)").eq("workspace_id", workspaceId).order("created_at", { ascending: false }) : Promise.resolve({ data: null }),
@@ -109,6 +123,7 @@ export default function Home() {
         time: `${item.duration_seconds} sec`,
         credits: item.credits_cost,
         image: item.thumbnail_url ?? "/homes/modern-villa.jpg",
+        preview: item.preview_url ?? undefined,
         size: index === 0 ? "tall" : item.format === "16:9" ? "wide" : "normal",
       })));
       setFavoriteIds(new Set(savedFavorites?.map((favorite) => favorite.template_id) ?? []));
@@ -352,7 +367,7 @@ function Templates({ items, favoriteIds, onToggleFavorite, favoritesOnly = false
     <div className="template-grid">
       {!favoritesOnly && <article className="template-start"><span className="eyebrow">Not sure where to start?</span><h2>Let the home<br /><i>lead the way.</i></h2><p>Choose a listing and we'll recommend templates that fit its mood and architecture.</p><button onClick={() => setView("listings")}>Choose a listing →</button></article>}
       {filteredTemplates.map((template, index) => <article className={`template-card ${template.size}`} key={template.title} onClick={() => setView("review")} tabIndex={0} onKeyDown={(e) => e.key === "Enter" && setView("review")}>
-        <img src={template.image} alt={`${template.title} real estate video template`} /><div className="card-shade" /><div className="card-top"><span>{index === 0 && !favoritesOnly ? "Featured" : template.tag}</span><div className="card-top-actions"><button className="use-badge" onClick={(e) => { e.stopPropagation(); setView("review"); }}>Use</button><button className={`fav-btn ${favoriteIds.has(template.id) ? "active" : ""}`} aria-label={`${favoriteIds.has(template.id) ? "Remove" : "Add"} ${template.title} ${favoriteIds.has(template.id) ? "from" : "to"} favorites`} aria-pressed={favoriteIds.has(template.id)} onClick={(e) => { e.stopPropagation(); void onToggleFavorite(template.id); }}>{favoriteIds.has(template.id) ? "♥" : "♡"}</button></div></div><button className="play" aria-label={`Preview ${template.title}`}>▶</button><div className="card-copy"><p className="eyebrow">{template.tag}</p><h3>{template.title}</h3><div><span>{template.time}</span><span>{template.format}</span><span>{template.credits} credits</span></div></div>
+        {template.preview ? <video src={template.preview} poster={template.image} muted loop playsInline preload="metadata" aria-label={`${template.title} real estate video template preview`} onMouseEnter={(event) => void event.currentTarget.play()} onMouseLeave={(event) => { event.currentTarget.pause(); event.currentTarget.currentTime = 0; }} /> : <img src={template.image} alt={`${template.title} real estate video template`} />}<div className="card-shade" /><div className="card-top"><span>{index === 0 && !favoritesOnly ? "Featured" : template.tag}</span><div className="card-top-actions"><button className="use-badge" onClick={(e) => { e.stopPropagation(); setView("review"); }}>Use</button><button className={`fav-btn ${favoriteIds.has(template.id) ? "active" : ""}`} aria-label={`${favoriteIds.has(template.id) ? "Remove" : "Add"} ${template.title} ${favoriteIds.has(template.id) ? "from" : "to"} favorites`} aria-pressed={favoriteIds.has(template.id)} onClick={(e) => { e.stopPropagation(); void onToggleFavorite(template.id); }}>{favoriteIds.has(template.id) ? "♥" : "♡"}</button></div></div><button className="play" aria-label={`Preview ${template.title}`}>▶</button><div className="card-copy"><p className="eyebrow">{template.tag}</p><h3>{template.title}</h3><div><span>{template.time}</span><span>{template.format}</span><span>{template.credits} credits</span></div></div>
       </article>)}
       {filteredTemplates.length === 0 && <article className="template-empty">
         <p className="eyebrow">{favoritesOnly ? "Your favorites" : "No matches"}</p>
