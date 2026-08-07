@@ -354,7 +354,7 @@ function Integrations({ flash }: { flash: (m: string) => void }) {
 
     <div className="panel-heading standalone"><p className="eyebrow">Connected sources</p><h3>1 active</h3></div>
     <div className="source-card">
-      <span className="source-icon zillow"><ZillowMark /></span>
+      <span className="source-icon"><img src="/integrations/zillow-logo.jpeg" alt="Zillow logo" /></span>
       <div className="source-copy">
         <h3>Zillow</h3>
         <p>Connected as <b>North &amp; West Realty</b> · 3 listings synced</p>
@@ -369,21 +369,13 @@ function Integrations({ flash }: { flash: (m: string) => void }) {
     <div className="panel-heading standalone"><p className="eyebrow">Available integrations</p><h3>1 more platform</h3></div>
     <div className="integrations-grid">
       <article className="integration-card disabled">
-        <span className="source-icon airbnb"><AirbnbMark /></span>
+        <span className="source-icon"><img src="/integrations/airbnb-logo.webp" alt="Airbnb logo" /></span>
         <h3>Airbnb</h3>
         <p>Import your short-term rental listings and turn them into home tours.</p>
         <button disabled onClick={() => flash("Airbnb sync is coming soon")}>Coming soon</button>
       </article>
     </div>
   </div>;
-}
-
-function ZillowMark() {
-  return <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2 3 9v13h6v-7h6v7h6V9L12 2z" fill="#fff" /></svg>;
-}
-
-function AirbnbMark() {
-  return <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2C9 7 4 12.5 4 16a8 8 0 0 0 16 0c0-3.5-5-9-8-14z" fill="#fff" /></svg>;
 }
 
 function Review({ flash }: { flash: (m: string) => void }) {
