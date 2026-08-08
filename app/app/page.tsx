@@ -44,15 +44,6 @@ const templates: TemplateItem[] = [
   { id: 10, title: "Mediterranean Light", tag: "Luxury", format: "9:16", time: "25 sec", credits: 24, image: "/templates/mediterranean-luxe/poster.jpg", preview: "/templates/mediterranean-luxe/preview.mp4", size: "tall" },
   { id: 11, title: "Forest Stillness", tag: "Warm", format: "9:16", time: "25 sec", credits: 24, image: "/templates/scandinavian-calm/poster.jpg", preview: "/templates/scandinavian-calm/preview.mp4", size: "normal" },
   { id: 12, title: "City After Dark", tag: "Urban", format: "9:16", time: "25 sec", credits: 24, image: "/templates/urban-penthouse/poster.jpg", preview: "/templates/urban-penthouse/preview.mp4", size: "normal" },
-  { id: 1, title: "Quiet Luxury", tag: "Cinematic", format: "9:16", time: "24 sec", credits: 18, image: "/homes/modern-villa.jpg", size: "tall" },
-  { id: 2, title: "Sunday Light", tag: "Warm & airy", format: "9:16", time: "18 sec", credits: 14, image: "/homes/living-room.jpg", size: "normal" },
-  { id: 3, title: "The Detail Edit", tag: "Editorial", format: "1:1", time: "20 sec", credits: 16, image: "/homes/kitchen.jpg", size: "normal" },
-  { id: 4, title: "Modern Living", tag: "Minimal", format: "16:9", time: "30 sec", credits: 22, image: "/homes/lounge.jpg", size: "wide" },
-  { id: 5, title: "Welcome Home", tag: "Family", format: "9:16", time: "22 sec", credits: 16, image: "/homes/dining.jpg", size: "normal" },
-  { id: 6, title: "Coastal Morning", tag: "Coastal", format: "9:16", time: "20 sec", credits: 15, image: "/homes/living-room.jpg", size: "normal" },
-  { id: 7, title: "City Edge", tag: "Urban", format: "16:9", time: "26 sec", credits: 19, image: "/homes/kitchen.jpg", size: "normal" },
-  { id: 8, title: "Listing Ready", tag: "Zillow", format: "1:1", time: "15 sec", credits: 12, image: "/homes/dining.jpg", size: "normal" },
-  { id: 9, title: "Quick Cuts", tag: "Fast-paced", format: "9:16", time: "12 sec", credits: 10, image: "/homes/lounge.jpg", size: "normal" },
 ];
 
 const listings = [
