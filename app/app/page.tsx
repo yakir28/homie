@@ -41,9 +41,9 @@ type TemplateItem = {
 };
 
 const templates: TemplateItem[] = [
-  { id: 10, title: "Mediterranean Light", tag: "Luxury", format: "9:16", time: "25 sec", credits: 24, image: "/templates/mediterranean-luxe/poster.jpg", preview: "/templates/mediterranean-luxe/preview.mp4", size: "tall" },
-  { id: 11, title: "Forest Stillness", tag: "Warm", format: "9:16", time: "25 sec", credits: 24, image: "/templates/scandinavian-calm/poster.jpg", preview: "/templates/scandinavian-calm/preview.mp4", size: "normal" },
-  { id: 12, title: "City After Dark", tag: "Urban", format: "9:16", time: "25 sec", credits: 24, image: "/templates/urban-penthouse/poster.jpg", preview: "/templates/urban-penthouse/preview.mp4", size: "normal" },
+  { id: 10, title: "Mediterranean Light", tag: "Luxury", format: "9:16", time: "25 sec", credits: 24, image: "https://drjehibthvfvorkgiyse.supabase.co/storage/v1/object/public/template-previews/mediterranean-light/poster.jpg", preview: "https://drjehibthvfvorkgiyse.supabase.co/storage/v1/object/public/template-previews/mediterranean-light/preview.mp4", size: "tall" },
+  { id: 11, title: "Forest Stillness", tag: "Warm", format: "9:16", time: "25 sec", credits: 24, image: "https://drjehibthvfvorkgiyse.supabase.co/storage/v1/object/public/template-previews/forest-stillness/poster.jpg", preview: "https://drjehibthvfvorkgiyse.supabase.co/storage/v1/object/public/template-previews/forest-stillness/preview.mp4", size: "normal" },
+  { id: 12, title: "City After Dark", tag: "Urban", format: "9:16", time: "25 sec", credits: 24, image: "https://drjehibthvfvorkgiyse.supabase.co/storage/v1/object/public/template-previews/city-after-dark/poster.jpg", preview: "https://drjehibthvfvorkgiyse.supabase.co/storage/v1/object/public/template-previews/city-after-dark/preview.mp4", size: "normal" },
 ];
 
 const listings = [
