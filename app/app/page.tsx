@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { getSupabaseBrowserClient } from "../../lib/supabase/client";
+import CreateVideoWizard from "./CreateVideoWizard";
 
-type View = "overview" | "templates" | "favorites" | "listings" | "review" | "videos" | "integrations" | "profile";
+type View = "overview" | "templates" | "favorites" | "listings" | "videos" | "integrations" | "profile";
 
 const nav = [
   { id: "overview" as View, label: "Overview", icon: "⌂" },
@@ -28,7 +29,7 @@ const sortOptions = ["Recent", "Popular", "Top"];
 const formatOptions = ["All", "9:16", "1:1", "16:9"];
 const creditsOptions = ["All", "Under 15", "15+"];
 
-type TemplateItem = {
+export type TemplateItem = {
   id: number;
   title: string;
   tag: string;
@@ -38,22 +39,24 @@ type TemplateItem = {
   image: string;
   preview?: string;
   size: string;
+  minPhotos: number;
+  maxPhotos: number;
 };
 
 const templates: TemplateItem[] = [
-  { id: 10, title: "Mediterranean Light", tag: "Luxury", format: "9:16", time: "25 sec", credits: 24, image: "https://drjehibthvfvorkgiyse.supabase.co/storage/v1/object/public/template-previews/mediterranean-light/poster.jpg", preview: "https://drjehibthvfvorkgiyse.supabase.co/storage/v1/object/public/template-previews/mediterranean-light/preview.mp4", size: "tall" },
-  { id: 11, title: "Forest Stillness", tag: "Warm", format: "9:16", time: "25 sec", credits: 24, image: "https://drjehibthvfvorkgiyse.supabase.co/storage/v1/object/public/template-previews/forest-stillness/poster.jpg", preview: "https://drjehibthvfvorkgiyse.supabase.co/storage/v1/object/public/template-previews/forest-stillness/preview.mp4", size: "normal" },
-  { id: 12, title: "City After Dark", tag: "Urban", format: "9:16", time: "25 sec", credits: 24, image: "https://drjehibthvfvorkgiyse.supabase.co/storage/v1/object/public/template-previews/city-after-dark/poster.jpg", preview: "https://drjehibthvfvorkgiyse.supabase.co/storage/v1/object/public/template-previews/city-after-dark/preview.mp4", size: "normal" },
+  { id: 10, title: "Mediterranean Light", tag: "Luxury", format: "9:16", time: "25 sec", credits: 24, image: "https://drjehibthvfvorkgiyse.supabase.co/storage/v1/object/public/template-previews/mediterranean-light/poster.jpg", preview: "https://drjehibthvfvorkgiyse.supabase.co/storage/v1/object/public/template-previews/mediterranean-light/preview.mp4", size: "tall", minPhotos: 6, maxPhotos: 30 },
+  { id: 11, title: "Forest Stillness", tag: "Warm", format: "9:16", time: "25 sec", credits: 24, image: "https://drjehibthvfvorkgiyse.supabase.co/storage/v1/object/public/template-previews/forest-stillness/poster.jpg", preview: "https://drjehibthvfvorkgiyse.supabase.co/storage/v1/object/public/template-previews/forest-stillness/preview.mp4", size: "normal", minPhotos: 6, maxPhotos: 30 },
+  { id: 12, title: "City After Dark", tag: "Urban", format: "9:16", time: "25 sec", credits: 24, image: "https://drjehibthvfvorkgiyse.supabase.co/storage/v1/object/public/template-previews/city-after-dark/poster.jpg", preview: "https://drjehibthvfvorkgiyse.supabase.co/storage/v1/object/public/template-previews/city-after-dark/preview.mp4", size: "normal", minPhotos: 6, maxPhotos: 30 },
 ];
 
 const listings = [
-  { address: "814 Palisade Avenue", city: "Austin, TX", price: "$1,285,000", photos: 28, videos: 2, image: "/homes/modern-villa.jpg", status: "Active" },
-  { address: "2904 Hollow Creek", city: "Austin, TX", price: "$925,000", photos: 34, videos: 0, image: "/homes/living-room.jpg", status: "Active" },
-  { address: "62 Juniper Lane", city: "Round Rock, TX", price: "$748,000", photos: 22, videos: 1, image: "/homes/dining.jpg", status: "Pending" },
+  { id: "", address: "814 Palisade Avenue", city: "Austin, TX", price: "$1,285,000", photos: 28, videos: 2, image: "/homes/modern-villa.jpg", status: "Active" },
+  { id: "", address: "2904 Hollow Creek", city: "Austin, TX", price: "$925,000", photos: 34, videos: 0, image: "/homes/living-room.jpg", status: "Active" },
+  { id: "", address: "62 Juniper Lane", city: "Round Rock, TX", price: "$748,000", photos: 22, videos: 1, image: "/homes/dining.jpg", status: "Pending" },
 ];
 
-type VideoItem = (typeof myVideos)[number];
-type ListingItem = (typeof listings)[number];
+export type VideoItem = (typeof myVideos)[number];
+export type ListingItem = (typeof listings)[number];
 
 export default function Home() {
   const [view, setView] = useState<View>("templates");
@@ -74,6 +77,8 @@ export default function Home() {
   const [displayName, setDisplayName] = useState("Agent");
   const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set());
   const [userId, setUserId] = useState("");
+  const [workspaceId, setWorkspaceId] = useState<string | null>(null);
+  const [wizardTemplate, setWizardTemplate] = useState<TemplateItem | null>(null);
   const [profileDetails, setProfileDetails] = useState({ email: "", displayName: "", bio: "", phone: "", jobTitle: "", companyName: "" });
   const [savingProfile, setSavingProfile] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -95,12 +100,13 @@ export default function Home() {
       setProfileDetails((current) => ({ ...current, email: session.user.email ?? "" }));
       const { data: workspaceId, error: workspaceError } = await supabase.rpc("bootstrap_workspace", { workspace_name: "My Homie Workspace" });
       if (workspaceError) flash(workspaceError.message);
+      if (workspaceId) setWorkspaceId(workspaceId);
 
       const [{ data: catalog }, { data: wallet }, { data: homes }, { data: projects }, { data: savedFavorites }, { data: profile }] = await Promise.all([
-        supabase.from("video_templates").select("id, name, style_label, format, duration_seconds, credits_cost, preview_url, thumbnail_url, is_featured, sort_order").eq("is_active", true).order("sort_order"),
+        supabase.from("video_templates").select("id, name, style_label, format, duration_seconds, credits_cost, min_photos, max_photos, preview_url, thumbnail_url, is_featured, sort_order").eq("is_active", true).order("sort_order"),
         workspaceId ? supabase.from("credit_wallets").select("balance").eq("workspace_id", workspaceId).maybeSingle() : Promise.resolve({ data: null }),
         workspaceId ? supabase.from("listings").select("id, address_line1, city, region, price, cover_photo_url, status, listing_photos(count), video_projects(count)").eq("workspace_id", workspaceId).order("created_at", { ascending: false }) : Promise.resolve({ data: null }),
-        workspaceId ? supabase.from("video_projects").select("title, status, output_format, duration_seconds, credits_charged, created_at, listings(address_line1, city, region, price, cover_photo_url, listing_photos(count)), video_templates(style_label, thumbnail_url)").eq("workspace_id", workspaceId).order("created_at", { ascending: false }) : Promise.resolve({ data: null }),
+        workspaceId ? supabase.from("video_projects").select("title, status, output_format, duration_seconds, credits_cost, created_at, listings(address_line1, city, region, price, cover_photo_url, listing_photos(count)), video_templates(style_label, thumbnail_url)").eq("workspace_id", workspaceId).order("created_at", { ascending: false }) : Promise.resolve({ data: null }),
         supabase.from("template_favorites").select("template_id").eq("user_id", session.user.id),
         supabase.from("profiles").select("display_name, bio, phone, job_title, company_name").eq("id", session.user.id).maybeSingle(),
       ]);
@@ -116,6 +122,8 @@ export default function Home() {
         image: item.thumbnail_url ?? "/homes/modern-villa.jpg",
         preview: item.preview_url ?? undefined,
         size: index === 0 ? "tall" : item.format === "16:9" ? "wide" : "normal",
+        minPhotos: item.min_photos ?? 6,
+        maxPhotos: item.max_photos ?? 30,
       })));
       setFavoriteIds(new Set(savedFavorites?.map((favorite) => favorite.template_id) ?? []));
       if (profile) {
@@ -131,6 +139,7 @@ export default function Home() {
         });
       }
       if (homes?.length) setListingItems(homes.map((home) => ({
+        id: home.id,
         address: home.address_line1,
         city: [home.city, home.region].filter(Boolean).join(", "),
         price: home.price == null ? "Price on request" : new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(Number(home.price)),
@@ -151,7 +160,7 @@ export default function Home() {
           template: template?.style_label ?? "Homie",
           format: project.output_format,
           duration: `${project.duration_seconds} sec`,
-          credits: project.credits_charged,
+          credits: project.credits_cost,
           photosUsed: home?.listing_photos?.[0]?.count ?? 0,
           totalPhotos: home?.listing_photos?.[0]?.count ?? 0,
           created: new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(new Date(project.created_at)),
@@ -297,13 +306,12 @@ export default function Home() {
         )}
 
         {view === "overview" && <Overview setView={changeView} onOpenVideo={setSelectedVideo} />}
-        {view === "templates" && <Templates items={templateItems} favoriteIds={favoriteIds} onToggleFavorite={toggleFavorite} setView={setView} search={search} onClearSearch={clearAllFilters} category={category} setCategory={setCategory} sort={sort} formatFilter={formatFilter} creditsFilter={creditsFilter} />}
-        {view === "favorites" && <Templates items={templateItems} favoriteIds={favoriteIds} onToggleFavorite={toggleFavorite} favoritesOnly setView={setView} search={search} onClearSearch={clearAllFilters} category={category} setCategory={setCategory} sort={sort} formatFilter={formatFilter} creditsFilter={creditsFilter} />}
+        {view === "templates" && <Templates items={templateItems} favoriteIds={favoriteIds} onToggleFavorite={toggleFavorite} setView={setView} onUseTemplate={setWizardTemplate} search={search} onClearSearch={clearAllFilters} category={category} setCategory={setCategory} sort={sort} formatFilter={formatFilter} creditsFilter={creditsFilter} />}
+        {view === "favorites" && <Templates items={templateItems} favoriteIds={favoriteIds} onToggleFavorite={toggleFavorite} favoritesOnly setView={setView} onUseTemplate={setWizardTemplate} search={search} onClearSearch={clearAllFilters} category={category} setCategory={setCategory} sort={sort} formatFilter={formatFilter} creditsFilter={creditsFilter} />}
         {view === "listings" && <Listings items={listingItems} setView={setView} />}
         {view === "videos" && <MyVideos items={videoItems} onOpenVideo={setSelectedVideo} />}
         {view === "integrations" && <Integrations flash={flash} />}
         {view === "profile" && <ProfilePage details={profileDetails} onChange={setProfileDetails} onSave={saveProfile} saving={savingProfile} favoriteCount={favoriteIds.size} videoCount={videoItems.length} />}
-        {view === "review" && <Review flash={flash} />}
 
         <nav className="mobile-nav" aria-label="Mobile navigation">
           {nav.map((item) => <button key={item.id} className={view === item.id ? "active" : ""} onClick={() => changeView(item.id)}><span>{item.icon}</span>{item.label === "My videos" ? "Videos" : item.label}</button>)}
@@ -312,6 +320,21 @@ export default function Home() {
       {toast && <div className="toast"><span>✓</span>{toast}</div>}
       {selectedVideo && <VideoModal video={selectedVideo} onClose={() => setSelectedVideo(null)} flash={flash} />}
       {settingsOpen && <SettingsModal details={profileDetails} onChange={setProfileDetails} onSave={saveProfile} saving={savingProfile} theme={theme} onThemeChange={setTheme} credits={creditBalance} onPasswordChange={changePassword} onClose={() => setSettingsOpen(false)} flash={flash} />}
+      {wizardTemplate && workspaceId && <CreateVideoWizard
+        template={wizardTemplate}
+        workspaceId={workspaceId}
+        userId={userId}
+        listings={listingItems}
+        walletBalance={creditBalance}
+        onClose={() => setWizardTemplate(null)}
+        onCreated={(project) => {
+          setVideoItems((current) => [project, ...current]);
+          setWizardTemplate(null);
+          setView("videos");
+          flash("Video queued — we'll notify you when it's ready");
+        }}
+        flash={flash}
+      />}
     </main>
   );
 }
@@ -339,7 +362,16 @@ function Overview({ setView, onOpenVideo }: { setView: (v: View) => void; onOpen
   </div>;
 }
 
-function Templates({ items, favoriteIds, onToggleFavorite, favoritesOnly = false, setView, search, onClearSearch, category, setCategory, sort, formatFilter, creditsFilter }: { items: TemplateItem[]; favoriteIds: Set<number>; onToggleFavorite: (templateId: number) => Promise<void>; favoritesOnly?: boolean; setView: (v: View) => void; search: string; onClearSearch: () => void; category: string; setCategory: (v: string) => void; sort: string; formatFilter: string; creditsFilter: string }) {
+function Templates({ items, favoriteIds, onToggleFavorite, favoritesOnly = false, setView, onUseTemplate, search, onClearSearch, category, setCategory, sort, formatFilter, creditsFilter }: { items: TemplateItem[]; favoriteIds: Set<number>; onToggleFavorite: (templateId: number) => Promise<void>; favoritesOnly?: boolean; setView: (v: View) => void; onUseTemplate: (template: TemplateItem) => void; search: string; onClearSearch: () => void; category: string; setCategory: (v: string) => void; sort: string; formatFilter: string; creditsFilter: string }) {
+  function playPreview(video: HTMLVideoElement) {
+    void video.play().catch(() => undefined);
+  }
+
+  function stopPreview(video: HTMLVideoElement) {
+    video.pause();
+    if (video.readyState > 0) video.currentTime = 0;
+  }
+
   const q = search.trim().toLowerCase();
   const filteredTemplates = items
     .filter((template) => !favoritesOnly || favoriteIds.has(template.id))
@@ -357,8 +389,8 @@ function Templates({ items, favoriteIds, onToggleFavorite, favoritesOnly = false
     <div className="filter-row">{categoryOptions.map((name) => <button key={name} onClick={() => setCategory(name)} className={category === name ? "active" : ""}>{name}</button>)}</div>
     <div className="template-grid">
       {!favoritesOnly && <article className="template-start"><span className="eyebrow">Not sure where to start?</span><h2>Let the home<br /><i>lead the way.</i></h2><p>Choose a listing and we'll recommend templates that fit its mood and architecture.</p><button onClick={() => setView("listings")}>Choose a listing →</button></article>}
-      {filteredTemplates.map((template, index) => <article className={`template-card ${template.size}`} key={template.title} onClick={() => setView("review")} tabIndex={0} onKeyDown={(e) => e.key === "Enter" && setView("review")}>
-        {template.preview ? <video src={template.preview} poster={template.image} muted loop playsInline preload="metadata" aria-label={`${template.title} real estate video template preview`} onMouseEnter={(event) => void event.currentTarget.play()} onMouseLeave={(event) => { event.currentTarget.pause(); event.currentTarget.currentTime = 0; }} /> : <img src={template.image} alt={`${template.title} real estate video template`} />}<div className="card-shade" /><div className="card-top"><span>{index === 0 && !favoritesOnly ? "Featured" : template.tag}</span><div className="card-top-actions"><button className="use-badge" onClick={(e) => { e.stopPropagation(); setView("review"); }}>Use</button><button className={`fav-btn ${favoriteIds.has(template.id) ? "active" : ""}`} aria-label={`${favoriteIds.has(template.id) ? "Remove" : "Add"} ${template.title} ${favoriteIds.has(template.id) ? "from" : "to"} favorites`} aria-pressed={favoriteIds.has(template.id)} onClick={(e) => { e.stopPropagation(); void onToggleFavorite(template.id); }}>{favoriteIds.has(template.id) ? "♥" : "♡"}</button></div></div><button className="play" aria-label={`Preview ${template.title}`}>▶</button><div className="card-copy"><p className="eyebrow">{template.tag}</p><h3>{template.title}</h3><div><span>{template.time}</span><span>{template.format}</span><span>{template.credits} credits</span></div></div>
+      {filteredTemplates.map((template, index) => <article className={`template-card ${template.size}`} key={template.title} onClick={() => onUseTemplate(template)} tabIndex={0} onKeyDown={(e) => e.key === "Enter" && onUseTemplate(template)}>
+        {template.preview ? <video src={template.preview} poster={template.image} muted loop playsInline preload="metadata" aria-label={`${template.title} real estate video template preview`} onMouseEnter={(event) => playPreview(event.currentTarget)} onMouseLeave={(event) => stopPreview(event.currentTarget)} /> : <img src={template.image} alt={`${template.title} real estate video template`} />}<div className="card-shade" /><div className="card-top"><span>{index === 0 && !favoritesOnly ? "Featured" : template.tag}</span><div className="card-top-actions"><button className="use-badge" onClick={(e) => { e.stopPropagation(); onUseTemplate(template); }}>Use</button><button className={`fav-btn ${favoriteIds.has(template.id) ? "active" : ""}`} aria-label={`${favoriteIds.has(template.id) ? "Remove" : "Add"} ${template.title} ${favoriteIds.has(template.id) ? "from" : "to"} favorites`} aria-pressed={favoriteIds.has(template.id)} onClick={(e) => { e.stopPropagation(); void onToggleFavorite(template.id); }}>{favoriteIds.has(template.id) ? "♥" : "♡"}</button></div></div><button className="play" aria-label={`Preview ${template.title}`}>▶</button><div className="card-copy"><p className="eyebrow">{template.tag}</p><h3>{template.title}</h3><div><span>{template.time}</span><span>{template.format}</span><span>{template.credits} credits</span></div></div>
       </article>)}
       {filteredTemplates.length === 0 && <article className="template-empty">
         <p className="eyebrow">{favoritesOnly ? "Your favorites" : "No matches"}</p>
@@ -571,17 +603,6 @@ function Integrations({ flash }: { flash: (m: string) => void }) {
         <p>Import your short-term rental listings and turn them into home tours.</p>
         <button disabled onClick={() => flash("Airbnb sync is coming soon")}>Coming soon</button>
       </article>
-    </div>
-  </div>;
-}
-
-function Review({ flash }: { flash: (m: string) => void }) {
-  const [approved, setApproved] = useState(false);
-  return <div className="page review-page">
-    <div className="review-heading"><button className="back-btn">←</button><div><p className="eyebrow">Video review</p><h1>{approved ? "Your tour is ready." : "One last look."}</h1><p>{approved ? "Approved and ready to download." : "Review the details, then approve your video when it feels right."}</p></div><span className={approved ? "approval-badge approved" : "approval-badge"}>● {approved ? "Approved" : "Awaiting approval"}</span></div>
-    <div className="review-layout">
-      <section className="player-wrap"><div className="phone-video"><img src="/homes/modern-villa.jpg" alt="Video preview for 814 Palisade Avenue" /><div className="phone-shade" /><div className="video-brand">homie.</div><div className="video-overlay"><p>Now presenting</p><h2>814 Palisade<br />Avenue</h2><span>Austin, Texas</span></div><button aria-label="Play home tour">▶</button><div className="timeline"><i /></div></div><div className="player-controls"><button>▶</button><span>00:00 / 00:24</span><div><button>↗</button><button>⛶</button></div></div></section>
-      <aside className="review-details"><div className="detail-block"><p className="eyebrow">Listing</p><div className="mini-listing"><img src="/homes/modern-villa.jpg" alt="814 Palisade Avenue" /><span><b>814 Palisade Avenue</b><small>Austin, TX · $1,285,000</small></span></div></div><div className="detail-block"><p className="eyebrow">Template</p><div className="template-summary"><span><b>Quiet Luxury</b><small>Cinematic · Reel</small></span><button>Change</button></div></div><div className="detail-grid"><span><small>Duration</small><b>24 sec</b></span><span><small>Format</small><b>9:16</b></span><span><small>Photos used</small><b>12 of 28</b></span><span><small>Created</small><b>Aug 6, 2026</b></span></div><div className="credit-note"><span>◒</span><p><b>18 credits used</b><small>Regenerating creates a new version for 18 credits.</small></p></div><div className="review-actions">{!approved ? <><button className="approve-btn" onClick={() => { setApproved(true); flash("Video approved — ready to download"); }}>✓ Approve video</button><button className="regenerate" onClick={() => flash("A new version would cost 18 credits")}>↻ Generate another version</button></> : <><button className="approve-btn" onClick={() => flash("Download started")}>↓ Download video</button><button className="regenerate" onClick={() => flash("Share options opened")}>↗ Share video</button></>}</div><p className="approval-note">Your video won't be published anywhere without your approval.</p></aside>
     </div>
   </div>;
 }
