@@ -1,0 +1,10 @@
+{
+  "source_summary": "User supplied the official Homie wordmark and matching dark/light H symbol variants on 2026-08-08. Preserve exact raster geometry and spelling.",
+  "logo": {
+    "name": "Homie official wordmark",
+    "asset": {
+      "path": "/Users/yakir/Documents/ChatGPT/homie/public/brand/official/homie-wordmark-dark-on-cream.png"
+    },
+    "geometry_fingerprint": "user-supplied-raster-2000x2000-homie-wordmark"
+  }
+}

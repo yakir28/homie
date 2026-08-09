@@ -1,0 +1,7 @@
+.git
+.next
+.wrangler
+dist
+node_modules
+public/**/*.mp4
+tsconfig.tsbuildinfo
