@@ -163,6 +163,7 @@ export default function Marketing() {
         <a className="marketing-brand" href="#top" onClick={(e) => jumpTo(e, "top")} aria-label="Homie home"><HomieLogo /></a>
         <nav className="marketing-links" aria-label="Main">
           {navLinks.map((l) => <a key={l.label} href={l.href} onClick={(e) => jumpTo(e, l.href.slice(1))}>{l.label}</a>)}
+          <a href="/docs">Docs</a>
         </nav>
         <div className="marketing-actions">
           <a className="marketing-login" href="/login">Log in</a>
@@ -174,6 +175,7 @@ export default function Marketing() {
       {navOpen && (
         <div className="marketing-mobile-menu">
           {navLinks.map((l) => <a key={l.label} href={l.href} onClick={(e) => jumpTo(e, l.href.slice(1))}>{l.label}</a>)}
+          <a href="/docs">Docs</a>
           <div className="marketing-mobile-actions">
             <a href="/login">Log in</a>
             <a className="marketing-cta" href="/login">Get started <span>→</span></a>
@@ -288,7 +290,7 @@ export default function Marketing() {
       <footer className="marketing-footer">
         <div className="marketing-brand"><HomieLogo /></div>
         <p>© 2026 Homie. Listing photos in. Home tours out.</p>
-        <div className="marketing-footer-links"><a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="/login">Log in</a></div>
+        <div className="marketing-footer-links"><a href="/docs">Docs</a><a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="/login">Log in</a></div>
       </footer>
 
       {cookieOpen && (
