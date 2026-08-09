@@ -3,28 +3,19 @@
 import { useEffect, useState } from "react";
 import { getSupabaseBrowserClient } from "../../lib/supabase/client";
 import CreateVideoWizard from "./CreateVideoWizard";
+import ZillowImportModal from "./ZillowImportModal";
+import HomieLogo from "../HomieLogo";
 
-type View = "overview" | "templates" | "favorites" | "listings" | "videos" | "integrations" | "profile";
+type View = "templates" | "favorites" | "listings" | "videos" | "integrations" | "profile";
 
 const nav = [
-  { id: "overview" as View, label: "Overview", icon: "⌂" },
   { id: "templates" as View, label: "Templates", icon: "◇" },
   { id: "listings" as View, label: "Listings", icon: "▤" },
   { id: "videos" as View, label: "My videos", icon: "▷" },
 ];
 
-const videoStatuses = ["All", "Generating", "Awaiting approval", "Approved"];
 
-const myVideos = [
-  { title: "Quiet Luxury", address: "814 Palisade Avenue", city: "Austin, TX", price: "$1,285,000", template: "Cinematic", format: "9:16", duration: "24 sec", credits: 18, photosUsed: 12, totalPhotos: 28, created: "Aug 6, 2026", status: "Awaiting approval", image: "/homes/modern-villa.jpg" },
-  { title: "Sunday Light", address: "2904 Hollow Creek", city: "Austin, TX", price: "$925,000", template: "Warm & airy", format: "9:16", duration: "18 sec", credits: 14, photosUsed: 10, totalPhotos: 34, created: "Aug 5, 2026", status: "Awaiting approval", image: "/homes/living-room.jpg" },
-  { title: "Welcome Home", address: "62 Juniper Lane", city: "Round Rock, TX", price: "$748,000", template: "Family", format: "9:16", duration: "22 sec", credits: 16, photosUsed: 14, totalPhotos: 22, created: "Aug 3, 2026", status: "Approved", image: "/homes/dining.jpg" },
-  { title: "The Detail Edit", address: "814 Palisade Avenue", city: "Austin, TX", price: "$1,285,000", template: "Editorial", format: "1:1", duration: "20 sec", credits: 16, photosUsed: 9, totalPhotos: 28, created: "Aug 1, 2026", status: "Approved", image: "/homes/kitchen.jpg" },
-  { title: "Modern Living", address: "2904 Hollow Creek", city: "Austin, TX", price: "$925,000", template: "Minimal", format: "16:9", duration: "30 sec", credits: 22, photosUsed: 16, totalPhotos: 34, created: "Aug 7, 2026", status: "Generating", image: "/homes/lounge.jpg" },
-  { title: "City Edge", address: "62 Juniper Lane", city: "Round Rock, TX", price: "$748,000", template: "Urban", format: "16:9", duration: "26 sec", credits: 19, photosUsed: 11, totalPhotos: 22, created: "Jul 29, 2026", status: "Approved", image: "/homes/kitchen.jpg" },
-];
-
-const categoryOptions = ["All", "Luxury", "Modern", "Warm", "Cinematic", "Minimal", "Coastal", "Urban", "Family", "Fast-paced", "Zillow"];
+const categoryOptions = ["All", "Luxury", "Viral Trends", "Casual", "Timelapse", "Effects", "Cinematic", "Fast-paced"];
 const sortOptions = ["Recent", "Popular", "Top"];
 const formatOptions = ["All", "9:16", "1:1", "16:9"];
 const creditsOptions = ["All", "Under 15", "15+"];
@@ -49,14 +40,58 @@ const templates: TemplateItem[] = [
   { id: 12, title: "City After Dark", tag: "Urban", format: "9:16", time: "25 sec", credits: 24, image: "https://drjehibthvfvorkgiyse.supabase.co/storage/v1/object/public/template-previews/city-after-dark/poster.jpg", preview: "https://drjehibthvfvorkgiyse.supabase.co/storage/v1/object/public/template-previews/city-after-dark/preview.mp4", size: "normal", minPhotos: 6, maxPhotos: 30 },
 ];
 
-const listings = [
-  { id: "", address: "814 Palisade Avenue", city: "Austin, TX", price: "$1,285,000", photos: 28, videos: 2, image: "/homes/modern-villa.jpg", status: "Active" },
-  { id: "", address: "2904 Hollow Creek", city: "Austin, TX", price: "$925,000", photos: 34, videos: 0, image: "/homes/living-room.jpg", status: "Active" },
-  { id: "", address: "62 Juniper Lane", city: "Round Rock, TX", price: "$748,000", photos: 22, videos: 1, image: "/homes/dining.jpg", status: "Pending" },
-];
+function getTemplateCategories(template: TemplateItem) {
+  const text = `${template.title} ${template.tag}`.toLowerCase();
+  const categories = new Set<string>();
 
-export type VideoItem = (typeof myVideos)[number];
-export type ListingItem = (typeof listings)[number];
+  if (/luxury|mediterranean|estate|premium/.test(text)) categories.add("Luxury");
+  if (/viral|trend|social|city|urban/.test(text)) categories.add("Viral Trends");
+  if (/casual|warm|family|coastal|forest|lifestyle/.test(text)) categories.add("Casual");
+  if (/timelapse|time-lapse|sunset|day to night|city/.test(text)) categories.add("Timelapse");
+  if (/effect|transition|modern|city|after dark/.test(text)) categories.add("Effects");
+  if (/cinematic|luxury|mediterranean|forest|city|after dark/.test(text)) categories.add("Cinematic");
+  if (/fast|viral|trend|city|urban/.test(text)) categories.add("Fast-paced");
+
+  return categories;
+}
+
+export type VideoItem = {
+  id: number;
+  title: string;
+  address: string;
+  city: string;
+  price: string;
+  template: string;
+  format: string;
+  duration: string;
+  credits: number;
+  photosUsed: number;
+  totalPhotos: number;
+  created: string;
+  status: "Generating" | "Ready" | "Approved";
+  image: string;
+  videoUrl?: string;
+  progress: number;
+  stage?: string;
+  error?: string;
+};
+export type ListingItem = {
+  id: string;
+  address: string;
+  city: string;
+  price: string;
+  photos: number;
+  videos: number;
+  image: string;
+  status: string;
+};
+type ZillowIntegration = {
+  id: number;
+  status: string;
+  external_account_name: string | null;
+  last_synced_at: string | null;
+  last_error: string | null;
+};
 
 export default function Home() {
   const [view, setView] = useState<View>("templates");
@@ -71,8 +106,15 @@ export default function Home() {
   const [creditsFilter, setCreditsFilter] = useState("All");
   const [selectedVideo, setSelectedVideo] = useState<VideoItem | null>(null);
   const [templateItems, setTemplateItems] = useState<TemplateItem[]>(templates);
-  const [listingItems, setListingItems] = useState<ListingItem[]>(listings);
-  const [videoItems, setVideoItems] = useState<VideoItem[]>(myVideos);
+  const [listingItems, setListingItems] = useState<ListingItem[]>([]);
+  const [zillowIntegration, setZillowIntegration] = useState<ZillowIntegration | null>(null);
+  const [airbnbIntegration, setAirbnbIntegration] = useState<ZillowIntegration | null>(null);
+  const [zillowBusy, setZillowBusy] = useState(false);
+  const [zillowImportOpen, setZillowImportOpen] = useState(false);
+  const [airbnbImportOpen, setAirbnbImportOpen] = useState(false);
+  const [videoItems, setVideoItems] = useState<VideoItem[]>([]);
+  const [videosLoading, setVideosLoading] = useState(true);
+  const [videosError, setVideosError] = useState("");
   const [creditBalance, setCreditBalance] = useState(0);
   const [displayName, setDisplayName] = useState("Agent");
   const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set());
@@ -86,6 +128,7 @@ export default function Home() {
   useEffect(() => {
     const supabase = getSupabaseBrowserClient();
     let active = true;
+    let projectsChannel: ReturnType<typeof supabase.channel> | null = null;
 
     async function loadWorkspace() {
       const { data: { session } } = await supabase.auth.getSession();
@@ -93,6 +136,7 @@ export default function Home() {
         window.location.replace("/login");
         return;
       }
+      const currentUser = session.user;
 
       if (!active) return;
       setUserId(session.user.id);
@@ -102,13 +146,14 @@ export default function Home() {
       if (workspaceError) flash(workspaceError.message);
       if (workspaceId) setWorkspaceId(workspaceId);
 
-      const [{ data: catalog }, { data: wallet }, { data: homes }, { data: projects }, { data: savedFavorites }, { data: profile }] = await Promise.all([
+      const [{ data: catalog }, { data: wallet }, { data: homes }, { data: savedFavorites }, { data: profile }, { data: zillow }, { data: airbnb }] = await Promise.all([
         supabase.from("video_templates").select("id, name, style_label, format, duration_seconds, credits_cost, min_photos, max_photos, preview_url, thumbnail_url, is_featured, sort_order").eq("is_active", true).order("sort_order"),
         workspaceId ? supabase.from("credit_wallets").select("balance").eq("workspace_id", workspaceId).maybeSingle() : Promise.resolve({ data: null }),
         workspaceId ? supabase.from("listings").select("id, address_line1, city, region, price, cover_photo_url, status, listing_photos(count), video_projects(count)").eq("workspace_id", workspaceId).order("created_at", { ascending: false }) : Promise.resolve({ data: null }),
-        workspaceId ? supabase.from("video_projects").select("title, status, output_format, duration_seconds, credits_cost, created_at, listings(address_line1, city, region, price, cover_photo_url, listing_photos(count)), video_templates(style_label, thumbnail_url)").eq("workspace_id", workspaceId).order("created_at", { ascending: false }) : Promise.resolve({ data: null }),
         supabase.from("template_favorites").select("template_id").eq("user_id", session.user.id),
         supabase.from("profiles").select("display_name, bio, phone, job_title, company_name").eq("id", session.user.id).maybeSingle(),
+        workspaceId ? supabase.from("integrations").select("id, status, external_account_name, last_synced_at, last_error").eq("workspace_id", workspaceId).eq("provider", "zillow").maybeSingle() : Promise.resolve({ data: null }),
+        workspaceId ? supabase.from("integrations").select("id, status, external_account_name, last_synced_at, last_error").eq("workspace_id", workspaceId).eq("provider", "airbnb").maybeSingle() : Promise.resolve({ data: null }),
       ]);
 
       if (!active) return;
@@ -120,11 +165,11 @@ export default function Home() {
         time: `${item.duration_seconds} sec`,
         credits: item.credits_cost,
         image: item.thumbnail_url ?? "/homes/modern-villa.jpg",
-        preview: item.preview_url ?? undefined,
+        preview: item.preview_url && /\.(mp4|webm|mov)$/i.test(item.preview_url) ? item.preview_url : undefined,
         size: index === 0 ? "tall" : item.format === "16:9" ? "wide" : "normal",
         minPhotos: item.min_photos ?? 6,
         maxPhotos: item.max_photos ?? 30,
-      })));
+      })).filter((template) => Boolean(template.preview)));
       setFavoriteIds(new Set(savedFavorites?.map((favorite) => favorite.template_id) ?? []));
       if (profile) {
         const nextName = profile.display_name ?? session.user.email?.split("@")[0] ?? "Agent";
@@ -138,7 +183,9 @@ export default function Home() {
           companyName: profile.company_name ?? "",
         });
       }
-      if (homes?.length) setListingItems(homes.map((home) => ({
+      setZillowIntegration(zillow ?? null);
+      setAirbnbIntegration(airbnb ?? null);
+      setListingItems((homes ?? []).map((home) => ({
         id: home.id,
         address: home.address_line1,
         city: [home.city, home.region].filter(Boolean).join(", "),
@@ -148,11 +195,35 @@ export default function Home() {
         image: home.cover_photo_url ?? "/homes/modern-villa.jpg",
         status: home.status === "active" ? "Active" : "Pending",
       })));
-      if (projects?.length) setVideoItems(projects.map((project) => {
+      async function loadUserVideos() {
+        setVideosLoading(true);
+        const { data: projects, error: projectsError } = workspaceId ? await supabase
+          .from("video_projects")
+          .select("id, title, status, output_format, duration_seconds, credits_cost, generation_progress, generation_error, created_at, generation_events(stage, message, progress, created_at), video_project_photos(count), video_versions(status, video_url, thumbnail_url, version_number, provider_metadata), listings(address_line1, city, region, price, cover_photo_url, listing_photos(count)), video_templates(style_label, thumbnail_url)")
+          .eq("workspace_id", workspaceId)
+          .eq("created_by", currentUser.id)
+          .order("created_at", { ascending: false }) : { data: [], error: null };
+        if (!active) return;
+        if (projectsError) {
+          setVideosError(projectsError.message);
+          setVideoItems([]);
+          setVideosLoading(false);
+          return;
+        }
+        setVideosError("");
+        const mappedVideos = (projects ?? []).map((project) => {
         const home = Array.isArray(project.listings) ? project.listings[0] : project.listings;
         const template = Array.isArray(project.video_templates) ? project.video_templates[0] : project.video_templates;
-        const status = project.status === "approved" ? "Approved" : project.status === "generating" || project.status === "queued" ? "Generating" : "Awaiting approval";
+        const versions = [...(project.video_versions ?? [])].sort((a, b) => b.version_number - a.version_number);
+        const readyVersion = versions.find((version) => version.status === "ready") ?? versions[0];
+        const latestEvent = [...(project.generation_events ?? [])].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+        const status = project.status === "generating" || project.status === "queued" || project.status === "draft"
+          ? "Generating"
+          : project.status === "approved"
+            ? "Approved"
+            : "Ready";
         return {
+          id: project.id,
           title: project.title,
           address: home?.address_line1 ?? "Untitled listing",
           city: [home?.city, home?.region].filter(Boolean).join(", "),
@@ -161,13 +232,37 @@ export default function Home() {
           format: project.output_format,
           duration: `${project.duration_seconds} sec`,
           credits: project.credits_cost,
-          photosUsed: home?.listing_photos?.[0]?.count ?? 0,
+          photosUsed: project.video_project_photos?.[0]?.count ?? 0,
           totalPhotos: home?.listing_photos?.[0]?.count ?? 0,
           created: new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(new Date(project.created_at)),
           status,
-          image: template?.thumbnail_url ?? home?.cover_photo_url ?? "/homes/modern-villa.jpg",
+          image: readyVersion?.thumbnail_url ?? home?.cover_photo_url ?? template?.thumbnail_url ?? "/homes/modern-villa.jpg",
+          videoUrl: readyVersion?.video_url ?? undefined,
+          progress: project.generation_progress ?? 0,
+          stage: latestEvent?.message ?? (project.status === "queued" ? "Waiting for generation" : undefined),
+          error: project.generation_error ?? undefined,
         } as VideoItem;
-      }));
+        });
+        const videosWithPlayback = await Promise.all(mappedVideos.map(async (video) => {
+          if (video.videoUrl || video.status === "Generating") return video;
+          const response = await fetch("/api/media/video-url", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+            body: JSON.stringify({ projectId: video.id }),
+          });
+          if (!response.ok) return video;
+          const payload = await response.json() as { url?: string };
+          return payload.url ? { ...video, videoUrl: payload.url } : video;
+        }));
+        if (active) setVideoItems(videosWithPlayback);
+        setVideosLoading(false);
+      }
+      await loadUserVideos();
+
+      projectsChannel = supabase
+        .channel(`my-video-projects-${currentUser.id}`)
+        .on("postgres_changes", { event: "*", schema: "public", table: "video_projects", filter: `created_by=eq.${currentUser.id}` }, () => { void loadUserVideos(); })
+        .subscribe();
       setCreditBalance(wallet?.balance ?? 0);
     }
 
@@ -177,6 +272,7 @@ export default function Home() {
     });
     return () => {
       active = false;
+      if (projectsChannel) void supabase.removeChannel(projectsChannel);
       listener.subscription.unsubscribe();
     };
   }, []);
@@ -246,10 +342,69 @@ export default function Home() {
     flash("Password updated");
   }
 
+  async function runZillowAction(action: "connect" | "sync" | "disconnect") {
+    if (!workspaceId || zillowBusy) return;
+    setZillowBusy(true);
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Your session expired. Please sign in again.");
+      const response = await fetch("/api/integrations/zillow", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ action, workspaceId }),
+      });
+      const result = await response.json() as { integration?: ZillowIntegration | null; synced?: number; error?: string };
+      if (!response.ok) throw new Error(result.error ?? "Zillow request failed");
+      setZillowIntegration(result.integration ?? null);
+      if (action !== "disconnect") {
+        const { data: homes, error } = await supabase.from("listings").select("id, address_line1, city, region, price, cover_photo_url, status, listing_photos(count), video_projects(count)").eq("workspace_id", workspaceId).order("created_at", { ascending: false });
+        if (error) throw error;
+        setListingItems((homes ?? []).map((home) => ({
+          id: home.id,
+          address: home.address_line1,
+          city: [home.city, home.region].filter(Boolean).join(", "),
+          price: home.price == null ? "Price on request" : new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(Number(home.price)),
+          photos: home.listing_photos?.[0]?.count ?? 0,
+          videos: home.video_projects?.[0]?.count ?? 0,
+          image: home.cover_photo_url ?? "/homes/modern-villa.jpg",
+          status: home.status === "active" ? "Active" : "Pending",
+        })));
+      }
+      flash(action === "disconnect" ? "Zillow disconnected" : `${result.synced ?? 0} listings synced from Zillow Bridge`);
+    } catch (error) {
+      flash(error instanceof Error ? error.message : "Zillow request failed");
+    } finally {
+      setZillowBusy(false);
+    }
+  }
+
+  async function refreshListings() {
+    if (!workspaceId) return;
+    const { data: homes, error } = await getSupabaseBrowserClient().from("listings").select("id, address_line1, city, region, price, cover_photo_url, status, listing_photos(count), video_projects(count)").eq("workspace_id", workspaceId).order("created_at", { ascending: false });
+    if (error) return flash(error.message);
+    setListingItems((homes ?? []).map((home) => ({
+      id: home.id,
+      address: home.address_line1,
+      city: [home.city, home.region].filter(Boolean).join(", "),
+      price: home.price == null ? "Price on request" : new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(Number(home.price)),
+      photos: home.listing_photos?.[0]?.count ?? 0,
+      videos: home.video_projects?.[0]?.count ?? 0,
+      image: home.cover_photo_url ?? "/homes/modern-villa.jpg",
+      status: home.status === "active" ? "Active" : "Pending",
+    })));
+  }
+
+  async function refreshAirbnbIntegration() {
+    if (!workspaceId) return;
+    const { data } = await getSupabaseBrowserClient().from("integrations").select("id, status, external_account_name, last_synced_at, last_error").eq("workspace_id", workspaceId).eq("provider", "airbnb").limit(1).maybeSingle();
+    setAirbnbIntegration(data ?? null);
+  }
+
   return (
     <main className="app-shell" data-theme={theme}>
       <aside className="sidebar">
-        <button className="brand" onClick={() => changeView("overview")} aria-label="Homie overview">homie<span>.</span></button>
+        <button className="brand" onClick={() => changeView("templates")} aria-label="Homie overview"><HomieLogo variant="mark-adaptive" /></button>
         <nav aria-label="Main navigation">
           <button onClick={() => changeView("templates")} className={view === "templates" ? "active" : ""}><span>•</span>Explore</button>
           <button onClick={() => changeView("videos")} className={view === "videos" ? "active" : ""}><span>•</span>My videos</button>
@@ -283,7 +438,7 @@ export default function Home() {
 
       <section className="main-panel">
         <header className="topbar">
-          <button className="mobile-brand" onClick={() => changeView("overview")}>homie<span>.</span></button>
+          <button className="mobile-brand" onClick={() => changeView("templates")} aria-label="Homie overview"><HomieLogo variant="mark-adaptive" /></button>
           <label className="global-search">
             <SearchIcon />
             <input aria-label="Search Homie" placeholder={view === "templates" || view === "favorites" ? "Search templates..." : "Search Homie..."} value={search} onChange={(e) => setSearch(e.target.value)} />
@@ -305,12 +460,11 @@ export default function Home() {
           </div>
         )}
 
-        {view === "overview" && <Overview setView={changeView} onOpenVideo={setSelectedVideo} />}
         {view === "templates" && <Templates items={templateItems} favoriteIds={favoriteIds} onToggleFavorite={toggleFavorite} setView={setView} onUseTemplate={setWizardTemplate} search={search} onClearSearch={clearAllFilters} category={category} setCategory={setCategory} sort={sort} formatFilter={formatFilter} creditsFilter={creditsFilter} />}
         {view === "favorites" && <Templates items={templateItems} favoriteIds={favoriteIds} onToggleFavorite={toggleFavorite} favoritesOnly setView={setView} onUseTemplate={setWizardTemplate} search={search} onClearSearch={clearAllFilters} category={category} setCategory={setCategory} sort={sort} formatFilter={formatFilter} creditsFilter={creditsFilter} />}
         {view === "listings" && <Listings items={listingItems} setView={setView} />}
-        {view === "videos" && <MyVideos items={videoItems} onOpenVideo={setSelectedVideo} />}
-        {view === "integrations" && <Integrations flash={flash} />}
+        {view === "videos" && <MyVideos items={videoItems} loading={videosLoading} error={videosError} onBrowseTemplates={() => changeView("templates")} onOpenVideo={setSelectedVideo} />}
+        {view === "integrations" && <Integrations integration={zillowIntegration} airbnbIntegration={airbnbIntegration} busy={zillowBusy} onImport={() => setZillowImportOpen(true)} onAirbnbImport={() => setAirbnbImportOpen(true)} onAction={runZillowAction} />}
         {view === "profile" && <ProfilePage details={profileDetails} onChange={setProfileDetails} onSave={saveProfile} saving={savingProfile} favoriteCount={favoriteIds.size} videoCount={videoItems.length} />}
 
         <nav className="mobile-nav" aria-label="Mobile navigation">
@@ -323,46 +477,34 @@ export default function Home() {
       {wizardTemplate && workspaceId && <CreateVideoWizard
         template={wizardTemplate}
         workspaceId={workspaceId}
-        userId={userId}
         listings={listingItems}
         walletBalance={creditBalance}
         onClose={() => setWizardTemplate(null)}
         onCreated={(project) => {
           setVideoItems((current) => [project, ...current]);
+          setCreditBalance((current) => Math.max(0, current - project.credits));
           setWizardTemplate(null);
           setView("videos");
           flash("Video queued — we'll notify you when it's ready");
         }}
         flash={flash}
       />}
+      {zillowImportOpen && workspaceId && <ZillowImportModal workspaceId={workspaceId} onClose={() => setZillowImportOpen(false)} onImported={async (count) => { await refreshListings(); flash(`${count} Zillow listing${count === 1 ? "" : "s"} imported`); }} />}
+      {airbnbImportOpen && workspaceId && <ZillowImportModal source="airbnb" workspaceId={workspaceId} onClose={() => setAirbnbImportOpen(false)} onImported={async (count) => { await Promise.all([refreshListings(), refreshAirbnbIntegration()]); flash(`${count} Airbnb listing${count === 1 ? "" : "s"} imported`); }} />}
     </main>
   );
 }
 
-function Overview({ setView, onOpenVideo }: { setView: (v: View) => void; onOpenVideo: (v: VideoItem) => void }) {
-  return <div className="page overview-page">
-    <div className="page-intro intro-row"><div><p className="eyebrow">Thursday, August 6</p><h1>Good evening, Yakir.</h1><p>Three listings are ready to turn into something worth watching.</p></div><button className="outline-btn" onClick={() => setView("listings")}>View all listings <span>→</span></button></div>
-    <section className="hero-card">
-      <img src="/homes/modern-villa.jpg" alt="Contemporary home at 814 Palisade Avenue" />
-      <div className="hero-shade" />
-      <div className="hero-copy"><span className="live-pill">● Zillow synced</span><p className="eyebrow">Featured listing</p><h2>814 Palisade Avenue</h2><p>Austin, TX · $1,285,000 · 28 photos</p><button onClick={() => setView("templates")}>Create a home tour <span>→</span></button></div>
-      <div className="hero-count"><b>01</b><span /><small>03</small></div>
-    </section>
-    <div className="dashboard-grid">
-      <section className="panel recent-panel"><div className="panel-heading"><div><p className="eyebrow">In progress</p><h3>Your recent videos</h3></div><button onClick={() => setView("videos")}>View all →</button></div>
-        <div className="video-row" onClick={() => onOpenVideo(myVideos[1])}><div className="video-thumb"><img src="/homes/living-room.jpg" alt="Bright living room" /><button aria-label="Play video">▶</button></div><div className="video-info"><span className="status amber">Awaiting approval</span><h4>Sunday Light</h4><p>2904 Hollow Creek</p><small>Story · 18 sec</small></div><button className="review-btn" onClick={(e) => { e.stopPropagation(); onOpenVideo(myVideos[1]); }}>Review</button></div>
-        <div className="video-row compact" onClick={() => onOpenVideo(myVideos[2])}><div className="video-thumb"><img src="/homes/dining.jpg" alt="Modern dining room" /><button aria-label="Play video">▶</button></div><div className="video-info"><span className="status green">Approved</span><h4>Welcome Home</h4><p>62 Juniper Lane</p><small>Reel · 22 sec</small></div><button className="dots" onClick={(e) => e.stopPropagation()}>•••</button></div>
-      </section>
-      <aside className="panel setup-panel"><div className="panel-heading"><div><p className="eyebrow">Quick start</p><h3>You're almost set</h3></div><b>2/3</b></div><div className="progress"><i /></div>
-        <div className="check-row done"><span>✓</span><div><b>Create your workspace</b><small>North & West Realty</small></div></div>
-        <div className="check-row done"><span>✓</span><div><b>Connect Zillow</b><small>3 listings synced</small></div></div>
-        <button className="check-row current" onClick={() => setView("templates")}><span>3</span><div><b>Create your first tour</b><small>Choose a template to begin</small></div><i>→</i></button>
-      </aside>
-    </div>
-  </div>;
-}
-
 function Templates({ items, favoriteIds, onToggleFavorite, favoritesOnly = false, setView, onUseTemplate, search, onClearSearch, category, setCategory, sort, formatFilter, creditsFilter }: { items: TemplateItem[]; favoriteIds: Set<number>; onToggleFavorite: (templateId: number) => Promise<void>; favoritesOnly?: boolean; setView: (v: View) => void; onUseTemplate: (template: TemplateItem) => void; search: string; onClearSearch: () => void; category: string; setCategory: (v: string) => void; sort: string; formatFilter: string; creditsFilter: string }) {
+  const [previewTemplate, setPreviewTemplate] = useState<TemplateItem | null>(null);
+
+  useEffect(() => {
+    if (!previewTemplate) return;
+    const closeOnEscape = (event: KeyboardEvent) => event.key === "Escape" && setPreviewTemplate(null);
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [previewTemplate]);
+
   function playPreview(video: HTMLVideoElement) {
     void video.play().catch(() => undefined);
   }
@@ -374,23 +516,31 @@ function Templates({ items, favoriteIds, onToggleFavorite, favoritesOnly = false
 
   const q = search.trim().toLowerCase();
   const filteredTemplates = items
+    .filter((template) => Boolean(template.preview))
     .filter((template) => !favoritesOnly || favoriteIds.has(template.id))
     .filter((t) => {
-      const matchesCategory = category === "All" || t.tag.toLowerCase().includes(category.toLowerCase()) || t.title.toLowerCase().includes(category.toLowerCase());
-      const matchesSearch = !q || t.title.toLowerCase().includes(q) || t.tag.toLowerCase().includes(q);
+      const templateCategories = getTemplateCategories(t);
+      const matchesCategory = category === "All" || templateCategories.has(category);
+      const matchesSearch = !q || t.title.toLowerCase().includes(q) || t.tag.toLowerCase().includes(q) || [...templateCategories].some((name) => name.toLowerCase().includes(q));
       const matchesFormat = formatFilter === "All" || t.format === formatFilter;
       const matchesCredits = creditsFilter === "All" || (creditsFilter === "Under 15" ? t.credits < 15 : t.credits >= 15);
       return matchesCategory && matchesSearch && matchesFormat && matchesCredits;
     })
     .sort((a, b) => (sort === "Popular" ? b.credits - a.credits : sort === "Top" ? a.credits - b.credits : 0));
   const activeLabel = q ? `“${search.trim()}”` : category !== "All" ? `“${category}”` : formatFilter !== "All" ? `“${formatFilter}”` : `“${creditsFilter}”`;
+  const visibleFavoriteCount = items.filter((template) => template.preview && favoriteIds.has(template.id)).length;
+  function openTemplate(template: TemplateItem) {
+    if (template.preview) setPreviewTemplate(template);
+    else onUseTemplate(template);
+  }
+
   return <div className="page templates-page">
-    <div className="content-tabs"><button className={!favoritesOnly ? "active" : ""} onClick={() => setView("templates")}>Templates</button><button onClick={() => setView("videos")}>My videos</button><button className={favoritesOnly ? "active" : ""} onClick={() => setView("favorites")}>Favorites <span>{favoriteIds.size}</span></button></div>
+    <div className="content-tabs"><button className={!favoritesOnly ? "active" : ""} onClick={() => setView("templates")}>Templates</button><button onClick={() => setView("videos")}>My videos</button><button className={favoritesOnly ? "active" : ""} onClick={() => setView("favorites")}>Favorites <span>{visibleFavoriteCount}</span></button></div>
     <div className="filter-row">{categoryOptions.map((name) => <button key={name} onClick={() => setCategory(name)} className={category === name ? "active" : ""}>{name}</button>)}</div>
     <div className="template-grid">
-      {!favoritesOnly && <article className="template-start"><span className="eyebrow">Not sure where to start?</span><h2>Let the home<br /><i>lead the way.</i></h2><p>Choose a listing and we'll recommend templates that fit its mood and architecture.</p><button onClick={() => setView("listings")}>Choose a listing →</button></article>}
-      {filteredTemplates.map((template, index) => <article className={`template-card ${template.size}`} key={template.title} onClick={() => onUseTemplate(template)} tabIndex={0} onKeyDown={(e) => e.key === "Enter" && onUseTemplate(template)}>
-        {template.preview ? <video src={template.preview} poster={template.image} muted loop playsInline preload="metadata" aria-label={`${template.title} real estate video template preview`} onMouseEnter={(event) => playPreview(event.currentTarget)} onMouseLeave={(event) => stopPreview(event.currentTarget)} /> : <img src={template.image} alt={`${template.title} real estate video template`} />}<div className="card-shade" /><div className="card-top"><span>{index === 0 && !favoritesOnly ? "Featured" : template.tag}</span><div className="card-top-actions"><button className="use-badge" onClick={(e) => { e.stopPropagation(); onUseTemplate(template); }}>Use</button><button className={`fav-btn ${favoriteIds.has(template.id) ? "active" : ""}`} aria-label={`${favoriteIds.has(template.id) ? "Remove" : "Add"} ${template.title} ${favoriteIds.has(template.id) ? "from" : "to"} favorites`} aria-pressed={favoriteIds.has(template.id)} onClick={(e) => { e.stopPropagation(); void onToggleFavorite(template.id); }}>{favoriteIds.has(template.id) ? "♥" : "♡"}</button></div></div><button className="play" aria-label={`Preview ${template.title}`}>▶</button><div className="card-copy"><p className="eyebrow">{template.tag}</p><h3>{template.title}</h3><div><span>{template.time}</span><span>{template.format}</span><span>{template.credits} credits</span></div></div>
+      {filteredTemplates.map((template, index) => <article className={`template-card ${template.size}`} key={template.title} onClick={() => openTemplate(template)} onMouseEnter={(event) => { const video = event.currentTarget.querySelector("video"); if (video) playPreview(video); }} onMouseLeave={(event) => { const video = event.currentTarget.querySelector("video"); if (video) stopPreview(video); }} tabIndex={0} onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && openTemplate(template)}>
+        {template.preview ? <video src={template.preview} poster={template.image} muted loop playsInline preload="metadata" aria-label={`${template.title} real estate video template preview`} /> : <img src={template.image} alt={`${template.title} real estate video template`} />}<div className="card-shade" /><div className="card-top"><span>{index === 0 && !favoritesOnly ? "Featured" : template.tag}</span><div className="card-top-actions"><button className="use-badge" onClick={(e) => { e.stopPropagation(); onUseTemplate(template); }}>Use</button><button className={`fav-btn ${favoriteIds.has(template.id) ? "active" : ""}`} aria-label={`${favoriteIds.has(template.id) ? "Remove" : "Add"} ${template.title} ${favoriteIds.has(template.id) ? "from" : "to"} favorites`} aria-pressed={favoriteIds.has(template.id)} onClick={(e) => { e.stopPropagation(); void onToggleFavorite(template.id); }}>{favoriteIds.has(template.id) ? "♥" : "♡"}</button></div></div>
+        {template.preview && <button className="play" aria-label={`Preview ${template.title}`} onClick={(event) => { event.stopPropagation(); setPreviewTemplate(template); }}>▶</button>}<div className="card-copy"><p className="eyebrow">{template.tag}</p><h3>{template.title}</h3><div><span>{template.time}</span><span>{template.format}</span><span>{template.credits} credits</span></div></div>
       </article>)}
       {filteredTemplates.length === 0 && <article className="template-empty">
         <p className="eyebrow">{favoritesOnly ? "Your favorites" : "No matches"}</p>
@@ -399,56 +549,72 @@ function Templates({ items, favoriteIds, onToggleFavorite, favoritesOnly = false
         <button onClick={() => favoritesOnly && favoriteIds.size === 0 ? setView("templates") : onClearSearch()}>{favoritesOnly && favoriteIds.size === 0 ? "Explore templates" : "Clear filters"} →</button>
       </article>}
     </div>
+    {previewTemplate && <TemplatePreviewModal template={previewTemplate} onClose={() => setPreviewTemplate(null)} onUse={() => { setPreviewTemplate(null); onUseTemplate(previewTemplate); }} />}
+  </div>;
+}
+
+function TemplatePreviewModal({ template, onClose, onUse }: { template: TemplateItem; onClose: () => void; onUse: () => void }) {
+  return <div className="template-preview-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+    <section className="template-preview-modal" role="dialog" aria-modal="true" aria-labelledby="template-preview-title">
+      <button className="template-preview-close" aria-label="Close template preview" onClick={onClose}>×</button>
+      <div className="template-preview-stage">
+        <video src={template.preview} poster={template.image} controls autoPlay playsInline preload="auto" aria-label={`${template.title} template video`} />
+      </div>
+      <aside className="template-preview-copy">
+        <p className="eyebrow">Template preview</p>
+        <h2 id="template-preview-title">{template.title}</h2>
+        <p>Watch the full example before using this style for your listing.</p>
+        <div className="template-preview-meta"><span><small>Style</small><b>{template.tag}</b></span><span><small>Duration</small><b>{template.time}</b></span><span><small>Format</small><b>{template.format}</b></span><span><small>Cost</small><b>{template.credits} credits</b></span></div>
+        <button className="template-preview-use" onClick={onUse}>Use this template <span>→</span></button>
+      </aside>
+    </section>
   </div>;
 }
 
 function Listings({ items, setView }: { items: ListingItem[]; setView: (v: View) => void }) {
   return <div className="page listings-page">
     <div className="page-intro intro-row"><div><p className="eyebrow">Synced from Zillow</p><h1>My listings.</h1><p>Select a home and turn its photos into a polished video tour.</p></div><button className="outline-btn">↻ Sync listings</button></div>
-    <div className="listings-grid">{items.map((listing) => <article className="listing-card" key={listing.address}><div className="listing-image"><img src={listing.image} alt={listing.address} /><span className={listing.status === "Active" ? "active" : "pending"}>● {listing.status}</span><button aria-label="More options">•••</button></div><div className="listing-copy"><p className="eyebrow">{listing.city}</p><h2>{listing.address}</h2><p className="price">{listing.price}</p><div className="listing-meta"><span><b>{listing.photos}</b> Photos</span><span><b>{listing.videos}</b> Videos</span></div><button onClick={() => setView("templates")}>{listing.videos ? "Create another video" : "Create video"}<span>→</span></button></div></article>)}</div>
+    <div className="listings-grid">{items.map((listing) => <article className="listing-card" key={listing.address} tabIndex={0} onClick={() => setView("templates")} onKeyDown={(e) => e.key === "Enter" && setView("templates")}><div className="listing-image"><img src={listing.image} alt={listing.address} /><button aria-label="More options" onClick={(e) => e.stopPropagation()}>•••</button></div><div className="listing-copy"><p className="eyebrow">{listing.city}</p><h2>{listing.address}</h2><p className="price">{listing.price}</p><div className="listing-meta"><span><b>{listing.photos}</b> Photos</span><span><b>{listing.videos}</b> Videos</span></div><button onClick={(e) => { e.stopPropagation(); setView("templates"); }}>{listing.videos ? "Create another video" : "Create video"}<span>→</span></button></div></article>)}</div>
   </div>;
 }
 
-function MyVideos({ items, onOpenVideo }: { items: VideoItem[]; onOpenVideo: (v: VideoItem) => void }) {
-  const [status, setStatus] = useState("All");
-  const filtered = status === "All" ? items : items.filter((v) => v.status === status);
+function MyVideos({ items, loading, error, onBrowseTemplates, onOpenVideo }: { items: VideoItem[]; loading: boolean; error: string; onBrowseTemplates: () => void; onOpenVideo: (v: VideoItem) => void }) {
   return <div className="page videos-page">
     <div className="page-intro intro-row"><div><p className="eyebrow">Your projects</p><h1>My videos.</h1><p>Every home tour you've generated, in one place.</p></div></div>
-    <div className="listing-tools"><div>{videoStatuses.map((s) => <button key={s} className={status === s ? "active" : ""} onClick={() => setStatus(s)}>{s} <b>{s === "All" ? items.length : items.filter((v) => v.status === s).length}</b></button>)}</div></div>
     <div className="video-grid">
-      {filtered.map((video) => <article className="myvideo-card" key={video.title} onClick={() => onOpenVideo(video)} tabIndex={0} onKeyDown={(e) => e.key === "Enter" && onOpenVideo(video)}>
+      {loading && <article className="template-empty"><p className="eyebrow">Your projects</p><h3>Loading your videos…</h3><p>Fetching the latest generation status.</p></article>}
+      {!loading && error && <article className="template-empty"><p className="eyebrow">Could not load videos</p><h3>Your projects are temporarily unavailable.</h3><p>{error}</p></article>}
+      {!loading && !error && items.map((video) => <article className="myvideo-card" key={video.id} onClick={() => onOpenVideo(video)} tabIndex={0} onKeyDown={(e) => e.key === "Enter" && onOpenVideo(video)}>
         <img src={video.image} alt={`${video.title} home tour`} /><div className="card-shade" />
-        <span className={`video-status ${video.status === "Approved" ? "green" : video.status === "Generating" ? "blue" : "amber"}`}>● {video.status}</span>
+        <span className={`video-status ${video.status === "Approved" ? "green" : "blue"}`}>● {video.status === "Generating" && video.stage ? video.stage : video.status}</span>
         {video.status !== "Generating" && <button className="play" aria-label={`Play ${video.title}`}>▶</button>}
-        <div className="card-copy"><p className="eyebrow">{video.template}</p><h3>{video.title}</h3><div><span>{video.address}</span><span>{video.duration}</span><span>{video.format}</span></div></div>
+        <div className="card-copy"><p className="eyebrow">{video.template}</p><h3>{video.title}</h3><div><span>{video.address}</span><span>{video.status === "Generating" ? `${video.progress}%` : video.duration}</span><span>{video.format}</span></div></div>
       </article>)}
-      {filtered.length === 0 && <article className="template-empty">
-        <p className="eyebrow">No matches</p>
-        <h3>No videos are {status.toLowerCase()} yet.</h3>
-        <p>Try another status filter.</p>
-        <button onClick={() => setStatus("All")}>Show all →</button>
+      {!loading && !error && items.length === 0 && <article className="template-empty">
+        <p className="eyebrow">Your projects</p>
+        <h3>No videos yet.</h3>
+        <p>Choose a template and turn your first listing into a home tour.</p>
+        <button onClick={onBrowseTemplates}>Browse templates →</button>
       </article>}
     </div>
   </div>;
 }
 
 function VideoModal({ video, onClose, flash }: { video: VideoItem; onClose: () => void; flash: (m: string) => void }) {
-  const [approved, setApproved] = useState(video.status === "Approved");
   const generating = video.status === "Generating";
   return <div className="modal-backdrop" onClick={onClose}>
     <div className="video-modal" onClick={(e) => e.stopPropagation()}>
       <button className="modal-close" aria-label="Close" onClick={onClose}>×</button>
       <div className="review-layout">
-        <section className="player-wrap"><div className="phone-video"><img src={video.image} alt={`Video preview for ${video.address}`} /><div className="phone-shade" /><div className="video-brand">homie.</div><div className="video-overlay"><p>Now presenting</p><h2>{video.title}</h2><span>{video.address}</span></div>{!generating && <button aria-label="Play home tour">▶</button>}{generating && <div className="generating-note"><span className="spinner" />Generating your video…</div>}<div className="timeline"><i style={{ width: generating ? "40%" : "18%" }} /></div></div><div className="player-controls"><button>▶</button><span>00:00 / 00:{video.duration.replace(" sec", "")}</span><div><button>↗</button><button>⛶</button></div></div></section>
+        <section className="player-wrap"><div className="phone-video">{video.videoUrl ? <video src={video.videoUrl} poster={video.image} controls playsInline /> : <img src={video.image} alt={`Video preview for ${video.address}`} />}<div className="phone-shade" /><div className="video-brand"><HomieLogo variant="mark-light" /></div><div className="video-overlay"><p>Now presenting</p><h2>{video.title}</h2><span>{video.address}</span></div>{!generating && !video.videoUrl && <button aria-label="Play home tour">▶</button>}{generating && <div className="generating-note"><span className="spinner" />{video.stage ?? "Generating your video…"} · {video.progress}%</div>}<div className="timeline"><i style={{ width: generating ? `${video.progress}%` : "18%" }} /></div></div><div className="player-controls"><button>▶</button><span>00:00 / 00:{video.duration.replace(" sec", "")}</span><div><button>↗</button><button>⛶</button></div></div></section>
         <aside className="review-details">
           <div className="detail-block"><p className="eyebrow">Listing</p><div className="mini-listing"><img src={video.image} alt={video.address} /><span><b>{video.address}</b><small>{video.city} · {video.price}</small></span></div></div>
           <div className="detail-block"><p className="eyebrow">Template</p><div className="template-summary"><span><b>{video.title}</b><small>{video.template}</small></span></div></div>
           <div className="detail-grid"><span><small>Duration</small><b>{video.duration}</b></span><span><small>Format</small><b>{video.format}</b></span><span><small>Photos used</small><b>{video.photosUsed} of {video.totalPhotos}</b></span><span><small>Created</small><b>{video.created}</b></span></div>
           <div className="credit-note"><span>◒</span><p><b>{video.credits} credits used</b><small>Regenerating creates a new version for {video.credits} credits.</small></p></div>
           <div className="review-actions">
-            {generating ? <p className="approval-note">We'll notify you when this video is ready to review.</p> : !approved ? <><button className="approve-btn" onClick={() => { setApproved(true); flash("Video approved — ready to download"); }}>✓ Approve video</button><button className="regenerate" onClick={() => flash(`A new version would cost ${video.credits} credits`)}>↻ Generate another version</button></> : <><button className="approve-btn" onClick={() => flash("Download started")}>↓ Download video</button><button className="regenerate" onClick={() => flash("Share options opened")}>↗ Share video</button></>}
+            {generating ? <p className="approval-note">We'll notify you when this video is ready.</p> : <><button className="approve-btn" onClick={() => video.videoUrl ? window.open(video.videoUrl, "_blank", "noopener,noreferrer") : flash("The video file is not ready yet")}>↓ Download video</button><button className="regenerate" onClick={() => flash("Share options opened")}>↗ Share video</button></>}
           </div>
-          {!generating && <p className="approval-note">Your video won't be published anywhere without your approval.</p>}
         </aside>
       </div>
     </div>
@@ -578,30 +744,37 @@ function ProfilePage({ details, onChange, onSave, saving, favoriteCount, videoCo
   </div>;
 }
 
-function Integrations({ flash }: { flash: (m: string) => void }) {
+function Integrations({ integration, airbnbIntegration, busy, onImport, onAirbnbImport, onAction }: { integration: ZillowIntegration | null; airbnbIntegration: ZillowIntegration | null; busy: boolean; onImport: () => void; onAirbnbImport: () => void; onAction: (action: "connect" | "sync" | "disconnect") => Promise<void> }) {
+  const connected = integration?.status === "connected" || integration?.status === "syncing";
+  const lastSync = integration?.last_synced_at
+    ? new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(integration.last_synced_at))
+    : null;
   return <div className="page integrations-page">
     <div className="page-intro intro-row">
       <div><p className="eyebrow">Workspace</p><h1>Integrations.</h1><p>Connect your listing sources to import properties automatically.</p></div>
-      <span className="sources-count">1/2 SOURCES</span>
+      <span className="sources-count">{connected ? "1" : "0"}/2 SOURCES</span>
     </div>
 
-    <div className="panel-heading standalone"><p className="eyebrow">Platforms</p><h3>2 total · 1 connected</h3></div>
+    <div className="panel-heading standalone"><p className="eyebrow">Platforms</p><h3>2 total · {connected ? "1" : "0"} connected</h3></div>
     <div className="integrations-grid">
-      <article className="integration-card connected">
+      <article className={`integration-card ${connected ? "connected" : ""}`}>
         <span className="source-icon"><img src="/integrations/zillow-logo.jpeg" alt="Zillow logo" /></span>
         <h3>Zillow</h3>
-        <p>Connected as <b>North &amp; West Realty</b> · 3 listings synced</p>
-        <small className="sync-time">Last synced 2 hours ago</small>
+        <p>{connected ? <>Importing from <b>{integration?.external_account_name ?? "Zillow profile"}</b></> : "Choose listings from your public Zillow profile and import their photos."}</p>
+        <small className="sync-time">{integration?.last_error ? `Last error: ${integration.last_error}` : lastSync ? `Last imported ${lastSync}` : "No Zillow profile imported yet"}</small>
         <div className="card-actions">
-          <button onClick={() => flash("Syncing your Zillow listings…")}>↻ Sync</button>
-          <button className="danger" onClick={() => flash("Disconnecting Zillow would remove synced listings")}>Disconnect</button>
+          {connected ? <>
+            <button disabled={busy} onClick={onImport}>＋ Import listings</button>
+            <button disabled={busy} className="danger" onClick={() => void onAction("disconnect")}>Disconnect</button>
+          </> : <button disabled={busy} onClick={onImport}>Import from Zillow</button>}
         </div>
       </article>
-      <article className="integration-card disabled">
+      <article className={`integration-card ${airbnbIntegration?.status === "connected" ? "connected" : ""}`}>
         <span className="source-icon"><img src="/integrations/airbnb-logo.webp" alt="Airbnb logo" /></span>
         <h3>Airbnb</h3>
-        <p>Import your short-term rental listings and turn them into home tours.</p>
-        <button disabled onClick={() => flash("Airbnb sync is coming soon")}>Coming soon</button>
+        <p>{airbnbIntegration?.status === "connected" ? <>Importing from <b>{airbnbIntegration.external_account_name ?? "Airbnb host"}</b></> : "Choose properties from your public Airbnb host profile and import their photos."}</p>
+        <small className="sync-time">{airbnbIntegration?.last_error ? `Last error: ${airbnbIntegration.last_error}` : airbnbIntegration?.last_synced_at ? `Last imported ${new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(airbnbIntegration.last_synced_at))}` : "No Airbnb properties imported yet"}</small>
+        <div className="card-actions"><button onClick={onAirbnbImport}>{airbnbIntegration?.status === "connected" ? "＋ Import listings" : "Import from Airbnb"}</button></div>
       </article>
     </div>
   </div>;

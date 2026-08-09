@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { getSupabaseBrowserClient } from "../../lib/supabase/client";
+import HomieLogo from "../HomieLogo";
 
 const collageColumns = [
   { images: ["/homes/modern-villa.jpg", "/homes/kitchen.jpg", "/homes/living-room.jpg", "/homes/dining.jpg", "/homes/lounge.jpg"], duration: 32 },
@@ -70,7 +71,7 @@ export default function Login() {
           ))}
         </div>
         <div className="auth-scrim" />
-        <a className="auth-brand" href="/" aria-label="Homie home page">homie<span>.</span></a>
+        <a className="auth-brand" href="/" aria-label="Homie home page"><HomieLogo variant="mark-light" /></a>
         <div className="auth-collage-copy">
           <p className="eyebrow">● {mode === "login" ? "Welcome back" : "Start free"}</p>
           <h1>
@@ -111,7 +112,7 @@ export default function Login() {
 
           {mode === "login" && <button className="auth-forgot" onClick={resetPassword} disabled={loading}>Forgot password?</button>}
 
-          <p className="auth-legal">By continuing, you agree to our <a href="#">Terms</a> · <a href="#">Privacy</a></p>
+          <p className="auth-legal">By continuing, you agree to our <a href="/terms">Terms</a> · <a href="/privacy">Privacy</a></p>
         </div>
       </section>
     </main>

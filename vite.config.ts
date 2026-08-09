@@ -14,6 +14,12 @@ const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === "seatbelt";
 const localBindingConfig = {
   main: "./worker/index.ts",
   compatibility_flags: ["nodejs_compat"],
+  vars: {
+    ALLOW_LOCAL_MEDIA_SEED: process.env.ALLOW_LOCAL_MEDIA_SEED ?? "0",
+    ...(process.env.MEDIA_SIGNING_SECRET
+      ? { MEDIA_SIGNING_SECRET: process.env.MEDIA_SIGNING_SECRET }
+      : {}),
+  },
   d1_databases: d1
     ? [
         {
@@ -27,7 +33,7 @@ const localBindingConfig = {
     ? [
         {
           binding: r2,
-          bucket_name: "site-creator-r2",
+          bucket_name: "homie",
         },
       ]
     : [],

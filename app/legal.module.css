@@ -1,0 +1,31 @@
+.shell{min-height:100vh;background:var(--paper);color:var(--ink)}
+.header{display:flex;align-items:center;justify-content:space-between;padding:26px 5%;max-width:840px;margin:0 auto}
+.brand{display:inline-flex;align-items:center;height:34px}
+.back{color:var(--muted);font-size:12px;text-decoration:none}
+.back:hover{color:var(--ink)}
+.article{max-width:720px;margin:0 auto;padding:20px 5% 120px}
+.eyebrow{font:9px var(--mono);letter-spacing:1.6px;color:var(--muted);text-transform:uppercase;margin:0 0 18px}
+.article h1{font:400 clamp(38px,5vw,56px)/1.05 var(--serif);letter-spacing:-2px;margin:0 0 14px;color:var(--ink)}
+.updated{color:var(--muted);font-size:13px;margin:0 0 48px}
+.toc{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:22px 24px;margin-bottom:56px}
+.toc p{font:9px var(--mono);letter-spacing:1.4px;text-transform:uppercase;color:var(--muted);margin:0 0 14px}
+.toc ol{margin:0;padding:0;list-style:none;columns:2;column-gap:24px}
+.toc li{margin-bottom:9px;break-inside:avoid}
+.toc a{color:var(--ink);text-decoration:none;font-size:13px}
+.toc a:hover{color:var(--sage-dark,var(--sage))}
+.article section{scroll-margin-top:24px;margin:0 0 44px}
+.article section h2{font:400 26px var(--serif);letter-spacing:-.4px;margin:0 0 16px;color:var(--ink)}
+.article section p{color:var(--muted);font-size:15px;line-height:1.8;margin:0 0 14px}
+.article section p:last-child{margin-bottom:0}
+.article ul{margin:0 0 14px;padding-left:22px;color:var(--muted)}
+.article li{font-size:15px;line-height:1.75;margin:8px 0}
+.article li::marker{color:var(--sage)}
+.article a{color:var(--ink);text-decoration:underline}
+.article strong{color:var(--ink);font-weight:600}
+.contact{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:24px 26px;display:flex;flex-direction:column;gap:6px}
+.contact span{font:9px var(--mono);letter-spacing:1.4px;text-transform:uppercase;color:var(--muted)}
+.contact a{color:var(--sage-dark,var(--sage));font-size:15px;text-decoration:none}
+.disclaimer{color:var(--muted);font-size:11px;line-height:1.6;margin-top:56px;padding-top:24px;border-top:1px solid var(--line)}
+.crosslink{margin-top:14px}
+.crosslink a{color:var(--muted);font-size:12px}
+@media(max-width:600px){.toc ol{columns:1}.header{padding:22px 6%}}

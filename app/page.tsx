@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import HomieLogo from "./HomieLogo";
 
 const navLinks = [
   { label: "Product", href: "#top" },
@@ -17,12 +18,16 @@ const steps = [
   { n: "03", title: "Approve & share", body: "Review your tour, approve it, and download it for Reels, TikTok, Stories, or Zillow." },
 ];
 
-const logos = ["North & West Realty", "Lakeside Properties", "Sierra Home Group", "Maple & Co.", "Harbor District"];
-
 const templatePreviews = [
-  { title: "Quiet Luxury", tag: "Cinematic", image: "/homes/modern-villa.jpg" },
-  { title: "Sunday Light", tag: "Warm & airy", image: "/homes/living-room.jpg" },
-  { title: "The Detail Edit", tag: "Editorial", image: "/homes/kitchen.jpg" },
+  { title: "Mediterranean Luxe", tag: "Cinematic", video: "/templates/mediterranean-luxe/preview.mp4", poster: "/templates/mediterranean-luxe/poster.jpg" },
+  { title: "Scandinavian Calm", tag: "Warm & airy", video: "/templates/scandinavian-calm/preview.mp4", poster: "/templates/scandinavian-calm/poster.jpg" },
+  { title: "Urban Penthouse", tag: "Fast-paced", video: "/templates/urban-penthouse/preview.mp4", poster: "/templates/urban-penthouse/poster.jpg" },
+];
+
+const proofPoints = [
+  { value: "9:16", label: "Ready for Reels, TikTok & Stories" },
+  { value: "3 steps", label: "From listing link to finished tour" },
+  { value: "100%", label: "You approve before anything is shared" },
 ];
 
 const useCases = [
@@ -70,14 +75,52 @@ function Reveal({ children, className = "", delay = 0, as: Tag = "div" }: { chil
   );
 }
 
+function TemplateVideoCard({ title, tag, video, poster }: { title: string; tag: string; video: string; poster: string }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  function play() {
+    void videoRef.current?.play();
+  }
+
+  function pause() {
+    const player = videoRef.current;
+    if (!player) return;
+    player.pause();
+    player.currentTime = 0;
+  }
+
+  return (
+    <button type="button" className="template-preview-card" onMouseEnter={play} onMouseLeave={pause} onFocus={play} onBlur={pause} aria-label={`Preview ${title} template`}>
+      <video ref={videoRef} muted loop playsInline preload="metadata" poster={poster} aria-label={`${title} template preview`}>
+        <source src={video} type="video/mp4" />
+        <track kind="captions" src="/captions/no-dialogue.vtt" srcLang="en" label="No dialogue" default />
+      </video>
+      <div className="card-shade" />
+      <span className="template-play-cue" aria-hidden="true">▶</span>
+      <div className="card-copy"><p className="eyebrow">{tag}</p><h3>{title}</h3><small>Hover to watch</small></div>
+    </button>
+  );
+}
+
+const COOKIE_CONSENT_KEY = "homie_cookie_consent";
+
 export default function Marketing() {
   const [announceOpen, setAnnounceOpen] = useState(true);
-  const [cookieOpen, setCookieOpen] = useState(true);
+  const [cookieOpen, setCookieOpen] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
   const [openFaq, setOpenFaq] = useState(0);
   const [scrolled, setScrolled] = useState(false);
   const [progress, setProgress] = useState(0);
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    if (!localStorage.getItem(COOKIE_CONSENT_KEY)) setCookieOpen(true);
+  }, []);
+
+  function chooseCookieConsent(choice: "accepted" | "declined") {
+    localStorage.setItem(COOKIE_CONSENT_KEY, choice);
+    setCookieOpen(false);
+  }
 
   useEffect(() => {
     function onScroll() {
@@ -117,7 +160,7 @@ export default function Marketing() {
       )}
 
       <header className={scrolled ? "marketing-nav scrolled" : "marketing-nav"}>
-        <a className="marketing-brand" href="#top" onClick={(e) => jumpTo(e, "top")}>homie<span>.</span></a>
+        <a className="marketing-brand" href="#top" onClick={(e) => jumpTo(e, "top")} aria-label="Homie home"><HomieLogo /></a>
         <nav className="marketing-links" aria-label="Main">
           {navLinks.map((l) => <a key={l.label} href={l.href} onClick={(e) => jumpTo(e, l.href.slice(1))}>{l.label}</a>)}
         </nav>
@@ -141,38 +184,40 @@ export default function Marketing() {
       <section className="marketing-hero">
         <div className="hero-blob a" aria-hidden="true" />
         <div className="hero-blob b" aria-hidden="true" />
-        <p className="hero-kicker hero-in" style={{ animationDelay: "40ms" }}>— The listing video, rewritten —</p>
-        <h1 className="hero-in" style={{ animationDelay: "140ms" }}>Turn listing photos into<br />home tours that <i>move.</i></h1>
-        <p className="hero-sub hero-in" style={{ animationDelay: "280ms" }}>Turn ordinary listing photos into scroll-stopping video tours that get more views, saves, and offers.</p>
+        <p className="hero-kicker hero-in" style={{ animationDelay: "40ms" }}>AI video studio for real estate</p>
+        <h1 className="hero-in" style={{ animationDelay: "140ms" }}>Your listing already has a story.<br />Make people <i>feel it.</i></h1>
+        <p className="hero-sub hero-in" style={{ animationDelay: "280ms" }}>Connect your listing, choose a cinematic direction, and turn property photos into a polished 25-second vertical tour—ready to publish everywhere.</p>
         <a className="hero-cta hero-in" style={{ animationDelay: "400ms" }} href="/login">Create your first tour <span>→</span></a>
         <p className="hero-note hero-in" style={{ animationDelay: "500ms" }}>Free trial · No credit card needed</p>
 
         <div className="compare-grid hero-in" style={{ animationDelay: "600ms" }}>
           <figure className="compare-before">
             <figcaption>Your listing</figcaption>
-            <img src="/homes/modern-villa.jpg" alt="Original listing photo" />
+            <img src="/homes/modern-villa.jpg" alt="Original listing exterior" />
           </figure>
           <div className="compare-arrow" aria-hidden="true">→</div>
           <figure className="compare-after" onMouseMove={tiltMove} onMouseLeave={() => setTilt({ x: 0, y: 0 })}>
             <figcaption>The result</figcaption>
             <div className="compare-video" style={{ transform: `perspective(900px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) rotate(2deg)` }}>
               <span className="compare-badge">9:16</span>
-              <img src="/homes/modern-villa.jpg" alt="Generated home tour video" />
+              <video autoPlay muted loop playsInline preload="metadata" poster="/templates/mediterranean-luxe/poster.jpg" aria-label="Homie generated Mediterranean property tour">
+                <source src="/templates/mediterranean-luxe/preview.mp4" type="video/mp4" />
+                <track kind="captions" src="/captions/no-dialogue.vtt" srcLang="en" label="No dialogue" default />
+              </video>
               <div className="compare-shade" />
               <div className="compare-brand">homie.</div>
               <div className="compare-copy"><p>Now presenting</p><h3>814 Palisade<br />Avenue</h3></div>
-              <button aria-label="Play preview">▶</button>
+              <span className="compare-live"><i /> Playing preview</span>
             </div>
           </figure>
         </div>
       </section>
 
-      <section className="marketing-logos">
-        <Reveal><p>Trusted by agents and teams at</p></Reveal>
-        <div className="logos-marquee">
-          <div className="logos-track">
-            {[...logos, ...logos].map((l, i) => <span key={i}>{l}</span>)}
-          </div>
+      <section className="marketing-proof" aria-label="Product highlights">
+        <div className="proof-grid">
+          {proofPoints.map((point, i) => <Reveal delay={i * 90} key={point.value}>
+            <div className="proof-point"><strong>{point.value}</strong><span>{point.label}</span></div>
+          </Reveal>)}
         </div>
       </section>
 
@@ -189,10 +234,7 @@ export default function Marketing() {
         <Reveal delay={80}><h2>A style for every<br /><i>listing and mood.</i></h2></Reveal>
         <div className="templates-preview-grid">
           {templatePreviews.map((t, i) => <Reveal delay={i * 110} key={t.title}>
-            <article className="template-preview-card">
-              <img src={t.image} alt={`${t.title} template preview`} /><div className="card-shade" />
-              <div className="card-copy"><p className="eyebrow">{t.tag}</p><h3>{t.title}</h3></div>
-            </article>
+            <TemplateVideoCard {...t} />
           </Reveal>)}
         </div>
         <Reveal delay={200}><a className="marketing-inline-link" href="/login">Explore the full template library <span>→</span></a></Reveal>
@@ -244,16 +286,16 @@ export default function Marketing() {
       </section>
 
       <footer className="marketing-footer">
-        <div className="marketing-brand">homie<span>.</span></div>
+        <div className="marketing-brand"><HomieLogo /></div>
         <p>© 2026 Homie. Listing photos in. Home tours out.</p>
-        <div className="marketing-footer-links"><a href="#">Terms</a><a href="#">Privacy</a><a href="/login">Log in</a></div>
+        <div className="marketing-footer-links"><a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="/login">Log in</a></div>
       </footer>
 
       {cookieOpen && (
         <div className="cookie-banner">
           <p className="announce-tag">● Cookies</p>
-          <p>We use cookies for authentication and analytics, to keep this studio running. <a href="#">Learn more</a></p>
-          <div><button className="cookie-accept" onClick={() => setCookieOpen(false)}>Accept</button><button className="cookie-dismiss" onClick={() => setCookieOpen(false)}>Dismiss</button></div>
+          <p>We use cookies for authentication and analytics, to keep this studio running.</p>
+          <div><button className="cookie-accept" onClick={() => chooseCookieConsent("accepted")}>Accept</button><button className="cookie-dismiss" onClick={() => chooseCookieConsent("declined")}>Dismiss</button></div>
         </div>
       )}
     </main>

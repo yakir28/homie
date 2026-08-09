@@ -94,6 +94,43 @@ actions tied to the current ChatGPT user. Leave public content anonymous.
 - `npm test`: build the starter and verify its rendered loading skeleton
 - `npm run db:generate`: generate Drizzle migrations after schema changes
 
+## Video generation worker
+
+The browser queues projects in Supabase; a separate Node worker generates short
+Higgsfield clips and assembles the final MP4. This must run outside the
+Cloudflare web runtime because it uses the authenticated Higgsfield CLI and
+FFmpeg.
+
+1. Apply the Supabase migrations and copy `video-worker.env.example` values
+   into your worker environment.
+2. Authenticate once with `higgsfield auth login`, `wrangler login`, and install `ffmpeg`.
+3. Validate the next queued project without spending generation credits:
+   `npm run video:worker:dry-run`.
+4. Process one project with `npm run video:worker:once`, or keep polling with
+   `npm run video:worker`.
+
+The worker automatically reads an ignored `video-worker.env` file when present.
+The Higgsfield CLI uses its server-side OAuth session. Higgsfield credentials
+and Supabase's secret key belong only in the worker environment. Never expose
+them through `NEXT_PUBLIC_*` variables. Use `SUPABASE_SECRET_KEY` for current
+Supabase projects; the worker also accepts the legacy
+`SUPABASE_SERVICE_ROLE_KEY` name.
+
+## Cloudflare R2 media storage
+
+Homie stores generated videos and template media in the private `homie`
+R2 bucket. Supabase remains the metadata, authorization, and generation-queue
+database. Template assets use the `templates/` prefix with long-lived public
+caching. Generated videos use the private `videos/` prefix and are streamed
+through one-hour signed playback links with byte-range support.
+
+1. Enable R2 for the Cloudflare account and create the `homie` bucket.
+2. For a hosted worker, create an R2 API token scoped to Object Read & Write for that bucket. During local development, an authenticated Wrangler session is used as a fallback and the result is also copied to local R2 for localhost playback.
+3. Configure the server-only values from `.env.example` and
+   `video-worker.env.example`.
+4. Run `npm run r2:sync-templates` once to copy active catalog assets to R2.
+5. Run `npm run video:worker`; completed videos upload directly to R2.
+
 ## Learn More
 
 - [vinext Documentation](https://github.com/cloudflare/vinext)
