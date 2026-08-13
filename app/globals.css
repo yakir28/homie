@@ -287,7 +287,8 @@
 .source-icon{width:48px;height:48px;border:1px solid var(--line);border-radius:12px;display:flex;align-items:center;justify-content:center;overflow:hidden;flex:none;background:#fff}
 .source-icon img{width:100%;height:100%;display:block;object-fit:contain}
 .integrations-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:36px}
-.integration-card{border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:26px;transition:transform .3s ease,box-shadow .3s ease}
+.integration-card{position:relative;border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:26px;transition:transform .3s ease,box-shadow .3s ease}
+.soon-badge{position:absolute;top:20px;right:20px;font:9px var(--mono);text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);border:1px solid var(--line);padding:4px 10px;border-radius:20px;background:var(--surface)}
 .integration-card:not(.disabled):hover{transform:translateY(-4px);box-shadow:0 20px 40px rgba(0,0,0,.06)}
 .integration-card h3{font:400 20px var(--serif);margin:16px 0 8px}
 .integration-card p{font-size:12px;color:var(--muted);line-height:1.6;margin:0 0 20px;min-height:36px}
@@ -333,6 +334,16 @@
 .wizard-listing-option:disabled{opacity:.4;cursor:not-allowed}
 .wizard-listing-option:disabled:hover{border-color:#303239}
 .wizard-source .wizard-confirm{margin-top:18px}
+.wizard-upload{margin-top:26px;padding-top:22px;border-top:1px solid #2b2d33}
+.wizard-upload-primary{margin-top:0;padding-top:0;border-top:0}
+.wizard-upload .wizard-lead{font-size:14px;margin:0 0 16px}
+.wizard-upload-primary .wizard-lead{font-size:22px;margin-bottom:8px}
+.wizard-upload-copy{color:#8e9198;font-size:12px;line-height:1.6;margin:0 0 22px}
+.wizard-upload-primary .zillow-url-field span{color:#74777d}
+.wizard-upload-icon{display:flex;width:42px;height:42px;margin:0 auto 12px;border:1px solid #4b5543;border-radius:50%;align-items:center;justify-content:center;color:#a9bd94;font-size:22px}
+.wizard-upload-ready{display:flex;align-items:center;gap:13px;border:1px solid #3f4d35;background:#20261a;border-radius:12px;padding:18px}.wizard-upload-ready>span{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#71845f;color:white}.wizard-upload-ready div{display:flex;flex-direction:column;gap:4px}.wizard-upload-ready b{font-size:13px;font-weight:400}.wizard-upload-ready small{font-size:10px;color:#8e9198}
+.wizard-upload-submit{margin-top:14px;border:1px solid #383b41;border-radius:6px;background:transparent;color:#e8e7e2;padding:12px 18px;font-size:11px}
+.wizard-upload-submit:disabled{opacity:.45;cursor:not-allowed}
 .wizard-listing-option img{width:52px;height:52px;object-fit:cover;border-radius:8px;flex:none}
 .wizard-listing-option span{display:flex;flex-direction:column;gap:4px;min-width:0}
 .wizard-listing-option b{font-size:13px;font-weight:400}
@@ -382,4 +393,13 @@
 .zillow-import-summary{display:flex;align-items:center;justify-content:space-between;margin:24px 0 12px;color:#a8aaa5;font-size:12px}.zillow-import-summary b{color:#e9e8e4}.zillow-import-summary button{border:0;background:transparent;color:#a9bd94;font-size:11px}
 .zillow-listing-picker{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-height:420px;overflow:auto;padding-right:3px}.zillow-listing-choice{display:flex;flex-direction:column;align-items:flex-start;gap:10px;aspect-ratio:1;border:1px solid #303239;background:#1d1f25;border-radius:9px;padding:14px;overflow:hidden}.zillow-listing-choice.selected{border-color:#647654;background:#20251d}.zillow-listing-picker input,.zillow-rights-confirm input{accent-color:#71845f}.zillow-listing-picker span{display:flex;flex-direction:column;gap:4px;min-width:0;width:100%}.zillow-listing-picker b{font-size:12px;font-weight:400;line-height:1.35;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}.zillow-listing-picker small{font-size:9px;color:#74777d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%}
 .zillow-rights-confirm{display:flex;align-items:flex-start;gap:10px;margin-top:18px;color:#a9aba7;font-size:11px;line-height:1.5;cursor:pointer}.zillow-rights-confirm input{margin-top:2px;flex:none}
-@media(max-width:700px){.zillow-import-backdrop{padding:0}.zillow-import-modal{height:100vh;max-height:none;border-radius:0;padding:28px 20px}.zillow-import-modal h2{font-size:32px}.zillow-listing-picker{grid-template-columns:repeat(2,1fr)}}
+.dropzone{margin-top:18px;border:2px dashed #3b3e45;border-radius:12px;padding:36px 20px;text-align:center;cursor:pointer;transition:border-color .2s ease,background .2s ease}
+.dropzone:hover,.dropzone:focus-visible{border-color:#647654}
+.dropzone.dragover{border-color:#71845f;background:#1c2119}
+.dropzone p{margin:0 0 6px;color:#dcdbd7;font-size:13px}
+.dropzone small{color:#74777d;font-size:10px}
+.dropzone-files{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:16px}
+.dropzone-file{position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;border:1px solid #303239;background:#1d1f25}
+.dropzone-file img{width:100%;height:100%;object-fit:cover;display:block}
+.dropzone-file button{position:absolute;top:4px;right:4px;width:20px;height:20px;border:0;border-radius:50%;background:rgba(4,5,4,.72);color:#ecebe7;font-size:13px;line-height:1;display:flex;align-items:center;justify-content:center;padding:0}
+@media(max-width:700px){.zillow-import-backdrop{padding:0}.zillow-import-modal{height:100vh;max-height:none;border-radius:0;padding:28px 20px}.zillow-import-modal h2{font-size:32px}.zillow-listing-picker{grid-template-columns:repeat(2,1fr)}.dropzone-files{grid-template-columns:repeat(3,1fr)}}

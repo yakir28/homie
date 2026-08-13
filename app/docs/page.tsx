@@ -31,12 +31,25 @@ export default function DocsPage() {
   const [query, setQuery] = useState("");
   const [copied, setCopied] = useState(false);
   const [activeId, setActiveId] = useState("top");
+  const [activeLabel, setActiveLabel] = useState<string | null>(null);
   const articleRef = useRef<HTMLElement>(null);
 
   const filtered = useMemo(() => sections.map((section) => ({
     ...section,
     items: section.items.filter(([label]) => label.toLowerCase().includes(query.toLowerCase())),
   })).filter((section) => section.items.length), [query]);
+
+  // Multiple sidebar links can point at the same anchor (e.g. "Overview" and
+  // "Upload photos" both link to #create). Default to the first link for
+  // whichever section is in view, unless the user explicitly clicked one.
+  const defaultLabel = useMemo(() => {
+    for (const section of sections) {
+      const match = section.items.find(([, id]) => id === activeId);
+      if (match) return match[0];
+    }
+    return null;
+  }, [activeId]);
+  const currentLabel = activeLabel ?? defaultLabel;
 
   useEffect(() => {
     const targets = sectionIds
@@ -47,7 +60,10 @@ export default function DocsPage() {
     const observer = new IntersectionObserver(
       (entries) => {
         const visible = entries.filter((entry) => entry.isIntersecting);
-        if (visible.length) setActiveId(visible[0].target.id);
+        if (visible.length) {
+          setActiveId(visible[0].target.id);
+          setActiveLabel(null);
+        }
       },
       { rootMargin: "-15% 0px -70% 0px", threshold: 0 }
     );
@@ -85,7 +101,12 @@ export default function DocsPage() {
       <nav className={styles.sideNav} aria-label="Documentation sections">
         {filtered.length ? filtered.map((section) => <section key={section.title}>
           <h2>{section.title}</h2>
-          {section.items.map(([label, id]) => <a className={activeId === id ? styles.selected : ""} href={`#${id}`} key={label}>
+          {section.items.map(([label, id]) => <a
+            className={label === currentLabel ? styles.selected : ""}
+            href={`#${id}`}
+            key={label}
+            onClick={() => { setActiveId(id); setActiveLabel(label); }}
+          >
             <span>{label}</span>
           </a>)}
         </section>) : <p className={styles.empty}>No results found.</p>}

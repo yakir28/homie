@@ -19,6 +19,7 @@ const categoryOptions = ["All", "Luxury", "Viral Trends", "Casual", "Timelapse",
 const sortOptions = ["Recent", "Popular", "Top"];
 const formatOptions = ["All", "9:16", "1:1", "16:9"];
 const creditsOptions = ["All", "Under 15", "15+"];
+const APPROVED_TEMPLATE_NAMES = new Set(["Mediterranean Light", "City After Dark", "Magic Build Reveal"]);
 
 export type TemplateItem = {
   id: number;
@@ -36,8 +37,8 @@ export type TemplateItem = {
 
 const templates: TemplateItem[] = [
   { id: 10, title: "Mediterranean Light", tag: "Luxury", format: "9:16", time: "25 sec", credits: 24, image: "https://drjehibthvfvorkgiyse.supabase.co/storage/v1/object/public/template-previews/mediterranean-light/poster.jpg", preview: "https://drjehibthvfvorkgiyse.supabase.co/storage/v1/object/public/template-previews/mediterranean-light/preview.mp4", size: "tall", minPhotos: 6, maxPhotos: 30 },
-  { id: 11, title: "Forest Stillness", tag: "Warm", format: "9:16", time: "25 sec", credits: 24, image: "https://drjehibthvfvorkgiyse.supabase.co/storage/v1/object/public/template-previews/forest-stillness/poster.jpg", preview: "https://drjehibthvfvorkgiyse.supabase.co/storage/v1/object/public/template-previews/forest-stillness/preview.mp4", size: "normal", minPhotos: 6, maxPhotos: 30 },
   { id: 12, title: "City After Dark", tag: "Urban", format: "9:16", time: "25 sec", credits: 24, image: "https://drjehibthvfvorkgiyse.supabase.co/storage/v1/object/public/template-previews/city-after-dark/poster.jpg", preview: "https://drjehibthvfvorkgiyse.supabase.co/storage/v1/object/public/template-previews/city-after-dark/preview.mp4", size: "normal", minPhotos: 6, maxPhotos: 30 },
+  { id: 13, title: "Magic Build Reveal", tag: "Viral Trends", format: "9:16", time: "10 sec", credits: 12, image: "/api/media/template?key=templates/cinematic-second/thumbnail.jpg", preview: "/api/media/template?key=templates/cinematic-second/preview.mp4", size: "normal", minPhotos: 4, maxPhotos: 16 },
 ];
 
 function getTemplateCategories(template: TemplateItem) {
@@ -157,7 +158,7 @@ export default function Home() {
       ]);
 
       if (!active) return;
-      if (catalog?.length) setTemplateItems(catalog.map((item, index) => ({
+      if (catalog?.length) setTemplateItems(catalog.filter((item) => APPROVED_TEMPLATE_NAMES.has(item.name)).map((item, index) => ({
         id: item.id,
         title: item.name,
         tag: item.style_label,
@@ -464,7 +465,7 @@ export default function Home() {
         {view === "favorites" && <Templates items={templateItems} favoriteIds={favoriteIds} onToggleFavorite={toggleFavorite} favoritesOnly setView={setView} onUseTemplate={setWizardTemplate} search={search} onClearSearch={clearAllFilters} category={category} setCategory={setCategory} sort={sort} formatFilter={formatFilter} creditsFilter={creditsFilter} />}
         {view === "listings" && <Listings items={listingItems} setView={setView} />}
         {view === "videos" && <MyVideos items={videoItems} loading={videosLoading} error={videosError} onBrowseTemplates={() => changeView("templates")} onOpenVideo={setSelectedVideo} />}
-        {view === "integrations" && <Integrations integration={zillowIntegration} airbnbIntegration={airbnbIntegration} busy={zillowBusy} onImport={() => setZillowImportOpen(true)} onAirbnbImport={() => setAirbnbImportOpen(true)} onAction={runZillowAction} />}
+        {view === "integrations" && <Integrations />}
         {view === "profile" && <ProfilePage details={profileDetails} onChange={setProfileDetails} onSave={saveProfile} saving={savingProfile} favoriteCount={favoriteIds.size} videoCount={videoItems.length} />}
 
         <nav className="mobile-nav" aria-label="Mobile navigation">
@@ -477,7 +478,6 @@ export default function Home() {
       {wizardTemplate && workspaceId && <CreateVideoWizard
         template={wizardTemplate}
         workspaceId={workspaceId}
-        listings={listingItems}
         walletBalance={creditBalance}
         onClose={() => setWizardTemplate(null)}
         onCreated={(project) => {
@@ -487,6 +487,7 @@ export default function Home() {
           setView("videos");
           flash("Video queued — we'll notify you when it's ready");
         }}
+        onListingsRefresh={refreshListings}
         flash={flash}
       />}
       {zillowImportOpen && workspaceId && <ZillowImportModal workspaceId={workspaceId} onClose={() => setZillowImportOpen(false)} onImported={async (count) => { await refreshListings(); flash(`${count} Zillow listing${count === 1 ? "" : "s"} imported`); }} />}
@@ -744,37 +745,30 @@ function ProfilePage({ details, onChange, onSave, saving, favoriteCount, videoCo
   </div>;
 }
 
-function Integrations({ integration, airbnbIntegration, busy, onImport, onAirbnbImport, onAction }: { integration: ZillowIntegration | null; airbnbIntegration: ZillowIntegration | null; busy: boolean; onImport: () => void; onAirbnbImport: () => void; onAction: (action: "connect" | "sync" | "disconnect") => Promise<void> }) {
-  const connected = integration?.status === "connected" || integration?.status === "syncing";
-  const lastSync = integration?.last_synced_at
-    ? new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(integration.last_synced_at))
-    : null;
+function Integrations() {
   return <div className="page integrations-page">
     <div className="page-intro intro-row">
       <div><p className="eyebrow">Workspace</p><h1>Integrations.</h1><p>Connect your listing sources to import properties automatically.</p></div>
-      <span className="sources-count">{connected ? "1" : "0"}/2 SOURCES</span>
+      <span className="sources-count">0/2 SOURCES</span>
     </div>
 
-    <div className="panel-heading standalone"><p className="eyebrow">Platforms</p><h3>2 total · {connected ? "1" : "0"} connected</h3></div>
+    <div className="panel-heading standalone"><p className="eyebrow">Platforms</p><h3>2 total · coming soon</h3></div>
     <div className="integrations-grid">
-      <article className={`integration-card ${connected ? "connected" : ""}`}>
+      <article className="integration-card soon disabled">
+        <span className="soon-badge">Soon</span>
         <span className="source-icon"><img src="/integrations/zillow-logo.jpeg" alt="Zillow logo" /></span>
         <h3>Zillow</h3>
-        <p>{connected ? <>Importing from <b>{integration?.external_account_name ?? "Zillow profile"}</b></> : "Choose listings from your public Zillow profile and import their photos."}</p>
-        <small className="sync-time">{integration?.last_error ? `Last error: ${integration.last_error}` : lastSync ? `Last imported ${lastSync}` : "No Zillow profile imported yet"}</small>
-        <div className="card-actions">
-          {connected ? <>
-            <button disabled={busy} onClick={onImport}>＋ Import listings</button>
-            <button disabled={busy} className="danger" onClick={() => void onAction("disconnect")}>Disconnect</button>
-          </> : <button disabled={busy} onClick={onImport}>Import from Zillow</button>}
-        </div>
+        <p>Automatic sync from your public Zillow profile is coming soon.</p>
+        <small className="sync-time">Not available yet</small>
+        <div className="card-actions"><button disabled>Use</button></div>
       </article>
-      <article className={`integration-card ${airbnbIntegration?.status === "connected" ? "connected" : ""}`}>
+      <article className="integration-card soon disabled">
+        <span className="soon-badge">Soon</span>
         <span className="source-icon"><img src="/integrations/airbnb-logo.webp" alt="Airbnb logo" /></span>
         <h3>Airbnb</h3>
-        <p>{airbnbIntegration?.status === "connected" ? <>Importing from <b>{airbnbIntegration.external_account_name ?? "Airbnb host"}</b></> : "Choose properties from your public Airbnb host profile and import their photos."}</p>
-        <small className="sync-time">{airbnbIntegration?.last_error ? `Last error: ${airbnbIntegration.last_error}` : airbnbIntegration?.last_synced_at ? `Last imported ${new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(airbnbIntegration.last_synced_at))}` : "No Airbnb properties imported yet"}</small>
-        <div className="card-actions"><button onClick={onAirbnbImport}>{airbnbIntegration?.status === "connected" ? "＋ Import listings" : "Import from Airbnb"}</button></div>
+        <p>Automatic sync from your public Airbnb host profile is coming soon.</p>
+        <small className="sync-time">Not available yet</small>
+        <div className="card-actions"><button disabled>Use</button></div>
       </article>
     </div>
   </div>;
