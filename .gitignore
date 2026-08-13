@@ -39,3 +39,6 @@ video-worker.env
 /.wrangler/
 /outputs/
 /work/
+
+# local media assets (not tracked)
+IG Images/
