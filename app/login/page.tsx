@@ -4,12 +4,14 @@ import { useState, type FormEvent } from "react";
 import { getSupabaseBrowserClient } from "../../lib/supabase/client";
 import HomieLogo from "../HomieLogo";
 
-const collageColumns = [
-  { images: ["/homes/modern-villa.jpg", "/homes/kitchen.jpg", "/homes/living-room.jpg", "/homes/dining.jpg", "/homes/lounge.jpg"], duration: 32 },
-  { images: ["/homes/living-room.jpg", "/homes/dining.jpg", "/homes/lounge.jpg", "/homes/modern-villa.jpg", "/homes/kitchen.jpg"], duration: 38, reverse: true },
-  { images: ["/homes/kitchen.jpg", "/homes/lounge.jpg", "/homes/modern-villa.jpg", "/homes/living-room.jpg", "/homes/dining.jpg"], duration: 30 },
-  { images: ["/homes/dining.jpg", "/homes/modern-villa.jpg", "/homes/kitchen.jpg", "/homes/lounge.jpg", "/homes/living-room.jpg"], duration: 36, reverse: true },
-];
+const gallery = Array.from({ length: 14 }, (_, i) => `/gallery/gallery-${String(i + 1).padStart(2, "0")}.jpg`);
+
+// Each column takes a different slice so no photo shows twice side by side, and
+// the track repeats itself once so the vertical scroll loops without a seam.
+const collageColumns = [0, 1, 2, 3].map((column) => {
+  const images = Array.from({ length: 5 }, (_, row) => gallery[(column * 5 + row * 3) % gallery.length]);
+  return { images, duration: [32, 38, 30, 36][column], reverse: column % 2 === 1 };
+});
 
 export default function Login() {
   const [mode, setMode] = useState<"login" | "signup">("login");

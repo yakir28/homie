@@ -40,11 +40,32 @@ const pricingTiers = [
   { name: "Office Team", tagline: "For real-estate teams who want a consistent, on-brand look.", features: ["Everything in Solo Agent", "Shared team workspace", "Multiple agent seats", "Priority support"], highlighted: true },
 ];
 
+// Only Zillow and Airbnb have an import path today; Booking is shown as pending
+// rather than implied to work.
+const integrations = [
+  { name: "Zillow", logo: "/integrations/zillow-logo.png", live: true },
+  { name: "Airbnb", logo: "/integrations/airbnb-logo.png", live: true },
+  { name: "Booking", logo: null, live: false },
+];
+
+const gallery = Array.from({ length: 14 }, (_, i) => `/gallery/gallery-${String(i + 1).padStart(2, "0")}.jpg`);
+// Both rows carry the full set — one copy has to be wider than any viewport or
+// the loop shows a gap — and the bottom row starts halfway so they never match.
+const galleryTop = gallery;
+const galleryBottom = [...gallery.slice(7), ...gallery.slice(0, 7)];
+
 const faqs = [
   { q: "Do I need any video-editing experience?", a: "No. You choose a template and Homie handles the rest — no timelines, no prompts, no software to learn." },
-  { q: "Will anything publish without my approval?", a: "Never. Every generated video goes into an awaiting-approval state. Nothing is published, downloaded, or shared until you explicitly approve it." },
   { q: "What happens during the free trial?", a: "You get a set number of credits to generate real tours from your own listings — no credit card required to start." },
+  { q: "How do credits work?", a: "Every template shows its credit cost before you generate, and your balance stays visible while you work. Credits come with your plan and are only spent when you create a video — browsing templates and importing listings never cost anything." },
+  { q: "Can I connect my Zillow listings?", a: "Yes. Connect your public Zillow profile and Homie imports your listings along with their photos, address, and details. If a listing doesn't come through automatically, paste its Zillow link and Homie will import it directly." },
   { q: "Can I use my own photos instead of Zillow?", a: "Zillow sync is the fastest way to start, and direct photo upload is on our roadmap for listings outside of Zillow." },
+  { q: "Will the video invent rooms or features the property doesn't have?", a: "Every shot is built from the photos you select, and Homie is built to preserve the real architecture, layout, materials, and lighting rather than imagine new ones. AI video is still probabilistic, which is exactly why no tour is ever final until you watch it and approve it." },
+  { q: "Can I use the videos in my listings, ads, and social?", a: "Yes. You keep full ownership of your photos and of the tours you generate, and you can publish them to Reels, TikTok, Stories, listing pages, and paid campaigns. You stay responsible for confirming a tour represents the property accurately and meets your brokerage or MLS rules." },
+  { q: "What if I don't like the result?", a: "Generate another version. You can rerun the same template or switch to a different one, and the credit cost is always shown before you confirm. Only the version you approve becomes the final tour." },
+  { q: "Will anything publish without my approval?", a: "Never. Every generated video goes into an awaiting-approval state. Nothing is published, downloaded, or shared until you explicitly approve it." },
+  { q: "How long does one tour take?", a: "Usually a few minutes, because each shot is generated on its own and then assembled into the final cut. You don't have to keep the page open — Homie keeps working and the tour is waiting for review when it's ready." },
+  { q: "Can my whole office work in one account?", a: "Yes. Office plans add a shared workspace with seats for your agents, shared listings and templates, and a record of who created and who approved every tour." },
 ];
 
 function Reveal({ children, className = "", delay = 0, as: Tag = "div" }: { children: ReactNode; className?: string; delay?: number; as?: "div" | "li" }) {
@@ -184,21 +205,21 @@ export default function Marketing() {
       )}
 
       <section className="marketing-hero">
-        <div className="hero-blob a" aria-hidden="true" />
-        <div className="hero-blob b" aria-hidden="true" />
-        <p className="hero-kicker hero-in" style={{ animationDelay: "40ms" }}>AI video studio for real estate</p>
-        <h1 className="hero-in" style={{ animationDelay: "140ms" }}>Your listing already has a story.<br />Make people <i>feel it.</i></h1>
-        <p className="hero-sub hero-in" style={{ animationDelay: "280ms" }}>Connect your listing, choose a cinematic direction, and turn property photos into a polished 25-second vertical tour—ready to publish everywhere.</p>
-        <a className="hero-cta hero-in" style={{ animationDelay: "400ms" }} href="/login">Create your first tour <span>→</span></a>
-        <p className="hero-note hero-in" style={{ animationDelay: "500ms" }}>Free trial · No credit card needed</p>
-
-        <div className="compare-grid hero-in" style={{ animationDelay: "600ms" }}>
-          <figure className="compare-before">
+        <div className="hero-layout">
+          <figure className="compare-before hero-in" style={{ animationDelay: "620ms" }}>
             <figcaption>Your listing</figcaption>
             <img src="/homes/modern-villa.jpg" alt="Original listing exterior" />
           </figure>
-          <div className="compare-arrow" aria-hidden="true">→</div>
-          <figure className="compare-after" onMouseMove={tiltMove} onMouseLeave={() => setTilt({ x: 0, y: 0 })}>
+
+          <div className="hero-copy">
+            <p className="hero-kicker hero-in" style={{ animationDelay: "40ms" }}>AI video studio for real estate</p>
+            <h1 className="hero-in" style={{ animationDelay: "140ms" }}>Create hyper-realistic videos for your properties <i>in seconds</i></h1>
+            <p className="hero-sub hero-in" style={{ animationDelay: "280ms" }}>Connect your listing, choose a cinematic direction, and turn property photos into a polished 25-second vertical tour—ready to publish everywhere.</p>
+            <a className="hero-cta hero-in" style={{ animationDelay: "400ms" }} href="/login">Create your first tour <span>→</span></a>
+            <p className="hero-note hero-in" style={{ animationDelay: "500ms" }}>Free trial · No credit card needed</p>
+          </div>
+
+          <figure className="compare-after hero-in" style={{ animationDelay: "680ms" }} onMouseMove={tiltMove} onMouseLeave={() => setTilt({ x: 0, y: 0 })}>
             <figcaption>The result</figcaption>
             <div className="compare-video" style={{ transform: `perspective(900px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) rotate(2deg)` }}>
               <span className="compare-badge">9:16</span>
@@ -228,6 +249,70 @@ export default function Marketing() {
         <Reveal delay={80}><h2>From listing to home tour<br /><i>in three steps.</i></h2></Reveal>
         <div className="steps-grid">
           {steps.map((s, i) => <Reveal delay={i * 110} key={s.n}><div className="step-card"><span>{s.n}</span><h3>{s.title}</h3><p>{s.body}</p></div></Reveal>)}
+        </div>
+      </section>
+
+      <section className="marketing-product" id="product">
+        <Reveal><p className="section-kicker">Inside Homie</p></Reveal>
+        <Reveal delay={80}><h2>A library of ready-to-use tour styles.<br /><i>Zero learning curve.</i></h2></Reveal>
+        <Reveal delay={140}><p className="product-lead">Open the library, pick a style, choose a listing. No timeline, no settings, nothing to learn — the studio does the rest.</p></Reveal>
+        <Reveal delay={200}>
+          <div className="product-frame">
+            <div className="product-chrome" aria-hidden="true">
+              <span /><span /><span />
+              <div className="product-url">app.homie.com/templates</div>
+            </div>
+            <img src="/screens/explore-placeholder.jpg" alt="The Homie template library, where every tour starts" loading="lazy" decoding="async" />
+          </div>
+        </Reveal>
+      </section>
+
+      <section className="marketing-gallery" aria-label="The range of properties Homie handles">
+        <Reveal><p className="section-kicker">The range</p></Reveal>
+        <Reveal delay={80}><h2>Every listing,<br /><i>already cinematic.</i></h2></Reveal>
+        <Reveal delay={140}><p className="gallery-lead">City apartments, family homes, new builds, waterfront villas — the same guided flow turns any set of listing photos into a tour worth watching.</p></Reveal>
+        <div className="gallery-marquee" aria-hidden="true">
+          {[galleryTop, galleryBottom].map((row, r) => (
+            <div className="gallery-row" key={r}>
+              <div className={r === 1 ? "gallery-track reverse" : "gallery-track"}>
+                {[...row, ...row].map((src, i) => <img key={`${src}-${i}`} src={src} alt="" loading="lazy" decoding="async" />)}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="marketing-integrations" id="integrations">
+        <div className="connect-grid">
+          <div className="connect-copy">
+            <Reveal><p className="section-kicker">Where your listings live</p></Reveal>
+            <Reveal delay={80}><h2>Connect your <i>listings.</i></h2></Reveal>
+            <Reveal delay={140}><p>Import a listing and its photos in one click. Connect the platform you already work in and start turning listings into tours the same day.</p></Reveal>
+            <Reveal delay={200}>
+              <ul className="connect-points">
+                <li>Import listings and photos automatically</li>
+                <li>Bring in a whole profile, or just one link</li>
+                <li>Re-sync whenever a listing changes</li>
+              </ul>
+            </Reveal>
+            <Reveal delay={260}><a className="hero-cta" href="/login">Connect your account <span>→</span></a></Reveal>
+          </div>
+          <Reveal delay={180}>
+            <div className="connect-panel">
+              <div className="connect-logos">
+                {integrations.map((item, i) => (
+                  <div className={item.live ? "connect-tile" : "connect-tile soon"} key={item.name}>
+                    <span className="connect-index">{String(i + 1).padStart(2, "0")}</span>
+                    {item.logo
+                      ? <img src={item.logo} alt={`${item.name} logo`} loading="lazy" />
+                      : <span className="connect-wordmark">{item.name}</span>}
+                    <span className="connect-name">{item.live ? item.name : "Coming soon"}</span>
+                  </div>
+                ))}
+              </div>
+              <p className="connect-note">More integrations coming soon</p>
+            </div>
+          </Reveal>
         </div>
       </section>
 
