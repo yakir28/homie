@@ -1,0 +1,4 @@
+file '/Users/yakir/Documents/ChatGPT/homie/artifacts/bright-flow-house-5/1-exterior-arrival-edited.mp4'
+file '/Users/yakir/Documents/ChatGPT/homie/artifacts/bright-flow-house-5/2-foyer-staircase-edited.mp4'
+file '/Users/yakir/Documents/ChatGPT/homie/artifacts/bright-flow-house-5/3-kitchen-reveal-edited.mp4'
+file '/Users/yakir/Documents/ChatGPT/homie/artifacts/bright-flow-house-5/4-garden-finale-edited.mp4'

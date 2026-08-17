@@ -1,0 +1,5 @@
+file '/Users/yakir/Documents/ChatGPT/homie/artifacts/golden-hour-estate/1-aerial-arrival.mp4'
+file '/Users/yakir/Documents/ChatGPT/homie/artifacts/golden-hour-estate/2-pool-hero.mp4'
+file '/Users/yakir/Documents/ChatGPT/homie/artifacts/golden-hour-estate/3-living-room.mp4'
+file '/Users/yakir/Documents/ChatGPT/homie/artifacts/golden-hour-estate/4-stair-detail.mp4'
+file '/Users/yakir/Documents/ChatGPT/homie/artifacts/golden-hour-estate/5-terrace-finale.mp4'

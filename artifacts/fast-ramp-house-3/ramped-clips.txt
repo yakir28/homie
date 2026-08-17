@@ -1,0 +1,4 @@
+file '/Users/yakir/Documents/ChatGPT/homie/artifacts/fast-ramp-house-3/1-entrance-ramp.mp4'
+file '/Users/yakir/Documents/ChatGPT/homie/artifacts/fast-ramp-house-3/2-living-ramp.mp4'
+file '/Users/yakir/Documents/ChatGPT/homie/artifacts/fast-ramp-house-3/3-dining-kitchen-ramp.mp4'
+file '/Users/yakir/Documents/ChatGPT/homie/artifacts/fast-ramp-house-3/4-patio-finale-ramp.mp4'

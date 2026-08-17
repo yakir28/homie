@@ -1,0 +1,31 @@
+TEMPLATE: One Continuous Journey
+
+IMAGE ORDER
+01 — Exterior establishing shot
+02 — Front walkway approach
+03 — Front door transition
+04 — Entry foyer
+05 — Living room
+06 — Kitchen
+07 — Dining room
+08 — Backyard hero reveal
+
+VIDEO PROMPT
+
+Create a fast-paced, photorealistic real-estate walkthrough using the supplied property photos in their exact chronological order.
+
+Treat the images as consecutive locations along one continuous journey through the same home. Begin with a clean establishing view of the complete front facade. Start a confident forward push toward the property, accelerate along the front walkway, and enter a short controlled speed ramp as the camera reaches the open front door.
+
+Pass seamlessly through the doorway into the supplied foyer. Continue moving naturally from the foyer into the living room, then toward the open kitchen, dining area, and backyard. Use architectural match cuts, doorway transitions, foreground wipes, and brief controlled speed ramps to conceal the cuts between supplied photos.
+
+Slow down momentarily on the strongest feature in each space, then accelerate into the next location. Finish in the backyard with a smooth deceleration and a refined cinematic hold on the final lifestyle view.
+
+Preserve the exact architecture, furniture, materials, windows, lighting, room proportions, landscaping, and spatial identity shown in every reference. Treat every photo as the same property. Do not invent connections between rooms that are not visually supported. Transitions may conceal cuts, but must not alter the property.
+
+Photorealistic real-estate cinematography, stable geometry, straight vertical lines, natural late-morning daylight, subtle motion blur only during speed ramps, smooth camera stabilization, realistic materials and consistent color grading.
+
+No people, pets, text, logos, watermarks, new furniture, changing layouts, warped walls, duplicated objects, floating elements, extreme zooms, artificial lens effects, invented rooms, changing windows, or geometry drift.
+
+SOUND DIRECTION
+
+Use an upbeat but refined modern instrumental track. Add restrained rising whooshes during speed ramps, soft transition impacts at doorway and foreground wipes, subtle room-tone changes between interior and exterior spaces, and one warm completion chime as the camera settles in the backyard. No voiceover.

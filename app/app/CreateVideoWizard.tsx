@@ -21,8 +21,8 @@ export default function CreateVideoWizard({ template, workspaceId, walletBalance
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const [newListingName, setNewListingName] = useState("");
   const [stagedPhotos, setStagedPhotos] = useState<StagedPhoto[]>([]);
+  const [draggedPhotoIndex, setDraggedPhotoIndex] = useState<number | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
@@ -31,6 +31,7 @@ export default function CreateVideoWizard({ template, workspaceId, walletBalance
   const selectedListing = uploadedListing?.id === selectedId ? uploadedListing : null;
   const insufficientCredits = walletBalance < template.credits;
   const insufficientPhotos = selectedListing ? selectedListing.photos < template.minPhotos : false;
+  const missingTemplatePrompt = template.generationConfig !== undefined && Object.keys(template.generationConfig).length === 0;
 
   function addPhotos(incoming: FileList | File[]) {
     const accepted = [...incoming].filter((file) => ACCEPTED_PHOTO_TYPES.has(file.type));
@@ -54,6 +55,16 @@ export default function CreateVideoWizard({ template, workspaceId, walletBalance
     });
   }
 
+  function moveStagedPhoto(from: number, to: number) {
+    if (from === to || to < 0 || to >= stagedPhotos.length) return;
+    setStagedPhotos((current) => {
+      const next = [...current];
+      const [photo] = next.splice(from, 1);
+      next.splice(to, 0, photo);
+      return next;
+    });
+  }
+
   async function createListingFromUpload() {
     if (stagedPhotos.length < template.minPhotos || uploading) return;
     setUploading(true);
@@ -65,7 +76,7 @@ export default function CreateVideoWizard({ template, workspaceId, walletBalance
         source: "upload",
         status: "active",
         external_listing_id: `upload-${crypto.randomUUID()}`,
-        address_line1: newListingName.trim() || `${template.title} project`,
+        address_line1: "Uploaded property",
         city: "Unknown",
       }).select("id").single();
       if (listingError) throw listingError;
@@ -96,12 +107,11 @@ export default function CreateVideoWizard({ template, workspaceId, walletBalance
 
       stagedPhotos.forEach((staged) => URL.revokeObjectURL(staged.previewUrl));
       setStagedPhotos([]);
-      setNewListingName("");
       await onListingsRefresh();
       setSelectedId(String(listing.id));
       setUploadedListing({
         id: String(listing.id),
-        address: newListingName.trim() || `${template.title} project`,
+        address: "Uploaded property",
         city: "Uploaded photos",
         price: "Price on request",
         photos: uploaded.length,
@@ -116,7 +126,7 @@ export default function CreateVideoWizard({ template, workspaceId, walletBalance
   }
 
   async function generate() {
-    if (!selectedListing || insufficientCredits || insufficientPhotos || creating) return;
+    if (!selectedListing || insufficientCredits || insufficientPhotos || missingTemplatePrompt || creating) return;
     setCreating(true);
     const supabase = getSupabaseBrowserClient();
     const { data: photoRows, error: photosError } = await supabase.from("listing_photos").select("id").eq("listing_id", selectedListing.id).order("sort_order").limit(template.maxPhotos);
@@ -171,11 +181,10 @@ export default function CreateVideoWizard({ template, workspaceId, walletBalance
       <div className="wizard-body">
         <div className="wizard-source">
           {!selectedListing ? <div className="wizard-upload wizard-upload-primary">
-            <p className="wizard-lead">Add photos for your video</p>
-            <p className="wizard-upload-copy">Upload the property photos you want to use. You can drag them in or choose them from your device.</p>
-            <label className="zillow-url-field" htmlFor="wizard-listing-name">Project name <span>(optional)</span>
-              <input id="wizard-listing-name" value={newListingName} onChange={(event) => setNewListingName(event.target.value)} placeholder={`${template.title} project`} disabled={uploading} />
-            </label>
+            <div className="wizard-upload-heading">
+              <div><p className="wizard-lead">Add property photos</p><p className="wizard-upload-copy">Upload the home from the first view to the last. You can arrange the tour order before continuing.</p></div>
+              <span>{stagedPhotos.length}/{MAX_UPLOAD_PHOTOS}</span>
+            </div>
             <div
               className={`dropzone ${dragActive ? "dragover" : ""}`}
               role="button"
@@ -187,22 +196,32 @@ export default function CreateVideoWizard({ template, workspaceId, walletBalance
               onDrop={(event) => { event.preventDefault(); setDragActive(false); if (event.dataTransfer.files.length) addPhotos(event.dataTransfer.files); }}
             >
               <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" multiple hidden onChange={(event) => { if (event.target.files?.length) addPhotos(event.target.files); event.target.value = ""; }} />
-              <span className="wizard-upload-icon" aria-hidden="true">＋</span>
-              <p>Drag &amp; drop your photos here</p>
-              <small>or click to browse · JPEG, PNG, WEBP · up to {MAX_UPLOAD_PHOTOS}</small>
+              <span className="wizard-upload-icon" aria-hidden="true">↑</span>
+              <p><b>Drop photos here</b> or choose files</p>
+              <small>JPEG, PNG or WEBP · up to {MAX_UPLOAD_PHOTOS} photos</small>
             </div>
 
-            {stagedPhotos.length > 0 && <div className="dropzone-files">
-              {stagedPhotos.map((staged, index) => <div className="dropzone-file" key={staged.previewUrl}>
+            {stagedPhotos.length > 0 && <>
+              <div className="wizard-order-heading"><div><b>Tour order</b><small>Drag photos to arrange the journey from start to finish.</small></div><span>Start → End</span></div>
+              <div className="dropzone-files">
+              {stagedPhotos.map((staged, index) => <div
+                className={`dropzone-file ${draggedPhotoIndex === index ? "dragging" : ""}`}
+                key={staged.previewUrl}
+                draggable={!uploading}
+                onDragStart={() => setDraggedPhotoIndex(index)}
+                onDragOver={(event) => event.preventDefault()}
+                onDrop={(event) => { event.preventDefault(); if (draggedPhotoIndex !== null) moveStagedPhoto(draggedPhotoIndex, index); setDraggedPhotoIndex(null); }}
+                onDragEnd={() => setDraggedPhotoIndex(null)}
+              >
                 <img src={staged.previewUrl} alt="" />
-                <button type="button" onClick={() => removeStagedPhoto(index)} aria-label="Remove photo" disabled={uploading}>×</button>
+                <span className="dropzone-file-order">{index + 1}</span>
+                <button type="button" onClick={(event) => { event.stopPropagation(); removeStagedPhoto(index); }} aria-label="Remove photo" disabled={uploading}>×</button>
               </div>)}
-            </div>}
+              </div>
+            </>}
 
             {uploadError && <p className="zillow-import-error">{uploadError}</p>}
-            <p className={`wizard-count ${stagedPhotos.length >= template.minPhotos ? "ok" : ""}`}>
-              {stagedPhotos.length} of at least {template.minPhotos} photos selected
-            </p>
+            <p className={`wizard-count ${stagedPhotos.length >= template.minPhotos ? "ok" : ""}`}>{stagedPhotos.length >= template.minPhotos ? "✓ Ready to continue" : `Add ${template.minPhotos - stagedPhotos.length} more photo${template.minPhotos - stagedPhotos.length === 1 ? "" : "s"}`}</p>
           </div> : <div className="wizard-upload-ready">
             <span>✓</span><div><b>{selectedListing.photos} photos ready</b><small>{selectedListing.address}</small></div>
           </div>}
@@ -212,6 +231,7 @@ export default function CreateVideoWizard({ template, workspaceId, walletBalance
               <span>◒</span>
               <p><b>{template.credits} credits</b><small>{insufficientCredits ? `You have ${walletBalance} — top up before creating.` : `Wallet balance after: ${walletBalance - template.credits} credits.`}</small></p>
             </div>
+            {missingTemplatePrompt && <p className="zillow-import-error">This template is missing its generation prompt and cannot be used yet.</p>}
           </div>}
         </div>
       </div>
@@ -219,7 +239,7 @@ export default function CreateVideoWizard({ template, workspaceId, walletBalance
       <footer className="wizard-footer">
         <button className="wizard-back" onClick={onClose}>Cancel</button>
         {selectedListing
-          ? <button className="wizard-primary" disabled={insufficientCredits || insufficientPhotos || creating} onClick={() => void generate()}>{creating ? "Generating…" : "Generate →"}</button>
+          ? <button className="wizard-primary" disabled={insufficientCredits || insufficientPhotos || missingTemplatePrompt || creating} onClick={() => void generate()}>{creating ? "Generating…" : "Generate →"}</button>
           : <button className="wizard-primary" disabled={uploading || stagedPhotos.length < template.minPhotos} onClick={() => void createListingFromUpload()}>{uploading ? "Uploading…" : `Continue with ${stagedPhotos.length} photos →`}</button>}
       </footer>
     </section>

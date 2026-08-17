@@ -33,6 +33,7 @@ export type TemplateItem = {
   size: string;
   minPhotos: number;
   maxPhotos: number;
+  generationConfig?: Record<string, unknown>;
 };
 
 const templates: TemplateItem[] = [
@@ -148,7 +149,7 @@ export default function Home() {
       if (workspaceId) setWorkspaceId(workspaceId);
 
       const [{ data: catalog }, { data: wallet }, { data: homes }, { data: savedFavorites }, { data: profile }, { data: zillow }, { data: airbnb }] = await Promise.all([
-        supabase.from("video_templates").select("id, name, style_label, format, duration_seconds, credits_cost, min_photos, max_photos, preview_url, thumbnail_url, is_featured, sort_order").eq("is_active", true).order("sort_order"),
+        supabase.from("video_templates").select("id, name, style_label, format, duration_seconds, credits_cost, min_photos, max_photos, preview_url, thumbnail_url, generation_config, is_featured, sort_order").eq("is_active", true).order("sort_order"),
         workspaceId ? supabase.from("credit_wallets").select("balance").eq("workspace_id", workspaceId).maybeSingle() : Promise.resolve({ data: null }),
         workspaceId ? supabase.from("listings").select("id, address_line1, city, region, price, cover_photo_url, status, listing_photos(count), video_projects(count)").eq("workspace_id", workspaceId).order("created_at", { ascending: false }) : Promise.resolve({ data: null }),
         supabase.from("template_favorites").select("template_id").eq("user_id", session.user.id),
@@ -170,6 +171,7 @@ export default function Home() {
         size: index === 0 ? "tall" : item.format === "16:9" ? "wide" : "normal",
         minPhotos: item.min_photos ?? 6,
         maxPhotos: item.max_photos ?? 30,
+        generationConfig: item.generation_config && typeof item.generation_config === "object" ? item.generation_config as Record<string, unknown> : undefined,
       })).filter((template) => Boolean(template.preview)));
       setFavoriteIds(new Set(savedFavorites?.map((favorite) => favorite.template_id) ?? []));
       if (profile) {

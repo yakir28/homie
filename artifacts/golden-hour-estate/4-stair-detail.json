@@ -1,0 +1,11 @@
+{
+  "id": "16b69b51-944e-444a-b701-db9835b86cb9",
+  "createdAt": "2026-08-13T21:18:57.069Z",
+  "status": "SUCCEEDED",
+  "output": [
+    "https://dnznrvs05pmza.cloudfront.net/12bb78ee-4c1a-4d84-830c-7c940811949d.mp4?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiNGU0Y2M1M2JiODI0NzJiZCIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc4Njc4MDQ3NX0.2dd5iOc4WMMjV6r91iBPloQjDSxGgAuia-WFJ9KiERs"
+  ],
+  "cost": {
+    "credits": 25
+  }
+}

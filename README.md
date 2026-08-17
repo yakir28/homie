@@ -97,22 +97,26 @@ actions tied to the current ChatGPT user. Leave public content anonymous.
 ## Video generation worker
 
 The browser queues projects in Supabase; a separate Node worker generates short
-Higgsfield clips and assembles the final MP4. This must run outside the
-Cloudflare web runtime because it uses the authenticated Higgsfield CLI and
-FFmpeg.
+Runway (or Higgsfield) clips and assembles the final MP4. It runs outside the
+Cloudflare web runtime because generation can take several minutes and the final
+assembly uses FFmpeg.
 
 1. Apply the Supabase migrations and copy `video-worker.env.example` values
    into your worker environment.
-2. Authenticate once with `higgsfield auth login`, `wrangler login`, and install `ffmpeg`.
+2. Create a Runway developer API key, add credits, and set
+   `VIDEO_PROVIDER=runway` plus `RUNWAYML_API_SECRET`. Install `ffmpeg` and
+   authenticate with `wrangler login` when R2 API credentials are not supplied.
+   To use the previous engine instead, set `VIDEO_PROVIDER=higgsfield` and run
+   `higgsfield auth login` once.
 3. Validate the next queued project without spending generation credits:
    `npm run video:worker:dry-run`.
 4. Process one project with `npm run video:worker:once`, or keep polling with
    `npm run video:worker`.
 
 The worker automatically reads an ignored `video-worker.env` file when present.
-The Higgsfield CLI uses its server-side OAuth session. Higgsfield credentials
-and Supabase's secret key belong only in the worker environment. Never expose
-them through `NEXT_PUBLIC_*` variables. Use `SUPABASE_SECRET_KEY` for current
+Runway's API key, Higgsfield credentials, and Supabase's secret key belong only
+in the worker environment. Never expose them through `NEXT_PUBLIC_*` variables.
+Use `SUPABASE_SECRET_KEY` for current
 Supabase projects; the worker also accepts the legacy
 `SUPABASE_SERVICE_ROLE_KEY` name.
 

@@ -11,9 +11,16 @@ const args = new Set(process.argv.slice(2));
 const once = args.has("--once");
 const dryRun = args.has("--dry-run");
 const pollMs = Number(process.env.VIDEO_WORKER_POLL_MS ?? 5000);
-const fallbackModel = process.env.HIGGSFIELD_VIDEO_MODEL ?? "seedance_2_0";
-const fallbackResolution = process.env.HIGGSFIELD_VIDEO_RESOLUTION ?? "720p";
+const videoProvider = (process.env.VIDEO_PROVIDER ?? "runway").toLowerCase();
+const higgsfieldModel = process.env.HIGGSFIELD_VIDEO_MODEL ?? "seedance_2_0";
+const higgsfieldResolution = process.env.HIGGSFIELD_VIDEO_RESOLUTION ?? "720p";
 const higgsfieldWaitTimeout = process.env.HIGGSFIELD_WAIT_TIMEOUT ?? "30m";
+const runwayApiSecret = process.env.RUNWAYML_API_SECRET;
+const runwayModel = process.env.RUNWAY_VIDEO_MODEL ?? "gen4_turbo";
+const runwayApiBase = process.env.RUNWAY_API_BASE_URL ?? "https://api.dev.runwayml.com";
+const runwayApiVersion = process.env.RUNWAY_API_VERSION ?? "2024-11-06";
+const runwayPollMs = Number(process.env.RUNWAY_POLL_MS ?? 5000);
+const runwayWaitTimeoutMs = Number(process.env.RUNWAY_WAIT_TIMEOUT_MS ?? 1_800_000);
 const supabaseUrl = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
 const r2AccountId = process.env.R2_ACCOUNT_ID;
@@ -21,6 +28,13 @@ const r2AccessKeyId = process.env.R2_ACCESS_KEY_ID;
 const r2SecretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
 const r2Bucket = process.env.R2_BUCKET_NAME ?? "homie";
 const hasR2Credentials = Boolean(r2AccountId && r2AccessKeyId && r2SecretAccessKey);
+
+if (!["runway", "higgsfield"].includes(videoProvider)) {
+  throw new Error(`Unsupported VIDEO_PROVIDER "${videoProvider}". Use "runway" or "higgsfield".`);
+}
+if (!dryRun && videoProvider === "runway" && !runwayApiSecret) {
+  throw new Error("Set RUNWAYML_API_SECRET when VIDEO_PROVIDER=runway.");
+}
 
 if (!supabaseUrl || !serviceKey) {
   throw new Error("Set SUPABASE_URL and SUPABASE_SECRET_KEY (or legacy SUPABASE_SERVICE_ROLE_KEY) for the video worker.");
@@ -45,6 +59,48 @@ const MOTIONS = [
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function runwayDuration(duration) {
+  // Gen-4 video generations are currently offered in 5- or 10-second clips.
+  return duration <= 5 ? 5 : 10;
+}
+
+function runwayRatio(aspectRatio) {
+  const normalized = String(aspectRatio).replace("/", ":");
+  if (normalized === "9:16") return "720:1280";
+  if (normalized === "1:1") return "960:960";
+  return "1280:720";
+}
+
+async function imageDataUri(path) {
+  const bytes = await readFile(path);
+  const mime = bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47
+    ? "image/png"
+    : bytes[0] === 0xff && bytes[1] === 0xd8
+      ? "image/jpeg"
+      : "application/octet-stream";
+  if (mime === "application/octet-stream") throw new Error(`Unsupported reference image format: ${path}`);
+  return `data:${mime};base64,${bytes.toString("base64")}`;
+}
+
+async function runwayRequest(path, init = {}) {
+  const response = await fetch(`${runwayApiBase}${path}`, {
+    ...init,
+    headers: {
+      Authorization: `Bearer ${runwayApiSecret}`,
+      "X-Runway-Version": runwayApiVersion,
+      ...(init.body ? { "Content-Type": "application/json" } : {}),
+      ...init.headers,
+    },
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const apiDetail = payload?.error ?? payload?.message ?? payload;
+    const detail = typeof apiDetail === "string" ? apiDetail : JSON.stringify(apiDetail);
+    throw new Error(`Runway API ${response.status}: ${detail}`);
+  }
+  return payload;
 }
 
 async function event(projectId, stage, message, progress, metadata = {}) {
@@ -108,10 +164,19 @@ function inferredRole(index, total) {
 function makeShotPlan(project, photos) {
   const config = project.template_prompt_snapshot ?? project.video_templates?.generation_config ?? {};
   const configured = Array.isArray(config.shots) ? config.shots : [];
-  const targetShots = Math.max(1, Math.min(photos.length, configured.length || Math.round(project.duration_seconds / 6)));
-  const duration = Math.max(4, Math.min(15, Math.round(project.duration_seconds / targetShots)));
+  const desiredShotCount = videoProvider === "runway"
+    ? Math.ceil(project.duration_seconds / 5)
+    : Math.round(project.duration_seconds / 6);
+  const targetShots = Math.max(1, Math.min(photos.length, configured.length || desiredShotCount));
+  const duration = videoProvider === "runway"
+    ? runwayDuration(project.duration_seconds / targetShots)
+    : Math.max(4, Math.min(15, Math.round(project.duration_seconds / targetShots)));
   const configuredTotal = configured.slice(0, targetShots).reduce((sum, shot) => sum + (Number(shot.duration) || 0), 0);
-  const usesExactTemplateTiming = configuredTotal === project.duration_seconds;
+  const runwayTemplateTimingIsValid = configured
+    .slice(0, targetShots)
+    .every((shot) => [5, 10].includes(Number(shot.duration)));
+  const usesExactTemplateTiming = configuredTotal === project.duration_seconds
+    && (videoProvider !== "runway" || runwayTemplateTimingIsValid);
   return Array.from({ length: targetShots }, (_, index) => {
     const definition = configured[index] ?? {};
     const startIndex = Math.min(photos.length - 1, Math.round(index * (photos.length - 1) / targetShots));
@@ -140,8 +205,12 @@ function makeShotPlan(project, photos) {
       referencePaths: ["start", "end"].includes(definition.reference_mode)
         ? []
         : midpoint !== startIndex && midpoint !== endIndex ? [photos[midpoint].path] : [],
-      model: config.model ?? fallbackModel,
-      resolution: config.resolution ?? fallbackResolution,
+      model: videoProvider === "runway"
+        ? config.runway_model ?? runwayModel
+        : config.higgsfield_model ?? config.model ?? higgsfieldModel,
+      resolution: videoProvider === "runway"
+        ? config.runway_resolution ?? "720p"
+        : config.higgsfield_resolution ?? config.resolution ?? higgsfieldResolution,
       generateAudio: config.supports_generate_audio === false
         ? null
         : definition.generate_audio ?? config.generate_audio ?? false,
@@ -181,6 +250,44 @@ async function runHiggsfield(shot, aspectRatio) {
   return { outputUrl, jobId, raw: job };
 }
 
+async function runRunway(shot, aspectRatio) {
+  const imagePath = shot.startPath ?? shot.endPath;
+  if (!imagePath) throw new Error("Runway image-to-video requires a shot reference image.");
+  const task = await runwayRequest("/v1/image_to_video", {
+    method: "POST",
+    body: JSON.stringify({
+      model: shot.model,
+      promptImage: await imageDataUri(imagePath),
+      promptText: `${shot.prompt} Use restrained micro-motion only. Maintain straight verticals, stable walls, rigid railings, fixed furniture, and consistent fine detail in every frame. No morphing, warping, zoom pulses, texture shimmer, or geometry drift.`.slice(0, 1000),
+      ratio: runwayRatio(aspectRatio),
+      duration: runwayDuration(shot.duration),
+    }),
+  });
+  if (!task?.id) throw new Error("Runway accepted the request without returning a task ID.");
+
+  const deadline = Date.now() + runwayWaitTimeoutMs;
+  while (Date.now() < deadline) {
+    const current = await runwayRequest(`/v1/tasks/${encodeURIComponent(task.id)}`);
+    const status = String(current.status ?? "").toUpperCase();
+    if (status === "SUCCEEDED") {
+      const outputUrl = Array.isArray(current.output) ? current.output[0] : current.output;
+      if (!outputUrl) throw new Error("Runway completed without a video URL.");
+      return { outputUrl, jobId: task.id, raw: current };
+    }
+    if (["FAILED", "CANCELED"].includes(status)) {
+      throw new Error(`Runway task ${status.toLowerCase()}: ${current.failure ?? current.failureCode ?? "unknown error"}`);
+    }
+    await sleep(runwayPollMs);
+  }
+  throw new Error(`Runway task ${task.id} timed out after ${Math.round(runwayWaitTimeoutMs / 60000)} minutes.`);
+}
+
+async function generateShot(shot, aspectRatio) {
+  return videoProvider === "runway"
+    ? runRunway(shot, aspectRatio)
+    : runHiggsfield(shot, aspectRatio);
+}
+
 async function download(url, path) {
   const response = await fetch(url);
   if (!response.ok) throw new Error(`Could not download generated clip (${response.status}).`);
@@ -191,7 +298,7 @@ async function assemble(clips, outputPath, duration) {
   const listPath = `${outputPath}.txt`;
   await writeFile(listPath, clips.map((clip) => `file '${clip.replaceAll("'", "'\\''")}'`).join("\n"));
   await new Promise((resolve, reject) => {
-    const child = spawn("ffmpeg", ["-y", "-f", "concat", "-safe", "0", "-i", listPath, "-t", String(duration), "-c:v", "libx264", "-c:a", "aac", "-b:a", "192k", "-pix_fmt", "yuv420p", "-movflags", "+faststart", outputPath], { stdio: "inherit" });
+    const child = spawn("ffmpeg", ["-y", "-f", "concat", "-safe", "0", "-i", listPath, "-t", String(duration), "-c:v", "libx264", "-preset", "slow", "-crf", "18", "-maxrate", "8M", "-bufsize", "16M", "-c:a", "aac", "-b:a", "192k", "-pix_fmt", "yuv420p", "-movflags", "+faststart", outputPath], { stdio: "inherit" });
     child.once("error", reject);
     child.once("exit", (code) => code === 0 ? resolve() : reject(new Error(`ffmpeg exited with code ${code}.`)));
   });
@@ -235,7 +342,7 @@ async function processProject(project) {
     }
     const shots = makeShotPlan(project, photos);
     if (dryRun) {
-      await event(project.id, "dry_run", `Validated a ${shots.length}-shot plan`, 10, { model: shots[0]?.model, resolution: shots[0]?.resolution });
+      await event(project.id, "dry_run", `Validated a ${shots.length}-shot plan`, 10, { provider: videoProvider, model: shots[0]?.model, resolution: shots[0]?.resolution });
       await db.from("video_projects").update({ status: "queued", generation_progress: 0 }).eq("id", project.id);
       return;
     }
@@ -257,7 +364,7 @@ async function processProject(project) {
       }, { onConflict: "video_project_id,shot_order" });
       let result;
       try {
-        result = await runHiggsfield(shot, project.output_format);
+        result = await generateShot(shot, project.output_format);
       } catch (error) {
         await db.from("video_project_shots").update({
           status: "failed",
@@ -296,7 +403,7 @@ async function processProject(project) {
       status: "ready",
       video_url: null,
       duration_seconds: project.duration_seconds,
-      provider_metadata: { provider: "cloudflare-r2", bucket: r2Bucket, r2_key: storagePath, model: shots[0]?.model, shot_outputs: outputs, prompt_recipe: project.template_prompt_snapshot },
+      provider_metadata: { provider: videoProvider, storage_provider: "cloudflare-r2", bucket: r2Bucket, r2_key: storagePath, model: shots[0]?.model, shot_outputs: outputs, prompt_recipe: project.template_prompt_snapshot },
       completed_at: new Date().toISOString(),
     }, { onConflict: "video_project_id,version_number" });
     await event(project.id, "ready", "Video ready for review", 100);
@@ -312,8 +419,9 @@ async function processProject(project) {
 }
 
 async function main() {
-  await execFileAsync("higgsfield", ["account", "status"]);
+  if (videoProvider === "higgsfield") await execFileAsync("higgsfield", ["account", "status"]);
   if (!dryRun) await execFileAsync("ffmpeg", ["-version"]);
+  console.log(`Video provider: ${videoProvider}${videoProvider === "runway" ? ` (${runwayModel})` : ` (${higgsfieldModel})`}`);
   let keepRunning = true;
   while (keepRunning) {
     const project = await claimNextProject();
