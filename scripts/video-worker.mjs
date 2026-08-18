@@ -164,11 +164,15 @@ function inferredRole(index, total) {
 function makeShotPlan(project, photos) {
   const config = project.template_prompt_snapshot ?? project.video_templates?.generation_config ?? {};
   const configured = Array.isArray(config.shots) ? config.shots : [];
-  const desiredShotCount = videoProvider === "runway"
+  const templateProvider = String(config.provider ?? videoProvider).toLowerCase();
+  if (!["runway", "higgsfield"].includes(templateProvider)) {
+    throw new Error(`Unsupported template video provider "${templateProvider}".`);
+  }
+  const desiredShotCount = templateProvider === "runway"
     ? Math.ceil(project.duration_seconds / 5)
     : Math.round(project.duration_seconds / 6);
   const targetShots = Math.max(1, Math.min(photos.length, configured.length || desiredShotCount));
-  const duration = videoProvider === "runway"
+  const duration = templateProvider === "runway"
     ? runwayDuration(project.duration_seconds / targetShots)
     : Math.max(4, Math.min(15, Math.round(project.duration_seconds / targetShots)));
   const configuredTotal = configured.slice(0, targetShots).reduce((sum, shot) => sum + (Number(shot.duration) || 0), 0);
@@ -176,11 +180,12 @@ function makeShotPlan(project, photos) {
     .slice(0, targetShots)
     .every((shot) => [5, 10].includes(Number(shot.duration)));
   const usesExactTemplateTiming = configuredTotal === project.duration_seconds
-    && (videoProvider !== "runway" || runwayTemplateTimingIsValid);
+    && (templateProvider !== "runway" || runwayTemplateTimingIsValid);
   return Array.from({ length: targetShots }, (_, index) => {
     const definition = configured[index] ?? {};
-    const startIndex = Math.min(photos.length - 1, Math.round(index * (photos.length - 1) / targetShots));
-    const endIndex = Math.min(photos.length - 1, Math.round((index + 1) * (photos.length - 1) / targetShots));
+    const shotSpan = Math.max(1, targetShots - 1);
+    const startIndex = Math.min(photos.length - 1, Math.round(index * (photos.length - 1) / shotSpan));
+    const endIndex = Math.min(photos.length - 1, Math.round((index + 1) * (photos.length - 1) / shotSpan));
     const midpoint = Math.min(photos.length - 1, Math.round((startIndex + endIndex) / 2));
     const startLabel = photos[startIndex].roomType ?? inferredRole(startIndex, photos.length);
     const endLabel = photos[endIndex].roomType ?? inferredRole(endIndex, photos.length);
@@ -205,10 +210,11 @@ function makeShotPlan(project, photos) {
       referencePaths: ["start", "end"].includes(definition.reference_mode)
         ? []
         : midpoint !== startIndex && midpoint !== endIndex ? [photos[midpoint].path] : [],
-      model: videoProvider === "runway"
+      provider: templateProvider,
+      model: templateProvider === "runway"
         ? config.runway_model ?? runwayModel
         : config.higgsfield_model ?? config.model ?? higgsfieldModel,
-      resolution: videoProvider === "runway"
+      resolution: templateProvider === "runway"
         ? config.runway_resolution ?? "720p"
         : config.higgsfield_resolution ?? config.resolution ?? higgsfieldResolution,
       generateAudio: config.supports_generate_audio === false
@@ -283,7 +289,7 @@ async function runRunway(shot, aspectRatio) {
 }
 
 async function generateShot(shot, aspectRatio) {
-  return videoProvider === "runway"
+  return shot.provider === "runway"
     ? runRunway(shot, aspectRatio)
     : runHiggsfield(shot, aspectRatio);
 }
@@ -342,7 +348,7 @@ async function processProject(project) {
     }
     const shots = makeShotPlan(project, photos);
     if (dryRun) {
-      await event(project.id, "dry_run", `Validated a ${shots.length}-shot plan`, 10, { provider: videoProvider, model: shots[0]?.model, resolution: shots[0]?.resolution });
+      await event(project.id, "dry_run", `Validated a ${shots.length}-shot plan`, 10, { provider: shots[0]?.provider, model: shots[0]?.model, resolution: shots[0]?.resolution });
       await db.from("video_projects").update({ status: "queued", generation_progress: 0 }).eq("id", project.id);
       return;
     }
@@ -403,7 +409,7 @@ async function processProject(project) {
       status: "ready",
       video_url: null,
       duration_seconds: project.duration_seconds,
-      provider_metadata: { provider: videoProvider, storage_provider: "cloudflare-r2", bucket: r2Bucket, r2_key: storagePath, model: shots[0]?.model, shot_outputs: outputs, prompt_recipe: project.template_prompt_snapshot },
+      provider_metadata: { provider: shots[0]?.provider, storage_provider: "cloudflare-r2", bucket: r2Bucket, r2_key: storagePath, model: shots[0]?.model, shot_outputs: outputs, prompt_recipe: project.template_prompt_snapshot },
       completed_at: new Date().toISOString(),
     }, { onConflict: "video_project_id,version_number" });
     await event(project.id, "ready", "Video ready for review", 100);

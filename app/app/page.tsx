@@ -19,7 +19,7 @@ const categoryOptions = ["All", "Luxury", "Viral Trends", "Casual", "Timelapse",
 const sortOptions = ["Recent", "Popular", "Top"];
 const formatOptions = ["All", "9:16", "1:1", "16:9"];
 const creditsOptions = ["All", "Under 15", "15+"];
-const APPROVED_TEMPLATE_NAMES = new Set(["Mediterranean Light", "City After Dark", "Magic Build Reveal"]);
+const APPROVED_TEMPLATE_NAMES = new Set(["Mediterranean Light", "City After Dark", "Magic Build Reveal", "Find Your Way Home"]);
 
 export type TemplateItem = {
   id: number;
