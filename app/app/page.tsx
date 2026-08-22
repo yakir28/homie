@@ -19,7 +19,13 @@ const categoryOptions = ["All", "Luxury", "Viral Trends", "Casual", "Timelapse",
 const sortOptions = ["Recent", "Popular", "Top"];
 const formatOptions = ["All", "9:16", "1:1", "16:9"];
 const creditsOptions = ["All", "Under 15", "15+"];
-const APPROVED_TEMPLATE_NAMES = new Set(["Mediterranean Light", "City After Dark", "Magic Build Reveal", "Find Your Way Home"]);
+const APPROVED_TEMPLATE_NAMES = new Set([
+  "Magic Build Reveal",
+  "Find Your Way Home",
+  "Hidden in Plain Sight",
+  "Pulse Tour",
+  "Reflection Reveal",
+]);
 
 export type TemplateItem = {
   id: number;
@@ -37,8 +43,6 @@ export type TemplateItem = {
 };
 
 const templates: TemplateItem[] = [
-  { id: 10, title: "Mediterranean Light", tag: "Luxury", format: "9:16", time: "25 sec", credits: 24, image: "https://drjehibthvfvorkgiyse.supabase.co/storage/v1/object/public/template-previews/mediterranean-light/poster.jpg", preview: "https://drjehibthvfvorkgiyse.supabase.co/storage/v1/object/public/template-previews/mediterranean-light/preview.mp4", size: "tall", minPhotos: 6, maxPhotos: 30 },
-  { id: 12, title: "City After Dark", tag: "Urban", format: "9:16", time: "25 sec", credits: 24, image: "https://drjehibthvfvorkgiyse.supabase.co/storage/v1/object/public/template-previews/city-after-dark/poster.jpg", preview: "https://drjehibthvfvorkgiyse.supabase.co/storage/v1/object/public/template-previews/city-after-dark/preview.mp4", size: "normal", minPhotos: 6, maxPhotos: 30 },
   { id: 13, title: "Magic Build Reveal", tag: "Viral Trends", format: "9:16", time: "10 sec", credits: 12, image: "/api/media/template?key=templates/cinematic-second/thumbnail.jpg", preview: "/api/media/template?key=templates/cinematic-second/preview.mp4", size: "normal", minPhotos: 4, maxPhotos: 16 },
 ];
 

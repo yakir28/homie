@@ -19,15 +19,15 @@ const steps = [
 ];
 
 const templatePreviews = [
-  { title: "Mediterranean Luxe", tag: "Cinematic", video: "/templates/mediterranean-luxe/preview.mp4", poster: "/templates/mediterranean-luxe/poster.jpg" },
-  { title: "Scandinavian Calm", tag: "Warm & airy", video: "/templates/scandinavian-calm/preview.mp4", poster: "/templates/scandinavian-calm/poster.jpg" },
-  { title: "Urban Penthouse", tag: "Fast-paced", video: "/templates/urban-penthouse/preview.mp4", poster: "/templates/urban-penthouse/poster.jpg" },
+  { title: "Reflection Reveal", tag: "Cinematic", video: "/api/media/template?key=templates/reflection-reveal/preview.mp4", poster: "/api/media/template?key=templates/reflection-reveal/thumbnail.jpg" },
+  { title: "Pulse Tour", tag: "Fast-paced", video: "/api/media/template?key=templates/pulse-tour/preview.mp4", poster: "/api/media/template?key=templates/pulse-tour/thumbnail.jpg" },
+  { title: "Magic Build Reveal", tag: "Viral Trends", video: "/api/media/template?key=templates/cinematic-second/preview.mp4", poster: "/api/media/template?key=templates/cinematic-second/thumbnail.jpg" },
 ];
 
 const proofPoints = [
-  { value: "9:16", label: "Ready for Reels, TikTok & Stories" },
-  { value: "3 steps", label: "From listing link to finished tour" },
-  { value: "100%", label: "You approve before anything is shared" },
+  { icon: "↗", value: "9:16", label: "Ready for Reels, TikTok & Stories" },
+  { icon: "03", value: "3 steps", label: "From listing link to finished tour" },
+  { icon: "✓", value: "100%", label: "You approve before anything is shared" },
 ];
 
 const useCases = [
@@ -114,7 +114,6 @@ function TemplateVideoCard({ title, tag, video, poster }: { title: string; tag: 
     <button type="button" className="template-preview-card" onMouseEnter={play} onMouseLeave={pause} onFocus={play} onBlur={pause} aria-label={`Preview ${title} template`}>
       <video ref={videoRef} muted loop playsInline preload="metadata" poster={poster} aria-label={`${title} template preview`}>
         <source src={video} type="video/mp4" />
-        <track kind="captions" src="/captions/no-dialogue.vtt" srcLang="en" label="No dialogue" default />
       </video>
       <div className="card-shade" />
       <span className="template-play-cue" aria-hidden="true">▶</span>
@@ -208,7 +207,7 @@ export default function Marketing() {
         <div className="hero-layout">
           <figure className="compare-before hero-in" style={{ animationDelay: "620ms" }}>
             <figcaption>Your listing</figcaption>
-            <img src="/homes/modern-villa.jpg" alt="Original listing exterior" />
+            <img src="/homes/green-cottage-listing.png" alt="Green cottage listing exterior on a rainy day" />
           </figure>
 
           <div className="hero-copy">
@@ -216,21 +215,15 @@ export default function Marketing() {
             <h1 className="hero-in" style={{ animationDelay: "140ms" }}>Create hyper-realistic videos for your properties <i>in seconds</i></h1>
             <p className="hero-sub hero-in" style={{ animationDelay: "280ms" }}>Connect your listing, choose a cinematic direction, and turn property photos into a polished 25-second vertical tour—ready to publish everywhere.</p>
             <a className="hero-cta hero-in" style={{ animationDelay: "400ms" }} href="/login">Create your first tour <span>→</span></a>
-            <p className="hero-note hero-in" style={{ animationDelay: "500ms" }}>Free trial · No credit card needed</p>
+            <p className="hero-note hero-in" style={{ animationDelay: "500ms" }}><span aria-hidden="true">✓</span> Start free. No credit card required.</p>
           </div>
 
           <figure className="compare-after hero-in" style={{ animationDelay: "680ms" }} onMouseMove={tiltMove} onMouseLeave={() => setTilt({ x: 0, y: 0 })}>
             <figcaption>The result</figcaption>
             <div className="compare-video" style={{ transform: `perspective(900px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) rotate(2deg)` }}>
-              <span className="compare-badge">9:16</span>
-              <video autoPlay muted loop playsInline preload="metadata" poster="/templates/mediterranean-luxe/poster.jpg" aria-label="Homie generated Mediterranean property tour">
-                <source src="/templates/mediterranean-luxe/preview.mp4" type="video/mp4" />
-                <track kind="captions" src="/captions/no-dialogue.vtt" srcLang="en" label="No dialogue" default />
+              <video autoPlay muted loop playsInline preload="metadata" poster={templatePreviews[0].poster} aria-label="Homie generated property tour">
+                <source src={templatePreviews[0].video} type="video/mp4" />
               </video>
-              <div className="compare-shade" />
-              <div className="compare-brand">homie.</div>
-              <div className="compare-copy"><p>Now presenting</p><h3>814 Palisade<br />Avenue</h3></div>
-              <span className="compare-live"><i /> Playing preview</span>
             </div>
           </figure>
         </div>
@@ -239,7 +232,7 @@ export default function Marketing() {
       <section className="marketing-proof" aria-label="Product highlights">
         <div className="proof-grid">
           {proofPoints.map((point, i) => <Reveal delay={i * 90} key={point.value}>
-            <div className="proof-point"><strong>{point.value}</strong><span>{point.label}</span></div>
+            <div className="proof-point"><i aria-hidden="true">{point.icon}</i><div><strong>{point.value}</strong><span>{point.label}</span></div></div>
           </Reveal>)}
         </div>
       </section>
@@ -302,11 +295,11 @@ export default function Marketing() {
               <div className="connect-logos">
                 {integrations.map((item, i) => (
                   <div className={item.live ? "connect-tile" : "connect-tile soon"} key={item.name}>
-                    <span className="connect-index">{String(i + 1).padStart(2, "0")}</span>
+                    <span className="connect-status"><i aria-hidden="true" />{item.live ? "Available" : "Coming soon"}</span>
                     {item.logo
                       ? <img src={item.logo} alt={`${item.name} logo`} loading="lazy" />
                       : <span className="connect-wordmark">{item.name}</span>}
-                    <span className="connect-name">{item.live ? item.name : "Coming soon"}</span>
+                    <span className="connect-name">{item.name}</span>
                   </div>
                 ))}
               </div>
