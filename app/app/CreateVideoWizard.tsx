@@ -1,129 +1,75 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { getSupabaseBrowserClient } from "../../lib/supabase/client";
 import type { TemplateItem, VideoItem } from "./page";
 
-type StagedPhoto = { file: File; previewUrl: string };
+type WizardListing = {
+  id: string;
+  address: string;
+  city: string;
+  price: string;
+  source: string;
+  photos: number;
+  image: string;
+};
 
-const MAX_UPLOAD_PHOTOS = 30;
-const ACCEPTED_PHOTO_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+function sourceLabel(source: string | null) {
+  if (source === "zillow") return "Zillow";
+  if (source === "airbnb") return "Airbnb";
+  return "Manual upload";
+}
 
-export default function CreateVideoWizard({ template, workspaceId, walletBalance, onClose, onCreated, onListingsRefresh, flash }: {
+export default function CreateVideoWizard({ template, workspaceId, walletBalance, onClose, onCreated, flash }: {
   template: TemplateItem;
   workspaceId: string;
   walletBalance: number;
   onClose: () => void;
   onCreated: (project: VideoItem) => void;
-  onListingsRefresh: () => Promise<void>;
   flash: (message: string) => void;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [listings, setListings] = useState<WizardListing[]>([]);
+  const [listingsLoading, setListingsLoading] = useState(true);
+  const [listingsError, setListingsError] = useState("");
   const [creating, setCreating] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [stagedPhotos, setStagedPhotos] = useState<StagedPhoto[]>([]);
-  const [draggedPhotoIndex, setDraggedPhotoIndex] = useState<number | null>(null);
-  const [dragActive, setDragActive] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState("");
 
-  const [uploadedListing, setUploadedListing] = useState<{ id: string; address: string; city: string; price: string; photos: number; image: string } | null>(null);
-  const selectedListing = uploadedListing?.id === selectedId ? uploadedListing : null;
+  useEffect(() => {
+    let active = true;
+    async function loadListings() {
+      setListingsLoading(true);
+      const { data, error } = await getSupabaseBrowserClient()
+        .from("listings")
+        .select("id,address_line1,city,region,source,cover_photo_url,listing_photos(count)")
+        .eq("workspace_id", workspaceId)
+        .order("created_at", { ascending: false });
+
+      if (!active) return;
+      if (error) {
+        setListingsError(error.message);
+        setListingsLoading(false);
+        return;
+      }
+
+      setListings((data ?? []).map((listing) => ({
+        id: String(listing.id),
+        address: listing.address_line1 || "Untitled listing",
+        city: [listing.city, listing.region].filter(Boolean).join(", "),
+        price: "",
+        source: sourceLabel(listing.source),
+        photos: Array.isArray(listing.listing_photos) ? Number(listing.listing_photos[0]?.count ?? 0) : 0,
+        image: listing.cover_photo_url || template.image,
+      })));
+      setListingsLoading(false);
+    }
+    void loadListings();
+    return () => { active = false; };
+  }, [template.image, workspaceId]);
+
+  const selectedListing = listings.find((listing) => listing.id === selectedId) ?? null;
   const insufficientCredits = walletBalance < template.credits;
   const insufficientPhotos = selectedListing ? selectedListing.photos < template.minPhotos : false;
   const missingTemplatePrompt = template.generationConfig !== undefined && Object.keys(template.generationConfig).length === 0;
-
-  function addPhotos(incoming: FileList | File[]) {
-    const accepted = [...incoming].filter((file) => ACCEPTED_PHOTO_TYPES.has(file.type));
-    if (!accepted.length) {
-      setUploadError("Drop JPEG, PNG, or WEBP photos.");
-      return;
-    }
-    setUploadError("");
-    setStagedPhotos((current) => {
-      const room = MAX_UPLOAD_PHOTOS - current.length;
-      const next = accepted.slice(0, Math.max(room, 0)).map((file) => ({ file, previewUrl: URL.createObjectURL(file) }));
-      return [...current, ...next];
-    });
-  }
-
-  function removeStagedPhoto(index: number) {
-    setStagedPhotos((current) => {
-      const target = current[index];
-      if (target) URL.revokeObjectURL(target.previewUrl);
-      return current.filter((_, i) => i !== index);
-    });
-  }
-
-  function moveStagedPhoto(from: number, to: number) {
-    if (from === to || to < 0 || to >= stagedPhotos.length) return;
-    setStagedPhotos((current) => {
-      const next = [...current];
-      const [photo] = next.splice(from, 1);
-      next.splice(to, 0, photo);
-      return next;
-    });
-  }
-
-  async function createListingFromUpload() {
-    if (stagedPhotos.length < template.minPhotos || uploading) return;
-    setUploading(true);
-    setUploadError("");
-    try {
-      const supabase = getSupabaseBrowserClient();
-      const { data: listing, error: listingError } = await supabase.from("listings").insert({
-        workspace_id: workspaceId,
-        source: "upload",
-        status: "active",
-        external_listing_id: `upload-${crypto.randomUUID()}`,
-        address_line1: "Uploaded property",
-        city: "Unknown",
-      }).select("id").single();
-      if (listingError) throw listingError;
-
-      const uploaded: { storagePath: string; signedUrl: string }[] = [];
-      for (let index = 0; index < stagedPhotos.length; index += 1) {
-        const { file } = stagedPhotos[index];
-        const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, "-");
-        const storagePath = `${workspaceId}/upload/${listing.id}/${index}-${safeName}`;
-        const { error: uploadPhotoError } = await supabase.storage.from("listing-photos").upload(storagePath, file, { contentType: file.type, upsert: true });
-        if (uploadPhotoError) throw uploadPhotoError;
-        const { data: signed, error: signError } = await supabase.storage.from("listing-photos").createSignedUrl(storagePath, 60 * 60 * 24 * 365);
-        if (signError || !signed) throw signError ?? new Error("Could not prepare an uploaded photo");
-        uploaded.push({ storagePath, signedUrl: signed.signedUrl });
-      }
-
-      const { error: photosError } = await supabase.from("listing_photos").insert(uploaded.map((photo, index) => ({
-        listing_id: listing.id,
-        storage_path: photo.storagePath,
-        source_url: photo.signedUrl,
-        thumbnail_url: photo.signedUrl,
-        sort_order: index,
-      })));
-      if (photosError) throw photosError;
-
-      const { error: coverError } = await supabase.from("listings").update({ cover_photo_url: uploaded[0].signedUrl }).eq("id", listing.id);
-      if (coverError) throw coverError;
-
-      stagedPhotos.forEach((staged) => URL.revokeObjectURL(staged.previewUrl));
-      setStagedPhotos([]);
-      await onListingsRefresh();
-      setSelectedId(String(listing.id));
-      setUploadedListing({
-        id: String(listing.id),
-        address: "Uploaded property",
-        city: "Uploaded photos",
-        price: "Price on request",
-        photos: uploaded.length,
-        image: uploaded[0].signedUrl,
-      });
-      flash("Photos uploaded — ready to generate");
-    } catch (uploadRequestError) {
-      setUploadError(uploadRequestError instanceof Error ? uploadRequestError.message : "Could not upload photos");
-    } finally {
-      setUploading(false);
-    }
-  }
 
   async function generate() {
     if (!selectedListing || insufficientCredits || insufficientPhotos || missingTemplatePrompt || creating) return;
@@ -131,7 +77,7 @@ export default function CreateVideoWizard({ template, workspaceId, walletBalance
     const supabase = getSupabaseBrowserClient();
     const { data: photoRows, error: photosError } = await supabase.from("listing_photos").select("id").eq("listing_id", selectedListing.id).order("sort_order").limit(template.maxPhotos);
     if (photosError || !photoRows || photoRows.length < template.minPhotos) {
-      flash(photosError?.message ?? `This listing needs at least ${template.minPhotos} synced photos.`);
+      flash(photosError?.message ?? `This listing needs at least ${template.minPhotos} photos.`);
       setCreating(false);
       return;
     }
@@ -155,7 +101,7 @@ export default function CreateVideoWizard({ template, workspaceId, walletBalance
       title: project.title,
       address: selectedListing.address,
       city: selectedListing.city,
-      price: selectedListing.price,
+      price: "",
       template: template.tag,
       format: project.output_format,
       duration: `${project.duration_seconds} sec`,
@@ -172,7 +118,7 @@ export default function CreateVideoWizard({ template, workspaceId, walletBalance
   }
 
   return <div className="wizard-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
-    <section className="wizard-modal" role="dialog" aria-modal="true" aria-label={`Create video from ${template.title}`}>
+    <section className="wizard-modal wizard-listing-modal" role="dialog" aria-modal="true" aria-label={`Create video from ${template.title}`}>
       <button className="wizard-close" aria-label="Close" onClick={onClose}>×</button>
       <header className="wizard-head">
         <div className="wizard-template-chip"><img src={template.image} alt="" /><span><b>{template.title}</b><small>{template.tag} · {template.format} · {template.credits} credits</small></span></div>
@@ -180,57 +126,34 @@ export default function CreateVideoWizard({ template, workspaceId, walletBalance
 
       <div className="wizard-body">
         <div className="wizard-source">
-          {!selectedListing ? <div className="wizard-upload wizard-upload-primary">
-            <div className="wizard-upload-heading">
-              <div><p className="wizard-lead">Add property photos</p><p className="wizard-upload-copy">Upload the home from the first view to the last. You can arrange the tour order before continuing.</p></div>
-              <span>{stagedPhotos.length}/{MAX_UPLOAD_PHOTOS}</span>
-            </div>
-            <div
-              className={`dropzone ${dragActive ? "dragover" : ""}`}
-              role="button"
-              tabIndex={0}
-              onClick={() => inputRef.current?.click()}
-              onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); inputRef.current?.click(); } }}
-              onDragOver={(event) => { event.preventDefault(); setDragActive(true); }}
-              onDragLeave={() => setDragActive(false)}
-              onDrop={(event) => { event.preventDefault(); setDragActive(false); if (event.dataTransfer.files.length) addPhotos(event.dataTransfer.files); }}
-            >
-              <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" multiple hidden onChange={(event) => { if (event.target.files?.length) addPhotos(event.target.files); event.target.value = ""; }} />
-              <span className="wizard-upload-icon" aria-hidden="true">↑</span>
-              <p><b>Drop photos here</b> or choose files</p>
-              <small>JPEG, PNG or WEBP · up to {MAX_UPLOAD_PHOTOS} photos</small>
-            </div>
+          <div className="wizard-listings-heading">
+            <div><p className="wizard-lead">Choose a listing</p><p>Select the property you want to turn into this video.</p></div>
+            {!listingsLoading && <span>{listings.length} listing{listings.length === 1 ? "" : "s"}</span>}
+          </div>
 
-            {stagedPhotos.length > 0 && <>
-              <div className="wizard-order-heading"><div><b>Tour order</b><small>Drag photos to arrange the journey from start to finish.</small></div><span>Start → End</span></div>
-              <div className="dropzone-files">
-              {stagedPhotos.map((staged, index) => <div
-                className={`dropzone-file ${draggedPhotoIndex === index ? "dragging" : ""}`}
-                key={staged.previewUrl}
-                draggable={!uploading}
-                onDragStart={() => setDraggedPhotoIndex(index)}
-                onDragOver={(event) => event.preventDefault()}
-                onDrop={(event) => { event.preventDefault(); if (draggedPhotoIndex !== null) moveStagedPhoto(draggedPhotoIndex, index); setDraggedPhotoIndex(null); }}
-                onDragEnd={() => setDraggedPhotoIndex(null)}
-              >
-                <img src={staged.previewUrl} alt="" />
-                <span className="dropzone-file-order">{index + 1}</span>
-                <button type="button" onClick={(event) => { event.stopPropagation(); removeStagedPhoto(index); }} aria-label="Remove photo" disabled={uploading}>×</button>
-              </div>)}
-              </div>
-            </>}
-
-            {uploadError && <p className="zillow-import-error">{uploadError}</p>}
-            <p className={`wizard-count ${stagedPhotos.length >= template.minPhotos ? "ok" : ""}`}>{stagedPhotos.length >= template.minPhotos ? "✓ Ready to continue" : `Add ${template.minPhotos - stagedPhotos.length} more photo${template.minPhotos - stagedPhotos.length === 1 ? "" : "s"}`}</p>
-          </div> : <div className="wizard-upload-ready">
-            <span>✓</span><div><b>{selectedListing.photos} photos ready</b><small>{selectedListing.address}</small></div>
-          </div>}
+          {listingsLoading ? <div className="wizard-listing-state">Loading your listings…</div>
+            : listingsError ? <div className="wizard-listing-state error">Could not load listings. {listingsError}</div>
+            : listings.length === 0 ? <div className="wizard-listing-state"><b>No listings yet</b><span>Add a listing from My Listings first, then return to this template.</span></div>
+            : <div className="wizard-listing-grid">
+              {listings.map((listing) => {
+                const selected = listing.id === selectedId;
+                const needsPhotos = listing.photos < template.minPhotos;
+                return <button key={listing.id} type="button" className={`wizard-listing-card ${selected ? "selected" : ""}`} onClick={() => setSelectedId(listing.id)} aria-pressed={selected}>
+                  <span className="wizard-listing-image">
+                    <img src={listing.image} alt="" />
+                    {selected && <i aria-hidden="true">✓</i>}
+                  </span>
+                  <span className="wizard-listing-copy">
+                    <small>{listing.source}</small>
+                    <b>{listing.address}</b>
+                    <em>{needsPhotos ? `Needs ${template.minPhotos - listing.photos} more photo${template.minPhotos - listing.photos === 1 ? "" : "s"}` : `${listing.photos} photos ready`}</em>
+                  </span>
+                </button>;
+              })}
+            </div>}
 
           {selectedListing && <div className="wizard-confirm">
-            <div className={insufficientCredits ? "credit-note warn" : "credit-note"}>
-              <span>◒</span>
-              <p><b>{template.credits} credits</b><small>{insufficientCredits ? `You have ${walletBalance} — top up before creating.` : `Wallet balance after: ${walletBalance - template.credits} credits.`}</small></p>
-            </div>
+            {insufficientPhotos && <p className="zillow-import-error">This listing needs at least {template.minPhotos} photos before you can use this template.</p>}
             {missingTemplatePrompt && <p className="zillow-import-error">This template is missing its generation prompt and cannot be used yet.</p>}
           </div>}
         </div>
@@ -238,9 +161,9 @@ export default function CreateVideoWizard({ template, workspaceId, walletBalance
 
       <footer className="wizard-footer">
         <button className="wizard-back" onClick={onClose}>Cancel</button>
-        {selectedListing
-          ? <button className="wizard-primary" disabled={insufficientCredits || insufficientPhotos || missingTemplatePrompt || creating} onClick={() => void generate()}>{creating ? "Generating…" : "Generate →"}</button>
-          : <button className="wizard-primary" disabled={uploading || stagedPhotos.length < template.minPhotos} onClick={() => void createListingFromUpload()}>{uploading ? "Uploading…" : `Continue with ${stagedPhotos.length} photos →`}</button>}
+        <button className="wizard-primary" disabled={!selectedListing || insufficientCredits || insufficientPhotos || missingTemplatePrompt || creating} onClick={() => void generate()}>
+          {creating ? "Creating…" : selectedListing ? "Create video →" : "Select a listing"}
+        </button>
       </footer>
     </section>
   </div>;

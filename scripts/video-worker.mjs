@@ -184,8 +184,14 @@ function makeShotPlan(project, photos) {
   return Array.from({ length: targetShots }, (_, index) => {
     const definition = configured[index] ?? {};
     const shotSpan = Math.max(1, targetShots - 1);
-    const startIndex = Math.min(photos.length - 1, Math.round(index * (photos.length - 1) / shotSpan));
-    const endIndex = Math.min(photos.length - 1, Math.round((index + 1) * (photos.length - 1) / shotSpan));
+    const fallbackStartIndex = Math.min(photos.length - 1, Math.round(index * (photos.length - 1) / shotSpan));
+    const fallbackEndIndex = Math.min(photos.length - 1, Math.round((index + 1) * (photos.length - 1) / shotSpan));
+    const startIndex = Number.isInteger(definition.start_photo_index)
+      ? Math.max(0, Math.min(photos.length - 1, definition.start_photo_index))
+      : fallbackStartIndex;
+    const endIndex = Number.isInteger(definition.end_photo_index)
+      ? Math.max(0, Math.min(photos.length - 1, definition.end_photo_index))
+      : fallbackEndIndex;
     const midpoint = Math.min(photos.length - 1, Math.round((startIndex + endIndex) / 2));
     const startLabel = photos[startIndex].roomType ?? inferredRole(startIndex, photos.length);
     const endLabel = photos[endIndex].roomType ?? inferredRole(endIndex, photos.length);

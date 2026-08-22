@@ -48,11 +48,14 @@ const integrations = [
   { name: "Booking", logo: null, live: false },
 ];
 
-const gallery = Array.from({ length: 14 }, (_, i) => `/gallery/gallery-${String(i + 1).padStart(2, "0")}.jpg`);
-// Both rows carry the full set — one copy has to be wider than any viewport or
-// the loop shows a gap — and the bottom row starts halfway so they never match.
-const galleryTop = gallery;
-const galleryBottom = [...gallery.slice(7), ...gallery.slice(0, 7)];
+const gallery = [
+  ...Array.from({ length: 14 }, (_, i) => `/gallery/gallery-${String(i + 1).padStart(2, "0")}.jpg`),
+  ...Array.from({ length: 31 }, (_, i) => `/gallery/gallery-${String(i + 15).padStart(2, "0")}.webp`),
+];
+// Alternate the complete collection between the two directions. Each row is
+// duplicated when rendered so the marquee stays seamless at every viewport.
+const galleryTop = gallery.filter((_, i) => i % 2 === 0);
+const galleryBottom = gallery.filter((_, i) => i % 2 === 1);
 
 const faqs = [
   { q: "Do I need any video-editing experience?", a: "No. You choose a template and Homie handles the rest — no timelines, no prompts, no software to learn." },
