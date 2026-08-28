@@ -17,7 +17,7 @@ const toc = [
   ["listing-data", "4. Zillow & third-party listing data"],
   ["your-content", "5. Your content & license to Homie"],
   ["ai-content", "6. AI-generated videos"],
-  ["credits-billing", "7. Credits, billing & subscriptions"],
+  ["credits-billing", "7. Video allowances, billing & subscriptions"],
   ["acceptable-use", "8. Acceptable use"],
   ["fair-housing", "9. Fair housing & advertising compliance"],
   ["ip", "10. Homie's intellectual property"],
@@ -139,17 +139,17 @@ export default function TermsPage() {
         </section>
 
         <section id="credits-billing">
-          <h2>7. Credits, billing & subscriptions</h2>
+          <h2>7. Video allowances, billing & subscriptions</h2>
           <p>
-            Access to generation features is metered using credits included with a free trial or a paid
-            subscription plan. Credits are consumed when you generate a video and are non-refundable
-            once used, except where required by law.
+            Access to generation features is metered using video generations included with a free trial
+            or paid subscription plan. One generation is consumed whenever you create or regenerate a
+            video and is non-refundable once used, except where required by law.
           </p>
           <p>
             Paid subscriptions renew automatically for successive billing periods until cancelled. You
             can cancel at any time from your account settings; cancellation takes effect at the end of
             the current billing period, and we do not provide prorated refunds for partial periods
-            except where required by law. We may change our pricing or credit allowances, and we will
+            except where required by law. We may change our pricing or video allowances, and we will
             provide reasonable notice before changes take effect for existing subscribers.
           </p>
         </section>

@@ -1,0 +1,29 @@
+[
+  {
+    "created_at": "2026-08-21T16:16:24.558499Z",
+    "display_name": "Kling 3.0 Turbo",
+    "id": "5da044ba-ee9a-4aea-aeae-b36bb7aaabcc",
+    "job_type": "kling3_0_turbo",
+    "min_result_url": null,
+    "params": {
+      "duration": 5,
+      "height": 1280,
+      "medias": [
+        {
+          "data": {
+            "id": "03bf7b7e-5d15-487c-bc53-e827d3632a15",
+            "type": "media_input",
+            "url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3BLnjrCU3yEgIdh13NJZYtYylQp/03bf7b7e-5d15-487c-bc53-e827d3632a15.png"
+          },
+          "role": "start_image"
+        }
+      ],
+      "prompt": "Fast photorealistic real-estate drone descent toward the exact centered house. Smooth forward travel with realistic drone inertia, stable horizon and verticals, then decisive braking before the roof fills frame. Preserve the exact facade, roof, driveway, trees and neighborhood throughout. Natural daylight, tack-sharp destination, restrained directional motion blur only during travel.",
+      "resolution": "720p",
+      "width": 720
+    },
+    "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3BLnjrCU3yEgIdh13NJZYtYylQp/hf_20260821_161624_5da044ba-ee9a-4aea-aeae-b36bb7aaabcc.mp4",
+    "status": "completed",
+    "thumbnail_url": "https://cdn.higgsfield.ai/user_3BLnjrCU3yEgIdh13NJZYtYylQp/hf_20260821_161624_5da044ba-ee9a-4aea-aeae-b36bb7aaabcc_thumbnail.webp"
+  }
+]

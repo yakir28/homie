@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import HomieLogo from "./HomieLogo";
+import { resolveMediaUrl } from "../lib/media-url";
 
 const navLinks = [
   { label: "Product", href: "#top" },
@@ -36,8 +37,10 @@ const useCases = [
 ];
 
 const pricingTiers = [
-  { name: "Solo Agent", tagline: "For individual agents just getting started with video.", features: ["Zillow sync for one account", "Curated template library", "Reels, TikTok & Stories exports", "Included monthly credits"] },
-  { name: "Office Team", tagline: "For real-estate teams who want a consistent, on-brand look.", features: ["Everything in Solo Agent", "Shared team workspace", "Multiple agent seats", "Priority support"], highlighted: true },
+  { name: "Free Trial", price: "$0", tagline: "Try Homie on one of your own listings.", features: ["1 watermarked video", "All video templates", "No credit card required", "7-day trial"] },
+  { name: "Starter", price: "$29/mo", tagline: "For agents starting to publish listing videos.", features: ["3 video generations each month", "Zillow and Airbnb sync", "All video templates", "Social-ready exports"] },
+  { name: "Pro", price: "$59/mo", tagline: "For solo agents publishing consistently.", features: ["10 video generations each month", "Everything in Starter", "Priority generation", "Commercial usage"], highlighted: true },
+  { name: "Business", price: "$149/mo", tagline: "For offices that need a shared, consistent workflow.", features: ["30 video generations each month", "10 agent seats", "Shared team workspace", "Priority support"] },
 ];
 
 // Only Zillow and Airbnb have an import path today; Booking is shown as pending
@@ -59,13 +62,13 @@ const galleryBottom = gallery.filter((_, i) => i % 2 === 1);
 
 const faqs = [
   { q: "Do I need any video-editing experience?", a: "No. You choose a template and Homie handles the rest — no timelines, no prompts, no software to learn." },
-  { q: "What happens during the free trial?", a: "You get a set number of credits to generate real tours from your own listings — no credit card required to start." },
-  { q: "How do credits work?", a: "Every template shows its credit cost before you generate, and your balance stays visible while you work. Credits come with your plan and are only spent when you create a video — browsing templates and importing listings never cost anything." },
+  { q: "What happens during the free trial?", a: "You can generate one watermarked tour from your own listing during a 7-day trial — no credit card required to start." },
+  { q: "How do video allowances work?", a: "Every plan includes a monthly number of video generations. Creating a video or generating another version uses one; browsing templates and importing listings are always free." },
   { q: "Can I connect my Zillow listings?", a: "Yes. Connect your public Zillow profile and Homie imports your listings along with their photos, address, and details. If a listing doesn't come through automatically, paste its Zillow link and Homie will import it directly." },
   { q: "Can I use my own photos instead of Zillow?", a: "Zillow sync is the fastest way to start, and direct photo upload is on our roadmap for listings outside of Zillow." },
   { q: "Will the video invent rooms or features the property doesn't have?", a: "Every shot is built from the photos you select, and Homie is built to preserve the real architecture, layout, materials, and lighting rather than imagine new ones. AI video is still probabilistic, which is exactly why no tour is ever final until you watch it and approve it." },
   { q: "Can I use the videos in my listings, ads, and social?", a: "Yes. You keep full ownership of your photos and of the tours you generate, and you can publish them to Reels, TikTok, Stories, listing pages, and paid campaigns. You stay responsible for confirming a tour represents the property accurately and meets your brokerage or MLS rules." },
-  { q: "What if I don't like the result?", a: "Generate another version. You can rerun the same template or switch to a different one, and the credit cost is always shown before you confirm. Only the version you approve becomes the final tour." },
+  { q: "What if I don't like the result?", a: "Generate another version. You can rerun the same template or switch to a different one; each new version uses one video generation. Only the version you approve becomes the final tour." },
   { q: "Will anything publish without my approval?", a: "Never. Every generated video goes into an awaiting-approval state. Nothing is published, downloaded, or shared until you explicitly approve it." },
   { q: "How long does one tour take?", a: "Usually a few minutes, because each shot is generated on its own and then assembled into the final cut. You don't have to keep the page open — Homie keeps working and the tour is waiting for review when it's ready." },
   { q: "Can my whole office work in one account?", a: "Yes. Office plans add a shared workspace with seats for your agents, shared listings and templates, and a record of who created and who approved every tour." },
@@ -101,22 +104,33 @@ function Reveal({ children, className = "", delay = 0, as: Tag = "div" }: { chil
 
 function TemplateVideoCard({ title, tag, video, poster }: { title: string; tag: string; video: string; poster: string }) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const wantsPlaybackRef = useRef(false);
 
   function play() {
-    void videoRef.current?.play();
+    const player = videoRef.current;
+    if (!player) return;
+    wantsPlaybackRef.current = true;
+    const playback = player.play();
+    if (playback) {
+      void playback.catch((error: unknown) => {
+        const name = error instanceof DOMException ? error.name : "";
+        if (name !== "AbortError" && name !== "NotAllowedError") console.warn(`Could not play the ${title} preview`, error);
+      });
+    }
   }
 
   function pause() {
     const player = videoRef.current;
     if (!player) return;
+    wantsPlaybackRef.current = false;
     player.pause();
-    player.currentTime = 0;
+    try { player.currentTime = 0; } catch { /* Media metadata may still be loading. */ }
   }
 
   return (
     <button type="button" className="template-preview-card" onMouseEnter={play} onMouseLeave={pause} onFocus={play} onBlur={pause} aria-label={`Preview ${title} template`}>
-      <video ref={videoRef} muted loop playsInline preload="metadata" poster={poster} aria-label={`${title} template preview`}>
-        <source src={video} type="video/mp4" />
+      <video ref={videoRef} muted loop playsInline preload="none" poster={resolveMediaUrl(poster)} aria-label={`${title} template preview`}>
+        <source src={resolveMediaUrl(video)} type="video/mp4" />
       </video>
       <div className="card-shade" />
       <span className="template-play-cue" aria-hidden="true">▶</span>
@@ -338,13 +352,13 @@ export default function Marketing() {
           {pricingTiers.map((t, i) => <Reveal delay={i * 120} key={t.name}>
             <div className={t.highlighted ? "pricing-card highlighted" : "pricing-card"}>
               {t.highlighted && <span className="pricing-badge">Most popular</span>}
-              <h3>{t.name}</h3><p className="pricing-tagline">{t.tagline}</p>
+              <h3>{t.name}</h3><p className="pricing-tagline">{t.price} · {t.tagline}</p>
               <ul>{t.features.map((f) => <li key={f}>✓ {f}</li>)}</ul>
               <a className={t.highlighted ? "hero-cta" : "outline-cta"} href="/login">Start free trial <span>→</span></a>
             </div>
           </Reveal>)}
         </div>
-        <Reveal delay={200}><p className="pricing-note">Final pricing is confirmed before your trial ends — no surprise charges.</p></Reveal>
+        <Reveal delay={200}><p className="pricing-note">Secure monthly billing is handled by Polar. Cancel or change your plan anytime.</p></Reveal>
       </section>
 
       <section className="marketing-faq" id="faq">

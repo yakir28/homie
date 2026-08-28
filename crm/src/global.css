@@ -1,0 +1,2 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&family=Libre+Caslon+Display&display=swap');
+:root{--sans:"DM Sans",sans-serif;--serif:"Libre Caslon Display",serif;--mono:"DM Mono",monospace;font-family:var(--sans);font-synthesis:none;text-rendering:optimizeLegibility}*{box-sizing:border-box}html,body,#root{min-height:100%;margin:0}button,input,select,textarea{font:inherit}button{cursor:pointer}

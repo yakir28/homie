@@ -9,6 +9,7 @@ const accountId = process.env.R2_ACCOUNT_ID;
 const accessKeyId = process.env.R2_ACCESS_KEY_ID;
 const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
 const bucket = process.env.R2_BUCKET_NAME ?? "homie";
+const mediaOrigin = process.env.NEXT_PUBLIC_MEDIA_ORIGIN?.replace(/\/$/, "");
 
 if (!supabaseUrl || !supabaseKey || !accountId || !accessKeyId || !secretAccessKey) {
   throw new Error("Set Supabase server credentials and all R2 credentials before syncing template assets.");
@@ -59,7 +60,7 @@ async function upload(slug, kind, source) {
     CacheControl: "public, max-age=31536000, immutable",
     Metadata: { template_slug: slug, asset_kind: kind },
   }));
-  return `/api/media/template?key=${encodeURIComponent(key)}`;
+  return mediaOrigin ? `${mediaOrigin}/${key}` : `/api/media/template?key=${encodeURIComponent(key)}`;
 }
 
 const { data: templates, error } = await db.from("video_templates").select("id, slug, preview_url, thumbnail_url").eq("is_active", true).order("sort_order");

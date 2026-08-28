@@ -1,0 +1,45 @@
+{
+  "created_at": "2026-08-21T15:25:19.111398Z",
+  "display_name": "Kling v3.0",
+  "id": "26e9033e-733e-4702-b759-06cb81985017",
+  "job_type": "kling3_0",
+  "min_result_url": null,
+  "params": {
+    "aspect_ratio": "9:16",
+    "cfg_scale": 0.5,
+    "duration": 5,
+    "enhance_prompt": false,
+    "height": 1280,
+    "kling_element_ids": [],
+    "kling_elements": [],
+    "medias": [
+      {
+        "data": {
+          "id": "4f8197ac-3889-4a41-8331-ae38b755205e",
+          "type": "media_input",
+          "url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3BLnjrCU3yEgIdh13NJZYtYylQp/4f8197ac-3889-4a41-8331-ae38b755205e.png"
+        },
+        "role": "start_image"
+      },
+      {
+        "data": {
+          "id": "eab7bce0-b378-4199-aed3-4fa1c0f9efdf",
+          "type": "media_input",
+          "url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3BLnjrCU3yEgIdh13NJZYtYylQp/eab7bce0-b378-4199-aed3-4fa1c0f9efdf.png"
+        },
+        "role": "end_image"
+      }
+    ],
+    "mode": "std",
+    "multi_prompt": [],
+    "multi_shot_mode": "custom",
+    "multi_shots": false,
+    "prompt": "Photorealistic real-estate drone shot of the exact supplied sage-green bungalow. Begin at the exact high three-quarter aerial and perform one controlled fast drone descent with a restrained forward approach, keeping the home centered and the horizon stable. Resolve naturally into the exact ground-level facade framing and decelerate into a readable hero hold. Lock the roofline, dormer, garage, porch, windows, oak door, driveway, maple tree, shrubs, neighboring homes, materials, colors and late-afternoon lighting. No architecture changes, landscaping changes, invented structures, people, cars, text, logos, warping, floating 3D motion or fisheye.",
+    "reference_elements": [],
+    "sound": "off",
+    "width": 720
+  },
+  "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3BLnjrCU3yEgIdh13NJZYtYylQp/hf_20260821_152519_26e9033e-733e-4702-b759-06cb81985017.mp4",
+  "status": "completed",
+  "thumbnail_url": "https://cdn.higgsfield.ai/user_3BLnjrCU3yEgIdh13NJZYtYylQp/hf_20260821_152519_26e9033e-733e-4702-b759-06cb81985017_thumbnail.webp"
+}

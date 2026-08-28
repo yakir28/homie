@@ -1,0 +1,22 @@
+[
+  {
+    "created_at": "2026-08-21T16:30:12.919457Z",
+    "display_name": "Seed Audio 1.0",
+    "id": "97bd8d94-cdd9-4427-8dd5-8478c18e052f",
+    "job_type": "seed_audio",
+    "min_result_url": null,
+    "params": {
+      "batch_size": 1,
+      "expression_intensity": 5,
+      "format": "wav",
+      "loudness_rate": 0,
+      "mood": 0,
+      "pitch_rate": 0,
+      "prompt": "An 18-second high-energy modern real-estate instrumental bed: crisp electronic percussion, subtle bass pulse, rapid rising whooshes that imply camera acceleration, four clean impact accents, warm uplifting harmonic lift, and a refined final chime. No voice, no speech, no lyrics, no branding. Clean premium social-video mix.",
+      "sample_rate": 48000,
+      "speech_rate": 0
+    },
+    "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3BLnjrCU3yEgIdh13NJZYtYylQp/hf_20260821_163012_97bd8d94-cdd9-4427-8dd5-8478c18e052f.wav",
+    "status": "completed"
+  }
+]

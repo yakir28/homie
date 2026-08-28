@@ -16,9 +16,7 @@ const localBindingConfig = {
   compatibility_flags: ["nodejs_compat"],
   vars: {
     ALLOW_LOCAL_MEDIA_SEED: process.env.ALLOW_LOCAL_MEDIA_SEED ?? "0",
-    ...(process.env.MEDIA_SIGNING_SECRET
-      ? { MEDIA_SIGNING_SECRET: process.env.MEDIA_SIGNING_SECRET }
-      : {}),
+    MEDIA_SIGNING_SECRET: process.env.MEDIA_SIGNING_SECRET ?? "homie-local-development-media-signing-key",
   },
   d1_databases: d1
     ? [

@@ -1,0 +1,39 @@
+[
+  {
+    "created_at": "2026-08-21T15:25:17.021594Z",
+    "display_name": "Kling v3.0",
+    "id": "4a09f4f9-7274-422a-b82b-84ddd7eff489",
+    "job_type": "kling3_0",
+    "min_result_url": null,
+    "params": {
+      "aspect_ratio": "9:16",
+      "cfg_scale": 0.5,
+      "duration": 5,
+      "enhance_prompt": false,
+      "height": 1280,
+      "kling_element_ids": [],
+      "kling_elements": [],
+      "medias": [
+        {
+          "data": {
+            "id": "db0704f0-8de5-48f4-bc4b-5f5d0043b79c",
+            "type": "media_input",
+            "url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3BLnjrCU3yEgIdh13NJZYtYylQp/db0704f0-8de5-48f4-bc4b-5f5d0043b79c.png"
+          },
+          "role": "start_image"
+        }
+      ],
+      "mode": "std",
+      "multi_prompt": [],
+      "multi_shot_mode": "custom",
+      "multi_shots": false,
+      "prompt": "Photorealistic real-estate closing shot of the exact supplied backyard and rear facade. Begin behind the existing leafy branch at the near right edge, perform one restrained lateral foreground reveal, then a gentle three-percent dolly pullback and settle into a stable final composition. Lock the sage siding, charcoal roof, windows, oak back door, concrete patio, black dining set, grill, mature tree, lawn, fence, shrubs and neighboring edge in their exact positions. Animate only the camera and a subtle breeze in existing foliage. Same late-afternoon light, realistic lens and stable geometry. No roofline change, new windows, landscaping change, moving furniture, people, text, logos, luxury redesign or floating 3D motion.",
+      "reference_elements": [],
+      "sound": "off",
+      "width": 720
+    },
+    "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3BLnjrCU3yEgIdh13NJZYtYylQp/hf_20260821_152517_4a09f4f9-7274-422a-b82b-84ddd7eff489.mp4",
+    "status": "completed",
+    "thumbnail_url": "https://cdn.higgsfield.ai/user_3BLnjrCU3yEgIdh13NJZYtYylQp/hf_20260821_152517_4a09f4f9-7274-422a-b82b-84ddd7eff489_thumbnail.webp"
+  }
+]

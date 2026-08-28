@@ -70,6 +70,13 @@ export default function CreateVideoWizard({ template, workspaceId, walletBalance
   const insufficientCredits = walletBalance < template.credits;
   const insufficientPhotos = selectedListing ? selectedListing.photos < template.minPhotos : false;
   const missingTemplatePrompt = template.generationConfig !== undefined && Object.keys(template.generationConfig).length === 0;
+  const createButtonLabel = creating
+    ? "Creating…"
+    : !selectedListing
+      ? "Select a listing"
+      : insufficientCredits
+        ? "No video generations available"
+        : "Create video →";
 
   async function generate() {
     if (!selectedListing || insufficientCredits || insufficientPhotos || missingTemplatePrompt || creating) return;
@@ -121,7 +128,7 @@ export default function CreateVideoWizard({ template, workspaceId, walletBalance
     <section className="wizard-modal wizard-listing-modal" role="dialog" aria-modal="true" aria-label={`Create video from ${template.title}`}>
       <button className="wizard-close" aria-label="Close" onClick={onClose}>×</button>
       <header className="wizard-head">
-        <div className="wizard-template-chip"><img src={template.image} alt="" /><span><b>{template.title}</b><small>{template.tag} · {template.format} · {template.credits} credits</small></span></div>
+        <div className="wizard-template-chip"><img src={template.image} alt="" /><span><b>{template.title}</b><small>{template.tag} · {template.format} · 1 video generation</small></span></div>
       </header>
 
       <div className="wizard-body">
@@ -155,6 +162,7 @@ export default function CreateVideoWizard({ template, workspaceId, walletBalance
           {selectedListing && <div className="wizard-confirm">
             {insufficientPhotos && <p className="zillow-import-error">This listing needs at least {template.minPhotos} photos before you can use this template.</p>}
             {missingTemplatePrompt && <p className="zillow-import-error">This template is missing its generation prompt and cannot be used yet.</p>}
+            {insufficientCredits && <p className="zillow-import-error">You need {template.credits} video generation{template.credits === 1 ? "" : "s"}, but your workspace has {walletBalance} available.</p>}
           </div>}
         </div>
       </div>
@@ -162,7 +170,7 @@ export default function CreateVideoWizard({ template, workspaceId, walletBalance
       <footer className="wizard-footer">
         <button className="wizard-back" onClick={onClose}>Cancel</button>
         <button className="wizard-primary" disabled={!selectedListing || insufficientCredits || insufficientPhotos || missingTemplatePrompt || creating} onClick={() => void generate()}>
-          {creating ? "Creating…" : selectedListing ? "Create video →" : "Select a listing"}
+          {createButtonLabel}
         </button>
       </footer>
     </section>

@@ -97,24 +97,22 @@ actions tied to the current ChatGPT user. Leave public content anonymous.
 ## Video generation worker
 
 The browser queues projects in Supabase; a separate Node worker generates short
-Runway (or Higgsfield) clips and assembles the final MP4. It runs outside the
+Higgsfield Seedance 2.0 Mini clips and assembles the final MP4. It runs outside the
 Cloudflare web runtime because generation can take several minutes and the final
 assembly uses FFmpeg.
 
 1. Apply the Supabase migrations and copy `video-worker.env.example` values
    into your worker environment.
-2. Create a Runway developer API key, add credits, and set
-   `VIDEO_PROVIDER=runway` plus `RUNWAYML_API_SECRET`. Install `ffmpeg` and
-   authenticate with `wrangler login` when R2 API credentials are not supplied.
-   To use the previous engine instead, set `VIDEO_PROVIDER=higgsfield` and run
-   `higgsfield auth login` once.
+2. Install the Higgsfield CLI, run `higgsfield auth login`, select the billing
+   workspace, and verify it with `higgsfield account status`. Install `ffmpeg`
+   and authenticate with `wrangler login` when R2 API credentials are not supplied.
 3. Validate the next queued project without spending generation credits:
    `npm run video:worker:dry-run`.
 4. Process one project with `npm run video:worker:once`, or keep polling with
    `npm run video:worker`.
 
 The worker automatically reads an ignored `video-worker.env` file when present.
-Runway's API key, Higgsfield credentials, and Supabase's secret key belong only
+Higgsfield credentials and Supabase's secret key belong only
 in the worker environment. Never expose them through `NEXT_PUBLIC_*` variables.
 Use `SUPABASE_SECRET_KEY` for current
 Supabase projects; the worker also accepts the legacy
@@ -134,6 +132,23 @@ through one-hour signed playback links with byte-range support.
    `video-worker.env.example`.
 4. Run `npm run r2:sync-templates` once to copy active catalog assets to R2.
 5. Run `npm run video:worker`; completed videos upload directly to R2.
+
+### Production media delivery
+
+Attach a custom domain such as `media.example.com` to the R2 bucket and set
+`NEXT_PUBLIC_MEDIA_ORIGIN` to that origin. Create a Cloudflare Cache Rule for
+`/templates/*` with Cache Everything and a one-year edge TTL, then enable Smart
+Tiered Cache. Keep object keys versioned because these responses are immutable.
+
+Enable Cloudflare Images transformations for the website zone and set
+`NEXT_PUBLIC_IMAGE_TRANSFORMATIONS=1`. The dashboard will then request responsive
+AVIF/WebP variants instead of using full-size listing images in every card.
+
+The `r2.dev` hostname is suitable for development only; production media should
+use the custom domain. Private generated videos continue to use authenticated,
+byte-range R2 playback. For adaptive-bitrate delivery, import each completed R2
+master into Cloudflare Stream and store its signed playback URL in
+`video_versions.video_url`.
 
 ## Learn More
 

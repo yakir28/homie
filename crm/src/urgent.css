@@ -1,0 +1,19 @@
+.dashboardPrimaryRow{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;align-items:stretch}
+.dashboardPrimaryRow>article{min-width:0;background:#fff;border-radius:14px;box-shadow:0 1px 2px rgba(18,22,33,.05);overflow:hidden}
+.urgentCard{margin:0}
+.dashboardPrimaryRow .urgentList{max-height:304px;overflow:auto}
+.dashboardGraphs{display:grid;grid-template-columns:minmax(360px,1fr);margin-bottom:16px}
+.dashboardGraphs>article{background:#fff;border-radius:14px;box-shadow:0 1px 2px rgba(18,22,33,.05);overflow:hidden}
+.urgentList{padding:4px 20px 12px}
+.urgentList>div{min-height:58px;border-bottom:1px solid #e8eaee;display:flex;align-items:center;gap:12px}
+.urgentList>div:last-child{border:0}
+.urgentIndicator{width:7px;height:7px;border-radius:50%;background:#8b909a;box-shadow:none}
+.urgentList p{margin:0;display:flex;flex-direction:column;gap:4px;flex:1;min-width:0}
+.urgentList p b{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.urgentList p small{font-size:10px;color:#7b808a}
+.urgentList em{font-style:normal;text-transform:capitalize;border:1px solid #e2e5e9;border-radius:8px;padding:5px 9px;font-size:9px;font-weight:500}
+.urgentBadge,.highBadge{background:#f7f8fa;color:#5f6570}
+.urgentList>div>i{width:28px;height:28px;border:1px solid #e2e5e9;border-radius:8px;background:#f7f8fa;color:#5f6570;display:grid;place-items:center;font-style:normal;font-size:8px;font-weight:600}
+.urgentList .urgentEmpty{justify-content:center;color:#7b808a;gap:8px;padding:24px}
+.urgentEmpty svg{width:18px}
+@media(max-width:900px){.dashboardPrimaryRow{grid-template-columns:1fr}.dashboardGraphs{grid-template-columns:1fr}}

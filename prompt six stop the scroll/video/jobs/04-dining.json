@@ -1,0 +1,39 @@
+[
+  {
+    "created_at": "2026-08-21T15:25:16.475379Z",
+    "display_name": "Kling v3.0",
+    "id": "69fcb521-2949-48ea-9466-67f5a49b207a",
+    "job_type": "kling3_0",
+    "min_result_url": null,
+    "params": {
+      "aspect_ratio": "9:16",
+      "cfg_scale": 0.5,
+      "duration": 5,
+      "enhance_prompt": false,
+      "height": 1280,
+      "kling_element_ids": [],
+      "kling_elements": [],
+      "medias": [
+        {
+          "data": {
+            "id": "adde427e-9d54-4b5f-97e4-20d7fd9f2a2d",
+            "type": "media_input",
+            "url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3BLnjrCU3yEgIdh13NJZYtYylQp/adde427e-9d54-4b5f-97e4-20d7fd9f2a2d.png"
+          },
+          "role": "start_image"
+        }
+      ],
+      "mode": "std",
+      "multi_prompt": [],
+      "multi_shot_mode": "custom",
+      "multi_shots": false,
+      "prompt": "Photorealistic real-estate shot of the exact supplied dining room. Perform one slow three-percent optical push toward the fixed dining table with a subtle two-percent pedestal rise, then finish on a readable stable hold. Lock the oak table, six cream chairs, green centerpiece, black linear pendant, ceiling beam, windows, neighboring sofa edge, artwork, walls and every floorboard in their exact positions. Keep the exact same room from first frame to last. Animate the camera only. Natural late-afternoon exposure, stable verticals and realistic lens behavior. No geometry drift, chair-count changes, moving furniture, invented openings, people, text, logos or redesign.",
+      "reference_elements": [],
+      "sound": "off",
+      "width": 720
+    },
+    "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3BLnjrCU3yEgIdh13NJZYtYylQp/hf_20260821_152516_69fcb521-2949-48ea-9466-67f5a49b207a.mp4",
+    "status": "completed",
+    "thumbnail_url": "https://cdn.higgsfield.ai/user_3BLnjrCU3yEgIdh13NJZYtYylQp/hf_20260821_152516_69fcb521-2949-48ea-9466-67f5a49b207a_thumbnail.webp"
+  }
+]

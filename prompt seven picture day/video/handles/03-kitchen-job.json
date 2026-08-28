@@ -1,0 +1,29 @@
+[
+  {
+    "created_at": "2026-08-21T16:19:59.550657Z",
+    "display_name": "Kling 3.0 Turbo",
+    "id": "8017d1f3-631f-4237-b36e-2a2230ebc88b",
+    "job_type": "kling3_0_turbo",
+    "min_result_url": null,
+    "params": {
+      "duration": 5,
+      "height": 1280,
+      "medias": [
+        {
+          "data": {
+            "id": "1044fd7d-d9a5-4588-9120-bef42ea465cb",
+            "type": "media_input",
+            "url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3BLnjrCU3yEgIdh13NJZYtYylQp/1044fd7d-d9a5-4588-9120-bef42ea465cb.png"
+          },
+          "role": "start_image"
+        }
+      ],
+      "prompt": "Energetic photorealistic real-estate gimbal shot. Perform one smooth eight-degree clockwise micro-arc around the exact fixed kitchen island, accelerating through the center of the move and braking on the island and cabinetry hero angle. Keep every cabinet, appliance, pendant, counter, stool, window and floorboard fixed. Stable camera height, realistic 24mm lens, natural daylight and believable gimbal inertia.",
+      "resolution": "720p",
+      "width": 720
+    },
+    "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3BLnjrCU3yEgIdh13NJZYtYylQp/hf_20260821_161959_8017d1f3-631f-4237-b36e-2a2230ebc88b.mp4",
+    "status": "completed",
+    "thumbnail_url": "https://cdn.higgsfield.ai/user_3BLnjrCU3yEgIdh13NJZYtYylQp/hf_20260821_161959_8017d1f3-631f-4237-b36e-2a2230ebc88b_thumbnail.webp"
+  }
+]

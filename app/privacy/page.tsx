@@ -80,7 +80,7 @@ export default function PrivacyPage() {
           <ul>
             <li>Provide, operate, and maintain the Service, including generating your videos;</li>
             <li>Authenticate your account and keep it secure;</li>
-            <li>Process payments and manage subscriptions and credits;</li>
+            <li>Process payments and manage subscriptions and video allowances;</li>
             <li>Communicate with you about your account, generations, and support requests;</li>
             <li>Monitor, debug, and improve the reliability and quality of the Service; and</li>
             <li>Comply with legal obligations and enforce our Terms of Service.</li>

@@ -45,7 +45,7 @@ async function serve(request: Request) {
     const proxied = await proxyProductionTemplate(request, key);
     return proxied ?? new Response("Template asset not found", { status: 404 });
   }
-  const headers = new Headers({ "Accept-Ranges": "bytes", "Cache-Control": "public, max-age=31536000, immutable", ETag: object.httpEtag });
+  const headers = new Headers({ "Accept-Ranges": "bytes", "Cache-Control": "public, max-age=31536000, s-maxage=31536000, immutable", ETag: object.httpEtag });
   object.writeHttpMetadata(headers);
   let status = 200;
   if (object.range && request.headers.has("range")) {

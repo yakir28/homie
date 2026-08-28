@@ -150,8 +150,8 @@ export default function DocsPage() {
           <p>A little more detail on each step above:</p>
           <ul>
             <li>Open <strong>My listings</strong> and import an address from Zillow or Airbnb — or create a listing and upload photos directly.</li>
-            <li>Open <strong>Explore</strong> and pick a template. Each template lists its format, credit cost, and the minimum number of synced photos it needs.</li>
-            <li>Select the listing you want to generate from and confirm the credit cost. Generation runs in the background — track progress from <strong>My videos</strong>.</li>
+            <li>Open <strong>Explore</strong> and pick a template. Every template uses one video generation and lists the minimum number of synced photos it needs.</li>
+            <li>Select the listing you want to generate from and confirm. Generation runs in the background — track progress from <strong>My videos</strong>.</li>
             <li>Every tour lands in an awaiting-approval state. Watch it, and only approve it once it&apos;s ready — nothing is published or shared before that.</li>
           </ul>
         </section>

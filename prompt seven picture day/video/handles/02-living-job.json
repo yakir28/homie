@@ -1,0 +1,29 @@
+[
+  {
+    "created_at": "2026-08-21T16:18:34.016512Z",
+    "display_name": "Kling 3.0 Turbo",
+    "id": "f8e888e3-d5b0-419c-a636-9374d9b305c2",
+    "job_type": "kling3_0_turbo",
+    "min_result_url": null,
+    "params": {
+      "duration": 5,
+      "height": 1280,
+      "medias": [
+        {
+          "data": {
+            "id": "8eb7b759-9e9a-4dde-8373-0617af6911c1",
+            "type": "media_input",
+            "url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3BLnjrCU3yEgIdh13NJZYtYylQp/8eb7b759-9e9a-4dde-8373-0617af6911c1.png"
+          },
+          "role": "start_image"
+        }
+      ],
+      "prompt": "Energetic photorealistic real-estate gimbal shot. Perform one smooth three-percent left-to-right lateral slider across this exact living room, accelerating through the open foreground and braking decisively on the fireplace and seating. Keep walls, windows, fireplace, sofa, chair, table, rug, plant and decor fixed from first to last frame. Stable verticals, realistic 24mm lens and human gimbal inertia.",
+      "resolution": "720p",
+      "width": 720
+    },
+    "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3BLnjrCU3yEgIdh13NJZYtYylQp/hf_20260821_161834_f8e888e3-d5b0-419c-a636-9374d9b305c2.mp4",
+    "status": "completed",
+    "thumbnail_url": "https://cdn.higgsfield.ai/user_3BLnjrCU3yEgIdh13NJZYtYylQp/hf_20260821_161834_f8e888e3-d5b0-419c-a636-9374d9b305c2_thumbnail.webp"
+  }
+]

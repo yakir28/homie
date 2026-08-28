@@ -1,0 +1,29 @@
+[
+  {
+    "created_at": "2026-08-21T16:21:24.081268Z",
+    "display_name": "Kling 3.0 Turbo",
+    "id": "ce937c8f-85c1-4ffa-8888-a28ae567ace4",
+    "job_type": "kling3_0_turbo",
+    "min_result_url": null,
+    "params": {
+      "duration": 5,
+      "height": 1280,
+      "medias": [
+        {
+          "data": {
+            "id": "a60effdd-a729-4eea-8ba3-63901d70c3b1",
+            "type": "media_input",
+            "url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3BLnjrCU3yEgIdh13NJZYtYylQp/a60effdd-a729-4eea-8ba3-63901d70c3b1.png"
+          },
+          "role": "start_image"
+        }
+      ],
+      "prompt": "Energetic photorealistic real-estate closing shot. Slide quickly left-to-right from behind the exact existing foreground foliage, reveal the fixed backyard, then decelerate into a gentle three-percent pullback. Keep the rear facade, terracotta roof, black windows, patio, lawn, fence, shrubs and mature tree unchanged. Animate only the stabilized camera and subtle leaves. Natural late-afternoon daylight, stable verticals, realistic 24mm lens.",
+      "resolution": "720p",
+      "width": 720
+    },
+    "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3BLnjrCU3yEgIdh13NJZYtYylQp/hf_20260821_162124_ce937c8f-85c1-4ffa-8888-a28ae567ace4.mp4",
+    "status": "completed",
+    "thumbnail_url": "https://cdn.higgsfield.ai/user_3BLnjrCU3yEgIdh13NJZYtYylQp/hf_20260821_162124_ce937c8f-85c1-4ffa-8888-a28ae567ace4_thumbnail.webp"
+  }
+]

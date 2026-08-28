@@ -1,0 +1,41 @@
+:root{--modern-bg:#f7f8fa;--modern-card:#fff;--modern-text:#181a1f;--modern-muted:#7b808a;--modern-line:#e8eaee;--modern-accent:#625bf6}
+body{background:var(--modern-bg);color:var(--modern-text)}
+[class*="_appShell_"]{grid-template-columns:248px 1fr;background:var(--modern-bg)}
+[class*="_sidebar_"]{background:#fff;border-right:1px solid var(--modern-line);padding:24px 14px}
+[class*="_brand_"]{padding:0 10px 26px}
+[class*="_sideSearch_"]{height:42px;background:#f5f6f8;border:0;border-radius:10px;margin-bottom:22px}
+[class*="_navLabel_"]{font-size:10px;letter-spacing:.08em;margin:22px 12px 8px;color:#a2a6ae}
+[class*="_navItem_"],[class*="_navMuted_"]{min-height:44px;border-radius:10px;padding:0 12px;font-size:13px;gap:12px;color:#737882}
+[class*="_navItem_"] svg,[class*="_navMuted_"] svg{width:18px;height:18px}
+[class*="_navActive_"]{background:#f0efff;color:#3932cf;box-shadow:none}
+[class*="_navActive_"]::before{display:none}
+[class*="_topbar_"]{height:64px;border-bottom:1px solid var(--modern-line);padding:0 32px}
+[class*="_content_"]{max-width:1320px;padding:38px 40px 64px}
+[class*="_pageHead_"]{margin-bottom:30px;align-items:center}
+[class*="_pageHead_"] p{font-size:11px;margin-bottom:8px;color:#a0a4ac}
+[class*="_pageHead_"] h1{font-size:30px;letter-spacing:-.8px;margin-bottom:8px}
+[class*="_pageHead_"]>div>span{font-size:13px;color:var(--modern-muted)}
+[class*="_primary_"]{border-radius:10px;padding:12px 18px;font-size:12px;background:var(--modern-accent);box-shadow:0 8px 18px rgba(98,91,246,.2)}
+[class*="_metrics_"]{gap:16px;margin-bottom:16px}
+[class*="_metric_"]{border:0;border-radius:14px;padding:22px;box-shadow:0 1px 2px rgba(18,22,33,.05)}
+[class*="_metric_"] span{font-size:10px;letter-spacing:.06em}
+[class*="_metric_"] b{font-size:28px;margin:10px 0 6px}
+[class*="_metric_"] small{font-size:10px}
+.dashboardVisuals{grid-template-columns:.8fr 1.2fr;gap:16px;margin-bottom:16px}
+.dashboardVisuals>article,.expensesCard,[class*="_records_"],.taskPage,.userDirectory,.userMetrics>div{border:0;border-radius:14px;box-shadow:0 1px 2px rgba(18,22,33,.05)}
+.visualHead,.expensesHead,[class*="_panelHead_"]{height:66px;padding:0 22px;border-color:var(--modern-line)}
+.visualHead b,.expensesHead p b,[class*="_panelHead_"] b{font-size:13px}
+.visualHead small,.expensesHead small,[class*="_panelHead_"] small{font-size:10px}
+.progressBody{padding:28px}.donut{width:128px;height:128px}.legend p{font-size:10px;padding:7px 0}
+.workloadList{padding:20px 22px}.workloadList>div{grid-template-columns:82px 1fr 24px;padding:8px 0}.workloadList span{font-size:10px}.workloadList>div>div{height:8px}
+.workloadCard .visualHead>strong{font-size:16px;color:var(--modern-text)}.workloadCard .workloadList>div{grid-template-columns:130px 1fr 64px}.workloadCard .workloadList>div>b{text-align:right;white-space:nowrap}.workloadCard .workloadList span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.moneyInput{height:30px;border:1px solid transparent;border-radius:7px;display:flex;align-items:center;justify-content:flex-end;padding:0 4px;color:#92969e;transition:border-color .15s ease,background .15s ease}.moneyInput:hover,.moneyInput:focus-within{border-color:#dedfe7;background:#fafaff}.moneyInput>span{font-size:10px}.moneyInput input{width:48px;border:0;outline:0;background:transparent;text-align:right;color:var(--modern-text);font-size:10px;font-weight:600;padding:0}.moneyInput input::-webkit-inner-spin-button{display:none}
+.expensesCard{margin-bottom:16px}.expenseSummary{background:#fafbfc}.expenseSummary>div{padding:16px 22px}.expenseSummary span{font-size:9px}.expenseSummary b{font-size:14px}.expenseTableHead,.expenseRow{padding-left:22px;padding-right:22px}.expenseTableHead{height:42px}.expenseRow{min-height:64px}.expenseRow p b{font-size:11px}.expenseRow p small{font-size:9px}
+.taskPage{overflow:hidden}.taskToolbar{min-height:72px;padding:14px 20px}.taskFilters button{height:36px;border-radius:9px;font-size:10px}.quickTask{height:52px;margin:18px;width:calc(100% - 36px);border-radius:10px}.taskList{padding:0 18px 20px;gap:10px}.taskRow{min-height:62px;border-radius:10px;padding:10px 14px}.taskTitle b{font-size:12px}.taskTitle small{font-size:10px}
+.userMetrics{gap:16px}.userMetrics>div{padding:22px}.userDirectory>header{min-height:72px;padding:14px 20px}.userTable th,.userTable td{padding:15px 18px}.userIdentity small{font-size:10px}
+.modal{border-radius:16px;padding:30px;box-shadow:0 30px 80px rgba(18,22,33,.18)}
+.profilePhoto{overflow:hidden}.profilePhoto img{width:100%;height:100%;object-fit:cover;display:block}.sideBottom p{min-width:0}.sideBottom p b,.sideBottom p small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.urgentCard[dir="rtl"]{margin:0;text-align:right}.urgentCard[dir="rtl"] .panelHead{direction:rtl}.urgentCard[dir="rtl"] .panelHead>div{align-items:flex-start}.urgentCard[dir="rtl"] .urgentList{direction:rtl}.urgentCard[dir="rtl"] .urgentList p{align-items:flex-start}.urgentCard[dir="rtl"] .urgentList p b,.urgentCard[dir="rtl"] .urgentList p small{width:100%;text-align:right}.urgentCard[dir="rtl"] .urgentList>div>i{direction:ltr}
+.dashboardGraphs{grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.dashboardGraphs>article{min-width:0}.dashboardGraphs .progressBody{gap:16px;padding:24px 12px}.dashboardGraphs .donut{width:104px;height:104px}.growthCard .visualHead strong{font-size:18px}.growthBars{height:164px;padding:24px 20px 16px;display:flex;align-items:flex-end;gap:10px;background:repeating-linear-gradient(to bottom,transparent 0,transparent 39px,#f1f2f5 40px)}.growthBars>div{height:100%;flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:8px}.growthBars i{width:100%;max-width:26px;min-height:4px;border-radius:5px 5px 2px 2px;opacity:.92;transition:height .25s}.growthBars span{font-size:8px;color:#999da6}@media(max-width:1100px){.dashboardGraphs{grid-template-columns:1fr 1fr}.dashboardGraphs .progressCard{grid-column:1/-1}}@media(max-width:700px){.dashboardGraphs{grid-template-columns:1fr}.dashboardGraphs .progressCard{grid-column:auto}}
+.expenseBarsCard .visualHead{height:72px}.expenseTotal{display:flex;flex-direction:column;align-items:flex-end;gap:3px}.expenseTotal small{font-size:8px;text-transform:uppercase;letter-spacing:.06em;color:#9a9ea7}.expenseTotal strong{font-size:19px;letter-spacing:-.4px}.expenseBarsCard .workloadList{padding:14px 18px 18px}.expenseBarsCard .expenseBarRow{grid-template-columns:112px 1fr 82px;gap:14px;min-height:57px;padding:7px 8px;border-radius:10px;transition:background .15s}.expenseBarsCard .expenseBarRow:hover{background:#fafafd}.expenseService{display:flex;align-items:center;gap:9px!important;text-transform:none!important}.expenseService>i{width:31px!important;height:31px!important;min-width:31px!important;border-radius:9px!important;background:color-mix(in srgb,var(--expense-color) 12%,white)!important;color:var(--expense-color);display:grid!important;place-items:center}.expenseService>i svg{width:14px;height:14px}.expenseService>b{font-size:10px;color:#42464f}.expenseBarsCard .expenseTrack{height:9px!important;background:#f0f1f4!important;border-radius:8px!important;overflow:visible!important;position:relative}.expenseBarsCard .expenseTrack>i{background:var(--expense-color)!important;box-shadow:0 2px 7px color-mix(in srgb,var(--expense-color) 28%,transparent);min-width:4px}.expenseBarsCard .moneyInput{height:36px;border-color:#e7e8ed;background:#fff;padding:0 8px;justify-content:flex-start;gap:2px}.expenseBarsCard .moneyInput:hover,.expenseBarsCard .moneyInput:focus-within{border-color:var(--expense-color);box-shadow:0 0 0 3px color-mix(in srgb,var(--expense-color) 10%,transparent)}.expenseBarsCard .moneyInput>span{color:#9a9ea7}.expenseBarsCard .moneyInput input{width:52px;font-size:11px}@media(max-width:700px){.expenseBarsCard .expenseBarRow{grid-template-columns:90px 1fr 76px;gap:9px}.expenseBarsCard .workloadList{padding-left:10px;padding-right:10px}}
+@media(max-width:900px){[class*="_appShell_"]{grid-template-columns:78px 1fr}[class*="_content_"]{padding:30px 24px}.dashboardVisuals{grid-template-columns:1fr}}
