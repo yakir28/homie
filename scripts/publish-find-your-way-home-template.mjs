@@ -26,7 +26,7 @@ if (!category) throw new Error("No compatible Explore category exists.");
 const generationConfig = {
   version: 4,
   provider: "higgsfield",
-  higgsfield_model: "seedance_2_0_mini",
+  higgsfield_model: "seedance_2_0",
   higgsfield_resolution: "720p",
   supports_generate_audio: false,
   workflow: "single_image_shots_editorial_cuts",

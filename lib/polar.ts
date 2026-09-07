@@ -1,21 +1,33 @@
 export const POLAR_PLAN_SLUGS = ["starter", "pro", "business"] as const;
 export type PolarPlanSlug = (typeof POLAR_PLAN_SLUGS)[number];
+export type PolarBillingInterval = "monthly" | "yearly";
 
 export function isPolarPlanSlug(value: unknown): value is PolarPlanSlug {
   return typeof value === "string" && POLAR_PLAN_SLUGS.includes(value as PolarPlanSlug);
 }
 
-export function polarProductId(planSlug: PolarPlanSlug) {
-  const products: Record<PolarPlanSlug, string | undefined> = {
-    starter: process.env.POLAR_PRODUCT_STARTER,
-    pro: process.env.POLAR_PRODUCT_PRO,
-    business: process.env.POLAR_PRODUCT_BUSINESS,
+export function isPolarBillingInterval(value: unknown): value is PolarBillingInterval {
+  return value === "monthly" || value === "yearly";
+}
+
+export function polarProductId(planSlug: PolarPlanSlug, billingInterval: PolarBillingInterval = "monthly") {
+  const products: Record<PolarBillingInterval, Record<PolarPlanSlug, string | undefined>> = {
+    monthly: {
+      starter: process.env.POLAR_PRODUCT_STARTER,
+      pro: process.env.POLAR_PRODUCT_PRO,
+      business: process.env.POLAR_PRODUCT_BUSINESS,
+    },
+    yearly: {
+      starter: process.env.POLAR_PRODUCT_STARTER_ANNUAL,
+      pro: process.env.POLAR_PRODUCT_PRO_ANNUAL,
+      business: process.env.POLAR_PRODUCT_BUSINESS_ANNUAL,
+    },
   };
-  return products[planSlug];
+  return products[billingInterval][planSlug];
 }
 
 export function polarPlanSlugFromProduct(productId: string) {
-  return POLAR_PLAN_SLUGS.find((slug) => polarProductId(slug) === productId) ?? null;
+  return POLAR_PLAN_SLUGS.find((slug) => polarProductId(slug, "monthly") === productId || polarProductId(slug, "yearly") === productId) ?? null;
 }
 
 export async function polarApi<T>(path: string, body: Record<string, unknown>) {

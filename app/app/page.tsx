@@ -5,6 +5,12 @@ import { getSupabaseBrowserClient } from "../../lib/supabase/client";
 import CreateVideoWizard from "./CreateVideoWizard";
 import ZillowImportModal from "./ZillowImportModal";
 import HomieLogo from "../HomieLogo";
+import { useWorkspaceLoading } from "../SiteLoading";
+import TemplateMedia from "./TemplateMedia";
+import ListingMapBoard from "./ListingMapBoard";
+import TemplateFilters from "./TemplateFilters";
+import "./template-detail.css";
+import { PUBLIC_ANNUAL_PRICES, PUBLIC_PRICES } from "../../lib/public-pricing";
 import { resolveMediaUrl, responsiveImageProps } from "../../lib/media-url";
 
 type View = "templates" | "favorites" | "listings" | "videos" | "integrations" | "profile" | "subscribe";
@@ -16,10 +22,6 @@ const nav = [
 ];
 
 const categoryOptions = ["All", "Luxury", "Viral Trends", "Casual", "Timelapse", "Effects", "Cinematic", "Fast-paced"];
-const sortOptions = ["Recent", "Popular", "Top"];
-const formatOptions = ["All", "9:16", "1:1", "16:9"];
-const APPROVED_TEMPLATE_NAMES = new Set(["Magic Build Reveal", "Find Your Way Home", "Hidden in Plain Sight", "Pulse Tour", "Reflection Reveal"]);
-
 export type TemplateItem = {
   id: number;
   title: string;
@@ -34,22 +36,6 @@ export type TemplateItem = {
   maxPhotos: number;
   generationConfig?: Record<string, unknown>;
 };
-
-const templates: TemplateItem[] = [
-  {
-    id: 13,
-    title: "Magic Build Reveal",
-    tag: "Viral Trends",
-    format: "9:16",
-    time: "10 sec",
-    credits: 1,
-    image: "/api/media/template?key=templates/cinematic-second/thumbnail.jpg",
-    preview: "/api/media/template?key=templates/cinematic-second/preview.mp4",
-    size: "normal",
-    minPhotos: 4,
-    maxPhotos: 16,
-  },
-];
 
 function getTemplateCategories(template: TemplateItem) {
   const text = `${template.title} ${template.tag}`.toLowerCase();
@@ -113,12 +99,6 @@ type ListingPhotoItem = {
   isHero: boolean;
   storagePath?: string | null;
 };
-type ListingZoneItem = {
-  id: string;
-  name: string;
-  kind: "floor" | "outdoor" | "structure" | "amenity";
-  sortOrder: number;
-};
 function listingSourceLabel(source: string | null | undefined) {
   if (source === "upload" || source === "manual") return "Manual upload";
   if (source === "zillow") return "Zillow";
@@ -152,6 +132,9 @@ type WorkspaceSubscription = {
 };
 
 export default function Home() {
+  const [appLoading, setAppLoading] = useState(true);
+  const [appLoadError, setAppLoadError] = useState("");
+  useWorkspaceLoading(appLoading, appLoadError);
   const [view, setView] = useState<View>("templates");
   const [toast, setToast] = useState("");
   const [theme, setTheme] = useState<"dark" | "light">("dark");
@@ -169,12 +152,12 @@ export default function Home() {
   const [videoFormatFilter, setVideoFormatFilter] = useState("All");
   const [integrationFilter, setIntegrationFilter] = useState("All");
   const [selectedVideo, setSelectedVideo] = useState<VideoItem | null>(null);
-  const [templateItems, setTemplateItems] = useState<TemplateItem[]>(templates);
+  const [templateItems, setTemplateItems] = useState<TemplateItem[]>([]);
   const [listingItems, setListingItems] = useState<ListingItem[]>([]);
   const [selectedListingId, setSelectedListingId] = useState<string | null>(null);
   const [selectedListingPhotos, setSelectedListingPhotos] = useState<ListingPhotoItem[]>([]);
-  const [selectedListingZones, setSelectedListingZones] = useState<ListingZoneItem[]>([]);
   const [listingNavOpen, setListingNavOpen] = useState(true);
+  const [showAllSidebarListings, setShowAllSidebarListings] = useState(false);
   const [listingCreateOpen, setListingCreateOpen] = useState(false);
   const [zillowIntegration, setZillowIntegration] = useState<ZillowIntegration | null>(null);
   const [airbnbIntegration, setAirbnbIntegration] = useState<ZillowIntegration | null>(null);
@@ -227,33 +210,38 @@ export default function Home() {
         ...current,
         email: session.user.email ?? "",
       }));
+      // Publish the catalog independently of workspace setup and account requests.
+      void (async () => {
+        const { data: catalog, error } = await supabase.from("video_templates").select("id, name, style_label, format, duration_seconds, credits_cost, min_photos, max_photos, preview_url, thumbnail_url, generation_config, is_featured, sort_order").eq("is_active", true).order("sort_order");
+        if (!active) return;
+        if (error) { flash("Could not refresh templates. Please reload to try again."); return; }
+        if (catalog?.length)
+          setTemplateItems(
+            catalog
+              .map((item, index) => ({
+                id: item.id,
+                title: item.name,
+                tag: item.style_label,
+                format: item.format,
+                time: `${item.duration_seconds} sec`,
+                credits: item.credits_cost,
+                image: resolveMediaUrl(item.thumbnail_url ?? "/homes/modern-villa.jpg"),
+                preview: item.preview_url && /\.(mp4|webm|mov)$/i.test(item.preview_url) ? resolveMediaUrl(item.preview_url) : undefined,
+                size: index === 0 ? "tall" : item.format === "16:9" ? "wide" : "normal",
+                minPhotos: item.min_photos ?? 6,
+                maxPhotos: item.max_photos ?? 30,
+                generationConfig: item.generation_config && typeof item.generation_config === "object" ? (item.generation_config as Record<string, unknown>) : undefined,
+              }))
+              .filter((template) => Boolean(template.preview)),
+          );
+      })().catch(() => { if (active) flash("Could not refresh templates. Please reload to try again."); });
       const { data: workspaceId, error: workspaceError } = await supabase.rpc("bootstrap_workspace", { workspace_name: "My Homie Workspace" });
       if (workspaceError) flash(workspaceError.message);
       if (workspaceId) setWorkspaceId(workspaceId);
 
-      const [{ data: catalog }, { data: wallet }, { data: homes }, { data: savedFavorites }, { data: profile }, { data: zillow }, { data: airbnb }, { data: plans }, { data: currentSubscription }] = await Promise.all([supabase.from("video_templates").select("id, name, style_label, format, duration_seconds, credits_cost, min_photos, max_photos, preview_url, thumbnail_url, generation_config, is_featured, sort_order").eq("is_active", true).order("sort_order"), workspaceId ? supabase.from("credit_wallets").select("balance").eq("workspace_id", workspaceId).maybeSingle() : Promise.resolve({ data: null }), workspaceId ? supabase.from("listings").select("id, address_line1, city, region, price, cover_photo_url, status, source, listing_photos(count), video_projects(count)").eq("workspace_id", workspaceId).order("created_at", { ascending: false }) : Promise.resolve({ data: null }), supabase.from("template_favorites").select("template_id").eq("user_id", session.user.id), supabase.from("profiles").select("display_name, bio, phone, job_title, company_name").eq("id", session.user.id).maybeSingle(), workspaceId ? supabase.from("integrations").select("id, status, external_account_name, last_synced_at, last_error").eq("workspace_id", workspaceId).eq("provider", "zillow").maybeSingle() : Promise.resolve({ data: null }), workspaceId ? supabase.from("integrations").select("id, status, external_account_name, last_synced_at, last_error").eq("workspace_id", workspaceId).eq("provider", "airbnb").maybeSingle() : Promise.resolve({ data: null }), supabase.from("plans").select("id,name,slug,audience,monthly_price,yearly_price,monthly_credits,seat_limit,features").eq("is_active", true).order("sort_order"), workspaceId ? supabase.from("subscriptions").select("plan_id,status,billing_interval,trial_ends_at,current_period_ends_at").eq("workspace_id", workspaceId).maybeSingle() : Promise.resolve({ data: null })]);
+      const [{ data: wallet }, { data: homes }, { data: savedFavorites }, { data: profile }, { data: zillow }, { data: airbnb }, { data: plans }, { data: currentSubscription }] = await Promise.all([workspaceId ? supabase.from("credit_wallets").select("balance").eq("workspace_id", workspaceId).maybeSingle() : Promise.resolve({ data: null }), workspaceId ? supabase.from("listings").select("id, address_line1, city, region, price, cover_photo_url, status, source, listing_photos(count), video_projects(count)").eq("workspace_id", workspaceId).order("created_at", { ascending: false }) : Promise.resolve({ data: null }), supabase.from("template_favorites").select("template_id").eq("user_id", session.user.id), supabase.from("profiles").select("display_name, bio, phone, job_title, company_name").eq("id", session.user.id).maybeSingle(), workspaceId ? supabase.from("integrations").select("id, status, external_account_name, last_synced_at, last_error").eq("workspace_id", workspaceId).eq("provider", "zillow").maybeSingle() : Promise.resolve({ data: null }), workspaceId ? supabase.from("integrations").select("id, status, external_account_name, last_synced_at, last_error").eq("workspace_id", workspaceId).eq("provider", "airbnb").maybeSingle() : Promise.resolve({ data: null }), supabase.from("plans").select("id,name,slug,audience,monthly_price,yearly_price,monthly_credits,seat_limit,features").eq("is_active", true).order("sort_order"), workspaceId ? supabase.from("subscriptions").select("plan_id,status,billing_interval,trial_ends_at,current_period_ends_at").eq("workspace_id", workspaceId).maybeSingle() : Promise.resolve({ data: null })]);
 
       if (!active) return;
-      if (catalog?.length)
-        setTemplateItems(
-          catalog
-            .filter((item) => APPROVED_TEMPLATE_NAMES.has(item.name))
-            .map((item, index) => ({
-              id: item.id,
-              title: item.name,
-              tag: item.style_label,
-              format: item.format,
-              time: `${item.duration_seconds} sec`,
-              credits: item.credits_cost,
-              image: resolveMediaUrl(item.thumbnail_url ?? "/homes/modern-villa.jpg"),
-              preview: item.preview_url && /\.(mp4|webm|mov)$/i.test(item.preview_url) ? resolveMediaUrl(item.preview_url) : undefined,
-              size: index === 0 ? "tall" : item.format === "16:9" ? "wide" : "normal",
-              minPhotos: item.min_photos ?? 6,
-              maxPhotos: item.max_photos ?? 30,
-              generationConfig: item.generation_config && typeof item.generation_config === "object" ? (item.generation_config as Record<string, unknown>) : undefined,
-            }))
-            .filter((template) => Boolean(template.preview)),
-        );
       setFavoriteIds(new Set(savedFavorites?.map((favorite) => favorite.template_id) ?? []));
       if (profile) {
         const nextName = profile.display_name ?? session.user.email?.split("@")[0] ?? "Agent";
@@ -404,9 +392,14 @@ export default function Home() {
         void loadUserVideos(true);
       }, 5000);
       setCreditBalance(wallet?.balance ?? 0);
+      if (active) setAppLoading(false);
     }
 
-    loadWorkspace();
+    void loadWorkspace().catch(() => {
+      if (!active) return;
+      setAppLoadError("We couldn’t load your workspace. Please try again.");
+      setAppLoading(false);
+    });
     const { data: listener } = supabase.auth.onAuthStateChange((event) => {
       if (event === "SIGNED_OUT") window.location.replace("/login");
     });
@@ -435,7 +428,7 @@ export default function Home() {
     window.setTimeout(() => setToast(""), 2600);
   }
 
-  async function openPolarBilling(path: "checkout" | "portal", planSlug?: string) {
+  async function openPolarBilling(path: "checkout" | "portal", planSlug?: string, billingInterval: "monthly" | "yearly" = "monthly") {
     if (!workspaceId) return flash("Your workspace is still loading");
     const supabase = getSupabaseBrowserClient();
     const { data: { session } } = await supabase.auth.getSession();
@@ -444,7 +437,7 @@ export default function Home() {
       const response = await fetch(`/api/billing/${path}`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ workspaceId, ...(planSlug ? { planSlug } : {}) }),
+        body: JSON.stringify({ workspaceId, ...(planSlug ? { planSlug, billingInterval } : {}) }),
       });
       const result = await response.json() as { url?: string; error?: string };
       if (!response.ok || !result.url) throw new Error(result.error ?? "Billing is unavailable");
@@ -467,8 +460,8 @@ export default function Home() {
     setSearch("");
     setFiltersOpen(false);
     const supabase = getSupabaseBrowserClient();
-    const [photoResult, zoneResult] = await Promise.all([supabase.from("listing_photos").select("id, source_url, thumbnail_url, room_type, zone_id, metadata, storage_path").eq("listing_id", listingId).order("sort_order"), supabase.from("listing_zones").select("id, name, kind, sort_order").eq("listing_id", listingId).order("sort_order").order("id")]);
-    if (photoResult.error || zoneResult.error) return flash(photoResult.error?.message ?? zoneResult.error!.message);
+    const photoResult = await supabase.from("listing_photos").select("id, source_url, thumbnail_url, room_type, zone_id, metadata, storage_path").eq("listing_id", listingId).order("sort_order");
+    if (photoResult.error) return flash(photoResult.error.message);
     setSelectedListingPhotos(
       (photoResult.data ?? []).map((photo) => ({
         id: String(photo.id),
@@ -477,14 +470,6 @@ export default function Home() {
         zoneId: photo.zone_id == null ? null : String(photo.zone_id),
         isHero: Boolean(photo.metadata && typeof photo.metadata === "object" && "is_room_hero" in photo.metadata && photo.metadata.is_room_hero),
         storagePath: photo.storage_path,
-      })),
-    );
-    setSelectedListingZones(
-      (zoneResult.data ?? []).map((zone) => ({
-        id: String(zone.id),
-        name: zone.name,
-        kind: zone.kind as ListingZoneItem["kind"],
-        sortOrder: zone.sort_order,
       })),
     );
   }
@@ -655,7 +640,7 @@ export default function Home() {
     flash("Listing deleted");
   }
 
-  async function deleteVideoProject(projectId: string) {
+  async function deleteVideoProject(projectId: number) {
     if (!workspaceId) throw new Error("Your workspace is still loading. Please try again.");
     const { data: deletedRows, error: deleteError } = await getSupabaseBrowserClient()
       .from("video_projects")
@@ -697,6 +682,16 @@ export default function Home() {
       if (signError || !signed) throw signError ?? new Error("Could not prepare an uploaded photo");
       uploaded.push({ storagePath, signedUrl: signed.signedUrl });
     }
+    const zoneDefinitions = [...new Map(values.photos.map((photo) => {
+      const zone = mappingZoneForRoom(photo.roomType);
+      return [zone.name, zone] as const;
+    })).values()].sort((a, b) => a.sortOrder - b.sortOrder);
+    const { data: createdZones, error: zonesError } = await supabase
+      .from("listing_zones")
+      .insert(zoneDefinitions.map((zone, index) => ({ listing_id: listing.id, name: zone.name, kind: zone.kind, sort_order: index })))
+      .select("id, name");
+    if (zonesError) throw zonesError;
+    const zoneIdByName = new Map((createdZones ?? []).map((zone) => [zone.name, zone.id]));
     const { error: photosError } = await supabase.from("listing_photos").insert(
       uploaded.map((photo, index) => ({
         listing_id: listing.id,
@@ -704,6 +699,7 @@ export default function Home() {
         source_url: photo.signedUrl,
         thumbnail_url: photo.signedUrl,
         room_type: values.photos[index].roomType,
+        zone_id: zoneIdByName.get(mappingZoneForRoom(values.photos[index].roomType).name),
         sort_order: index,
         metadata: { is_room_hero: values.photos[index].isHero },
       })),
@@ -725,8 +721,10 @@ export default function Home() {
   const searchPlaceholder = view === "templates" || view === "favorites" ? "Search templates by name or style…" : view === "listings" ? "Search listings by title or source…" : view === "videos" ? "Search videos, listings or templates…" : view === "integrations" ? "Search integrations…" : "Search Homie…";
   const activeFilterCount = view === "templates" || view === "favorites" ? [category !== "All", sort !== "Recent", formatFilter !== "All", creditsFilter !== "All"].filter(Boolean).length : view === "listings" ? [listingSourceFilter !== "All", listingPhotoFilter !== "All", listingSort !== "Recent"].filter(Boolean).length : view === "videos" ? [videoStatusFilter !== "All", videoFormatFilter !== "All"].filter(Boolean).length : view === "integrations" ? Number(integrationFilter !== "All") : 0;
 
+
   return (
-    <main className="app-shell" data-theme={theme}>
+    <>
+    {!appLoading && !appLoadError && <main className="app-shell" data-theme={theme}>
       <aside className="sidebar">
         <button className="brand" onClick={() => changeView("templates")} aria-label="Homie overview">
           <HomieLogo variant="mark-adaptive" />
@@ -769,14 +767,16 @@ export default function Home() {
           </button>
           {listingNavOpen && (
             <div className="sidebar-listing-tree">
-              {listingItems.slice(0, 4).map((listing) => (
+              {(showAllSidebarListings ? listingItems : listingItems.slice(0, 3)).map((listing) => (
                 <button key={listing.id} className={selectedListingId === listing.id ? "active" : ""} onClick={() => void openListing(listing.id)} title={listing.address}>
                   {listing.address}
                 </button>
               ))}
-              <button className="sidebar-add-listing" onClick={() => setListingCreateOpen(true)}>
-                ＋ New listing
-              </button>
+              {listingItems.length > 3 && (
+                <button className="sidebar-add-listing" aria-expanded={showAllSidebarListings} onClick={() => setShowAllSidebarListings((expanded) => !expanded)}>
+                  {showAllSidebarListings ? "Show less" : "Show more"}
+                </button>
+              )}
             </div>
           )}
           <button onClick={() => changeView("integrations")} className={view === "integrations" ? "active" : ""}>
@@ -892,20 +892,20 @@ export default function Home() {
                   </button>
                 )}
               </label>
-              <button className={filtersOpen ? "filter-square active" : "filter-square"} onClick={() => setFiltersOpen((value) => !value)} aria-label="Open filters" aria-expanded={filtersOpen}>
+              {(view === "templates" || view === "favorites") ? <TemplateFilters format={formatFilter} onFormat={setFormatFilter} formats={[...new Set(templateItems.filter((item) => item.preview && (view !== "favorites" || favoriteIds.has(item.id))).map((item) => item.format))]} count={Number(category !== "All") + Number(formatFilter !== "All")} /> : <button className={filtersOpen ? "filter-square active" : "filter-square"} onClick={() => setFiltersOpen((value) => !value)} aria-label="Open filters" aria-expanded={filtersOpen}>
                 <SlidersIcon />
                 {activeFilterCount > 0 && <span>{activeFilterCount}</span>}
-              </button>
+              </button>}
             </>
           )}
         </header>
 
-        {filtersOpen && view !== "profile" && (
+        {filtersOpen && view !== "profile" && view !== "templates" && view !== "favorites" && (
           <div className="filters-panel">
             <div className="filters-head">
               <div>
                 <p className="eyebrow">Refine results</p>
-                <h2>{view === "templates" || view === "favorites" ? "Find the right style" : view === "listings" ? "Find a property" : view === "videos" ? "Find a video" : "Find a connection"}</h2>
+                <h2>{view === "listings" ? "Find a property" : view === "videos" ? "Find a video" : "Find a connection"}</h2>
               </div>
               <div>
                 <button className="filters-reset" onClick={clearAllFilters}>
@@ -916,43 +916,6 @@ export default function Home() {
                 </button>
               </div>
             </div>
-            {(view === "templates" || view === "favorites") && (
-              <>
-                <div className="filters-row">
-                  <div className="filters-group">
-                    <p className="filters-label">Sort</p>
-                    <div className="filters-pills">
-                      {sortOptions.map((s) => (
-                        <button key={s} className={sort === s ? "active" : ""} onClick={() => setSort(s)}>
-                          {s}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="filters-group">
-                    <p className="filters-label">Format</p>
-                    <div className="filters-pills">
-                      {formatOptions.map((f) => (
-                        <button key={f} className={formatFilter === f ? "active" : ""} onClick={() => setFormatFilter(f)}>
-                          {f}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-                <div className="filters-divider" />
-                <div className="filters-group">
-                  <p className="filters-label">Categories</p>
-                  <div className="filters-pills wrap">
-                    {categoryOptions.map((name) => (
-                      <button key={name} className={category === name ? "active" : ""} onClick={() => setCategory(name)}>
-                        {name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </>
-            )}
             {view === "listings" && (
               <div className="filters-row">
                 <div className="filters-group">
@@ -1028,13 +991,12 @@ export default function Home() {
           </div>
         )}
 
-        {view === "templates" && <Templates items={templateItems} favoriteIds={favoriteIds} onToggleFavorite={toggleFavorite} onUseTemplate={setWizardTemplate} search={search} onClearSearch={clearAllFilters} category={category} setCategory={setCategory} sort={sort} formatFilter={formatFilter} creditsFilter={creditsFilter} />}
-        {view === "favorites" && <Templates items={templateItems} favoriteIds={favoriteIds} onToggleFavorite={toggleFavorite} favoritesOnly onUseTemplate={setWizardTemplate} search={search} onClearSearch={clearAllFilters} category={category} setCategory={setCategory} sort={sort} formatFilter={formatFilter} creditsFilter={creditsFilter} />}
+        {(view === "templates" || view === "favorites") && <Templates items={templateItems} favoriteIds={favoriteIds} onToggleFavorite={toggleFavorite} favoritesOnly={view === "favorites"} onUseTemplate={setWizardTemplate} search={search} onClearSearch={clearAllFilters} onRemoveFilter={(key) => { if (key === "search") setSearch(""); else if (key === "format") setFormatFilter("All"); else setCreditsFilter("All"); }} category={category} setCategory={setCategory} sort={sort} formatFilter={formatFilter} creditsFilter={creditsFilter} />}
         {view === "listings" && <Listings items={listingItems} search={search} sourceFilter={listingSourceFilter} photoFilter={listingPhotoFilter} sort={listingSort} onClear={clearAllFilters} onOpen={openListing} onCreateVideo={() => changeView("templates")} onDelete={deleteListing} onAdd={() => setListingCreateOpen(true)} flash={flash} />}
         {view === "videos" && <MyVideos items={videoItems} search={search} statusFilter={videoStatusFilter} formatFilter={videoFormatFilter} loading={videosLoading} error={videosError} onBrowseTemplates={() => changeView("templates")} onOpenVideo={setSelectedVideo} onDelete={deleteVideoProject} flash={flash} />}
         {view === "integrations" && <Integrations search={search} availability={integrationFilter} />}
         {view === "profile" && <ProfilePage details={profileDetails} onChange={setProfileDetails} onSave={saveProfile} saving={savingProfile} favoriteCount={favoriteIds.size} videoCount={videoItems.length} />}
-        {view === "subscribe" && <SubscribePage plans={billingPlans} subscription={subscription} creditBalance={creditBalance} onChoose={(plan) => openPolarBilling("checkout", plan.slug)} onManage={() => openPolarBilling("portal")} />}
+        {view === "subscribe" && <SubscribePage plans={billingPlans} subscription={subscription} creditBalance={creditBalance} onChoose={(plan, billingInterval) => openPolarBilling("checkout", plan.slug, billingInterval)} onManage={() => openPolarBilling("portal")} />}
 
         <nav className="mobile-nav" aria-label="Mobile navigation">
           {nav.map((item) => (
@@ -1051,7 +1013,7 @@ export default function Home() {
           {toast}
         </div>
       )}
-      {selectedListingId && workspaceId && <ListingDetail listing={listingItems.find((item) => item.id === selectedListingId) ?? null} photos={selectedListingPhotos} zones={selectedListingZones} workspaceId={workspaceId} onBack={() => setSelectedListingId(null)} onCreateVideo={() => changeView("templates")} flash={flash} />}
+      {selectedListingId && workspaceId && <ListingDetail listing={listingItems.find((item) => item.id === selectedListingId) ?? null} photos={selectedListingPhotos} workspaceId={workspaceId} onBack={() => setSelectedListingId(null)} onCreateVideo={() => changeView("templates")} flash={flash} />}
       {selectedVideo && <VideoModal video={videoItems.find((video) => video.id === selectedVideo.id) ?? selectedVideo} onClose={() => setSelectedVideo(null)} flash={flash} />}
       {settingsOpen && <SettingsModal details={profileDetails} onChange={setProfileDetails} onSave={saveProfile} saving={savingProfile} theme={theme} onThemeChange={setTheme} credits={creditBalance} onPasswordChange={changePassword} onClose={() => setSettingsOpen(false)} flash={flash} />}
       {topUpOpen && (
@@ -1066,11 +1028,12 @@ export default function Home() {
         />
       )}
       {wizardTemplate && workspaceId && (
+        <TemplatePreviewModal template={wizardTemplate} onClose={() => setWizardTemplate(null)} creationControls={
         <CreateVideoWizard
           template={wizardTemplate}
+          initialListings={listingItems}
           workspaceId={workspaceId}
           walletBalance={creditBalance}
-          onClose={() => setWizardTemplate(null)}
           onCreated={(project) => {
             setVideoItems((current) => [project, ...current]);
             setCreditBalance((current) => Math.max(0, current - project.credits));
@@ -1078,8 +1041,8 @@ export default function Home() {
             setView("videos");
             flash("Video queued — we'll notify you when it's ready");
           }}
-          flash={flash}
         />
+        } />
       )}
       {zillowImportOpen && workspaceId && (
         <ZillowImportModal
@@ -1103,29 +1066,12 @@ export default function Home() {
         />
       )}
       {listingCreateOpen && <CreateListingModal onClose={() => setListingCreateOpen(false)} onCreate={createListing} />}
-    </main>
+    </main>}
+    </>
   );
 }
 
-function Templates({ items, favoriteIds, onToggleFavorite, favoritesOnly = false, onUseTemplate, search, onClearSearch, category, setCategory, sort, formatFilter, creditsFilter }: { items: TemplateItem[]; favoriteIds: Set<number>; onToggleFavorite: (templateId: number) => Promise<void>; favoritesOnly?: boolean; onUseTemplate: (template: TemplateItem) => void; search: string; onClearSearch: () => void; category: string; setCategory: (v: string) => void; sort: string; formatFilter: string; creditsFilter: string }) {
-  const [previewTemplate, setPreviewTemplate] = useState<TemplateItem | null>(null);
-
-  useEffect(() => {
-    if (!previewTemplate) return;
-    const closeOnEscape = (event: KeyboardEvent) => event.key === "Escape" && setPreviewTemplate(null);
-    window.addEventListener("keydown", closeOnEscape);
-    return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [previewTemplate]);
-
-  function playPreview(video: HTMLVideoElement) {
-    if (!video.src && video.dataset.src) video.src = video.dataset.src;
-    void video.play().catch(() => undefined);
-  }
-
-  function stopPreview(video: HTMLVideoElement) {
-    video.pause();
-    if (video.readyState > 0) video.currentTime = 0;
-  }
+function Templates({ items, favoriteIds, onToggleFavorite, favoritesOnly = false, onUseTemplate, search, onClearSearch, onRemoveFilter, category, setCategory, sort, formatFilter, creditsFilter }: { items: TemplateItem[]; favoriteIds: Set<number>; onToggleFavorite: (templateId: number) => Promise<void>; favoritesOnly?: boolean; onUseTemplate: (template: TemplateItem) => void; search: string; onClearSearch: () => void; onRemoveFilter: (key: string) => void; category: string; setCategory: (v: string) => void; sort: string; formatFilter: string; creditsFilter: string }) {
 
   const q = search.trim().toLowerCase();
   const filteredTemplates = items
@@ -1139,21 +1085,30 @@ function Templates({ items, favoriteIds, onToggleFavorite, favoritesOnly = false
       const matchesCredits = creditsFilter === "All" || (creditsFilter === "Under 15" ? t.credits < 15 : t.credits >= 15);
       return matchesCategory && matchesSearch && matchesFormat && matchesCredits;
     })
-    .sort((a, b) => (sort === "Popular" ? b.credits - a.credits : sort === "Top" ? a.credits - b.credits : 0));
+    .sort((a, b) => (sort === "Name" ? a.title.localeCompare(b.title) : sort === "Credits" ? a.credits - b.credits : 0));
   const activeLabel = q ? `“${search.trim()}”` : category !== "All" ? `“${category}”` : formatFilter !== "All" ? `“${formatFilter}”` : `“${creditsFilter}”`;
   function openTemplate(template: TemplateItem) {
-    if (template.preview) setPreviewTemplate(template);
-    else onUseTemplate(template);
+    onUseTemplate(template);
   }
 
   return (
     <div className="page templates-page">
       <div className="filter-row">
         {categoryOptions.map((name) => (
-          <button key={name} onClick={() => setCategory(name)} className={category === name ? "active" : ""}>
+          <button key={name} aria-pressed={category === name} onClick={() => setCategory(name)} className={category === name ? "active" : ""}>
             {name}
           </button>
         ))}
+      </div>
+      <div className="template-results-bar">
+        <span role="status" aria-live="polite">{filteredTemplates.length} {filteredTemplates.length === 1 ? "template" : "templates"}{favoritesOnly ? " in favorites" : ""}</span>
+        <div className="template-active-filters">
+          {category !== "All" && <button onClick={() => setCategory("All")} aria-label={`Remove ${category} filter`}>{category} <span aria-hidden="true">×</span></button>}
+          {formatFilter !== "All" && <button onClick={() => onRemoveFilter("format")} aria-label={`Remove ${formatFilter} filter`}>{formatFilter} <span aria-hidden="true">×</span></button>}
+          {q && <button onClick={() => onRemoveFilter("search")} aria-label="Remove search filter">“{search.trim()}” <span aria-hidden="true">×</span></button>}
+          {creditsFilter !== "All" && <button onClick={() => onRemoveFilter("credits")}>{creditsFilter} credits ×</button>}
+          {(category !== "All" || formatFilter !== "All" || q || creditsFilter !== "All") && <button className="clear-template-filters" onClick={onClearSearch}>Clear all</button>}
+        </div>
       </div>
       <div className="template-grid">
         {filteredTemplates.map((template, index) => (
@@ -1161,18 +1116,10 @@ function Templates({ items, favoriteIds, onToggleFavorite, favoritesOnly = false
             className={`template-card ${template.size}`}
             key={template.title}
             onClick={() => openTemplate(template)}
-            onMouseEnter={(event) => {
-              const video = event.currentTarget.querySelector("video");
-              if (video) playPreview(video);
-            }}
-            onMouseLeave={(event) => {
-              const video = event.currentTarget.querySelector("video");
-              if (video) stopPreview(video);
-            }}
             tabIndex={0}
             onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && openTemplate(template)}
           >
-            {template.preview ? <video data-src={template.preview} poster={template.image} muted loop playsInline preload="none" aria-label={`${template.title} real estate video template preview`} /> : <img {...responsiveImageProps(template.image, "(max-width: 720px) 100vw, 33vw")} alt={`${template.title} real estate video template`} loading="lazy" decoding="async" />}
+            <TemplateMedia image={template.image} preview={template.preview} title={template.title} priority={index < 4} />
             <div className="card-shade" />
             <div className="card-top">
               <span>{index === 0 && !favoritesOnly ? "Featured" : template.tag}</span>
@@ -1205,7 +1152,7 @@ function Templates({ items, favoriteIds, onToggleFavorite, favoritesOnly = false
                 aria-label={`Preview ${template.title}`}
                 onClick={(event) => {
                   event.stopPropagation();
-                  setPreviewTemplate(template);
+                  onUseTemplate(template);
                 }}
               >
                 ▶
@@ -1225,32 +1172,49 @@ function Templates({ items, favoriteIds, onToggleFavorite, favoritesOnly = false
         {filteredTemplates.length === 0 && (
           <article className="template-empty">
             <p className="eyebrow">{favoritesOnly ? "Your favorites" : "No matches"}</p>
-            <h3>{favoritesOnly && favoriteIds.size === 0 ? "No favorite templates yet." : `Nothing fits ${activeLabel} yet.`}</h3>
+            <h3>{favoritesOnly && favoriteIds.size === 0 ? "No favorite templates yet." : "No matching templates."}</h3>
             <p>{favoritesOnly && favoriteIds.size === 0 ? "Tap the heart on any template to save it here for later." : "Try another category or clear your search."}</p>
-            <button onClick={() => (favoritesOnly && favoriteIds.size === 0 ? setView("templates") : onClearSearch())}>{favoritesOnly && favoriteIds.size === 0 ? "Explore templates" : "Clear filters"} →</button>
+            {favoritesOnly && favoriteIds.size === 0 ? <a href="/app">Explore templates →</a> : <button onClick={onClearSearch}>Clear filters →</button>}
           </article>
         )}
       </div>
-      {previewTemplate && (
-        <TemplatePreviewModal
-          template={previewTemplate}
-          onClose={() => setPreviewTemplate(null)}
-          onUse={() => {
-            setPreviewTemplate(null);
-            onUseTemplate(previewTemplate);
-          }}
-        />
-      )}
     </div>
   );
 }
 
-function TemplatePreviewModal({ template, onClose, onUse }: { template: TemplateItem; onClose: () => void; onUse: () => void }) {
+function TemplatePreviewModal({ template, onClose, creationControls }: { template: TemplateItem; onClose: () => void; creationControls: ReactNode }) {
+  const dialogRef = useRef<HTMLElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(true);
   const [muted, setMuted] = useState(true);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(template.time ? Number.parseFloat(template.time) || 0 : 0);
+  const categories = getTemplateCategories(template);
+  const recommendation = categories.has("Luxury")
+    ? "A polished choice for luxury homes, spacious villas, and premium estates. Let distinctive architecture and carefully styled interiors lead the story."
+    : categories.has("Fast-paced") || categories.has("Viral Trends")
+      ? "A lively choice for city apartments, modern homes, and attention-grabbing property highlights. Use your strongest photos to make a quick first impression."
+      : categories.has("Casual")
+        ? "A welcoming choice for family homes, cozy apartments, and vacation properties. Highlight comfortable living spaces and the details that make a house feel like home."
+        : "A versatile choice for residential homes and apartments. Showcase the exterior, main living spaces, and standout details for a clear introduction to the property.";
+  useEffect(() => {
+    const previousFocus = document.activeElement as HTMLElement | null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    dialogRef.current?.querySelector<HTMLButtonElement>(".template-preview-close")?.focus();
+    const trapFocus = (event: KeyboardEvent) => {
+      if (dialogRef.current?.querySelector("dialog[open]")) return;
+      if (event.key === "Escape") { event.preventDefault(); onClose(); return; }
+      if (event.key !== "Tab") return;
+      const controls = dialogRef.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), [tabindex="0"]');
+      if (!controls?.length) return;
+      const first = controls[0], last = controls[controls.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    };
+    document.addEventListener("keydown", trapFocus);
+    return () => { document.body.style.overflow = previousOverflow; document.removeEventListener("keydown", trapFocus); if (previousFocus?.isConnected) previousFocus.focus(); };
+  }, []);
 
   function togglePlayback() {
     const video = videoRef.current;
@@ -1296,16 +1260,11 @@ function TemplatePreviewModal({ template, onClose, onUse }: { template: Template
 
   return (
     <div className="template-preview-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
-      <section className="template-preview-modal video-only" role="dialog" aria-modal="true" aria-label={`${template.title} template preview`}>
-        <button className="template-preview-close" aria-label="Close template preview" onClick={onClose}>
-          ×
-        </button>
+      <section ref={dialogRef} className="template-preview-modal template-detail" role="dialog" aria-modal="true" aria-labelledby="template-detail-title">
+        <div className="template-detail-media">
         <div className="template-preview-stage">
           <video ref={videoRef} src={template.preview} poster={template.image} autoPlay loop muted playsInline preload="metadata" aria-label={`${template.title} template video`} onClick={togglePlayback} onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)} onLoadedMetadata={(event) => setDuration(event.currentTarget.duration)} />
         </div>
-        <button className="template-preview-use" onClick={onUse}>
-          Use this template <span>→</span>
-        </button>
         <div className="template-video-controls" aria-label="Video controls">
           <button onClick={togglePlayback} aria-label={playing ? "Pause video" : "Play video"}>
             {playing ? "Ⅱ" : "▶"}
@@ -1333,6 +1292,16 @@ function TemplatePreviewModal({ template, onClose, onUse }: { template: Template
             ⛶
           </button>
         </div>
+        </div>
+        <aside className="template-detail-info">
+          <button className="template-preview-close" aria-label="Close template preview" onClick={onClose}>×</button>
+          <p className="eyebrow">{template.tag || "Property tour"}</p>
+          <h2 id="template-detail-title">{template.title}</h2>
+          <div className="template-detail-format"><span>Recommended format</span><strong>{template.format || "Not specified"}</strong></div>
+          <h3>Best suited for</h3>
+          <p className="template-detail-description">{recommendation}</p>
+          {creationControls}
+        </aside>
       </section>
     </div>
   );
@@ -1564,16 +1533,10 @@ function Listings({ items, search, sourceFilter, photoFilter, sort, onClear, onO
   );
 }
 
-function ListingDetail({ listing, photos, zones, workspaceId, onBack, onCreateVideo, flash }: { listing: ListingItem | null; photos: ListingPhotoItem[]; zones: ListingZoneItem[]; workspaceId: string; onBack: () => void; onCreateVideo: () => void; flash: (message: string) => void }) {
+function ListingDetail({ listing, photos, workspaceId, onBack, onCreateVideo, flash }: { listing: ListingItem | null; photos: ListingPhotoItem[]; workspaceId: string; onBack: () => void; onCreateVideo: () => void; flash: (message: string) => void }) {
+  const [mappingOpen, setMappingOpen] = useState(false);
   const [localPhotos, setLocalPhotos] = useState(photos);
-  const [localZones, setLocalZones] = useState(zones);
   const [photoBusy, setPhotoBusy] = useState(false);
-  const [mappingZoneId, setMappingZoneId] = useState<string | null>(null);
-  const [selectedMappingPhotos, setSelectedMappingPhotos] = useState<string[]>([]);
-  const [mappingBusy, setMappingBusy] = useState(false);
-  const [zoneComposerOpen, setZoneComposerOpen] = useState(false);
-  const [newZoneName, setNewZoneName] = useState("");
-  const [newZoneKind, setNewZoneKind] = useState<ListingZoneItem["kind"]>("floor");
   const gallery = localPhotos.length
     ? localPhotos
     : listing
@@ -1590,54 +1553,17 @@ function ListingDetail({ listing, photos, zones, workspaceId, onBack, onCreateVi
       : [];
   const [activePhotoId, setActivePhotoId] = useState(gallery[0]?.id ?? "");
   const activePhoto = gallery.find((photo) => photo.id === activePhotoId) ?? gallery[0];
-  const unmappedItems = localPhotos.filter((photo) => !photo.zoneId || photo.roomType === "Unsorted");
-  const unmappedPhotos = unmappedItems.length;
-  const zoneRows = localZones.map((zone) => ({
-    ...zone,
-    photos: localPhotos.filter((photo) => photo.zoneId === zone.id),
-  }));
-  const activeMappingZone = localZones.find((zone) => zone.id === mappingZoneId) ?? null;
-  const mappingStatus = !localPhotos.length ? "Add photos to start building the route" : unmappedPhotos ? `${unmappedPhotos} photo${unmappedPhotos === 1 ? " needs" : "s need"} a room` : localZones.length ? "Your video route is ready" : "Choose how this property is organized";
-  const zonePresets: { name: string; kind: ListingZoneItem["kind"] }[] = [
-    { name: "Exterior", kind: "outdoor" },
-    { name: "Floor one", kind: "floor" },
-    { name: "Floor two", kind: "floor" },
-    { name: "Garden", kind: "outdoor" },
-    { name: "Pool", kind: "amenity" },
-  ];
-  const roomChoices = activeMappingZone?.kind === "outdoor" ? ["Exterior", "Garden", "Pool", "Patio", "Balcony", "Outdoor"] : activeMappingZone?.kind === "structure" ? ["Garage", "Guest house", "Studio", "Storage"] : ["Entry", "Living room", "Kitchen", "Dining room", "Primary bedroom", "Bedroom", "Bathroom", "Office"];
-
-  function suggestedRoom(photo: ListingPhotoItem, index: number) {
-    const inferred = inferRoomType(decodeURIComponent(`${photo.storagePath ?? ""} ${photo.url}`));
-    if (inferred !== "Unsorted") return inferred;
-    return ["Exterior", "Entry", "Living room", "Kitchen", "Bedroom", "Bathroom"][index % 6];
-  }
-
-  function suggestedZone(photo: ListingPhotoItem, roomType: string) {
-    const source = decodeURIComponent(`${photo.storagePath ?? ""} ${photo.url}`).toLowerCase();
-    if (source.includes("pool")) return { name: "Pool", kind: "amenity" as const };
-    if (["garden", "yard", "lawn"].some((word) => source.includes(word))) return { name: "Garden", kind: "outdoor" as const };
-    if (["garage", "guest-house", "guest_house", "guesthouse"].some((word) => source.includes(word)))
-      return {
-        name: source.includes("garage") ? "Garage" : "Guest house",
-        kind: "structure" as const,
-      };
-    if (["Exterior", "Outdoor"].includes(roomType)) return { name: "Exterior", kind: "outdoor" as const };
-    if (["Bedroom", "Primary bedroom", "Bathroom", "Office"].includes(roomType)) return { name: "Floor two", kind: "floor" as const };
-    return { name: "Floor one", kind: "floor" as const };
-  }
 
   useEffect(() => {
     setLocalPhotos(photos);
-    setLocalZones(zones);
     setActivePhotoId(gallery[0]?.id ?? "");
-  }, [listing?.id, photos, zones]);
+  }, [listing?.id, photos]);
 
   useEffect(() => {
-    const closeOnEscape = (event: KeyboardEvent) => event.key === "Escape" && onBack();
+    const closeOnEscape = (event: KeyboardEvent) => event.key === "Escape" && !mappingOpen && onBack();
     window.addEventListener("keydown", closeOnEscape);
     return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [onBack]);
+  }, [onBack, mappingOpen]);
 
   async function deletePhoto(photo: ListingPhotoItem) {
     if (!listing || photo.id === "cover" || photoBusy) return;
@@ -1713,111 +1639,6 @@ function ListingDetail({ listing, photos, zones, workspaceId, onBack, onCreateVi
     setPhotoBusy(false);
   }
 
-  async function createZone(name: string, kind: ListingZoneItem["kind"], quiet = false) {
-    if (!listing || mappingBusy || !name.trim()) return null;
-    const existing = localZones.find((zone) => zone.name.toLowerCase() === name.trim().toLowerCase());
-    if (existing) return existing;
-    setMappingBusy(true);
-    const { data, error } = await getSupabaseBrowserClient()
-      .from("listing_zones")
-      .insert({
-        listing_id: listing.id,
-        name: name.trim(),
-        kind,
-        sort_order: localZones.length,
-      })
-      .select("id, name, kind, sort_order")
-      .single();
-    setMappingBusy(false);
-    if (error || !data) {
-      if (!quiet) flash(error?.message ?? "Could not add this zone");
-      return null;
-    }
-    const zone = {
-      id: String(data.id),
-      name: data.name,
-      kind: data.kind as ListingZoneItem["kind"],
-      sortOrder: data.sort_order,
-    };
-    setLocalZones((current) => [...current, zone]);
-    setNewZoneName("");
-    setZoneComposerOpen(false);
-    if (!quiet) flash(`${zone.name} added to the home map`);
-    return zone;
-  }
-
-  async function deleteZone(zone: ListingZoneItem) {
-    if (!listing || mappingBusy) return;
-    setMappingBusy(true);
-    const { error } = await getSupabaseBrowserClient().from("listing_zones").delete().eq("id", zone.id).eq("listing_id", listing.id);
-    setMappingBusy(false);
-    if (error) return flash(error.message);
-    setLocalZones((current) => current.filter((item) => item.id !== zone.id));
-    setLocalPhotos((current) => current.map((photo) => (photo.zoneId === zone.id ? { ...photo, zoneId: null, roomType: "Unsorted" } : photo)));
-    flash(`${zone.name} removed; its photos are ready to remap`);
-  }
-
-  async function saveRoomAssignments(assignments: { id: string; roomType: string; zoneId: string }[], successMessage: string) {
-    if (!listing || !assignments.length || mappingBusy) return;
-    setMappingBusy(true);
-    const supabase = getSupabaseBrowserClient();
-    const results = await Promise.all(
-      assignments.map((assignment) =>
-        supabase
-          .from("listing_photos")
-          .update({
-            room_type: assignment.roomType,
-            zone_id: assignment.zoneId,
-          })
-          .eq("id", assignment.id)
-          .eq("listing_id", listing.id)
-          .select("id"),
-      ),
-    );
-    const failed = results.find((result) => result.error || !result.data?.length);
-    if (failed) flash(failed.error?.message ?? "One or more photos could not be mapped");
-    else {
-      const assignmentById = new Map(assignments.map((assignment) => [assignment.id, assignment]));
-      setLocalPhotos((current) =>
-        current.map((photo) =>
-          assignmentById.has(photo.id)
-            ? {
-                ...photo,
-                roomType: assignmentById.get(photo.id)!.roomType,
-                zoneId: assignmentById.get(photo.id)!.zoneId,
-              }
-            : photo,
-        ),
-      );
-      setSelectedMappingPhotos([]);
-      setMappingZoneId(null);
-      flash(successMessage);
-    }
-    setMappingBusy(false);
-  }
-
-  async function applySmartMap() {
-    if (!unmappedItems.length) return;
-    const suggestions = unmappedItems.map((photo, index) => {
-      const roomType = suggestedRoom(photo, index);
-      return { photo, roomType, zone: suggestedZone(photo, roomType) };
-    });
-    const required = [...new Map(suggestions.map((item) => [item.zone.name, item.zone])).values()];
-    const resolvedZones: ListingZoneItem[] = [];
-    for (const zone of required) {
-      const resolved = localZones.find((item) => item.name.toLowerCase() === zone.name.toLowerCase()) ?? (await createZone(zone.name, zone.kind, true));
-      if (resolved) resolvedZones.push(resolved);
-    }
-    if (resolvedZones.length !== required.length) return flash("Could not prepare the suggested zones");
-    const zoneByName = new Map(resolvedZones.map((zone) => [zone.name, zone]));
-    const assignments = suggestions.map(({ photo, roomType, zone }) => ({
-      id: photo.id,
-      roomType,
-      zoneId: zoneByName.get(zone.name)!.id,
-    }));
-    await saveRoomAssignments(assignments, "Home map created — review the suggested route");
-  }
-
   if (!listing) return null;
   return (
     <div className="listing-showcase-backdrop" role="presentation">
@@ -1830,128 +1651,16 @@ function ListingDetail({ listing, photos, zones, workspaceId, onBack, onCreateVi
             <span>{listing.city || "Your property"}</span>
             <h1>{listing.address}</h1>
           </div>
-          <section className="listing-showcase-map">
-            <header>
-              <div>
-                <span>Home mapping</span>
-                <small>{mappingStatus}</small>
-              </div>
-              {!!localPhotos.length && unmappedPhotos > 0 && zoneRows.length > 0 && (
-                <button className="listing-smart-map" disabled={mappingBusy} onClick={() => void applySmartMap()}>
-                  <span>✦</span>
-                  {mappingBusy ? "Organizing…" : "Organize automatically"}
-                </button>
-              )}
-            </header>
-            <div className="listing-floor-map">
-              {zoneRows.map((zone) => (
-                <section key={zone.id}>
-                  <div className="listing-floor-label">
-                    <span>
-                      <i>{zone.kind === "outdoor" ? "⌁" : zone.kind === "amenity" ? "◇" : zone.kind === "structure" ? "⌂" : "▤"}</i>
-                      <b>{zone.name}</b>
-                    </span>
-                    <div>
-                      <small>
-                        {zone.photos.length} photo
-                        {zone.photos.length === 1 ? "" : "s"}
-                      </small>
-                      <button onClick={() => void deleteZone(zone)} aria-label={`Delete ${zone.name}`}>
-                        ×
-                      </button>
-                    </div>
-                  </div>
-                  <div className="listing-floor-track">
-                    {zone.photos.length ? (
-                      zone.photos.map((photo) => (
-                        <button className={photo.id === activePhoto?.id ? "active" : ""} key={photo.id} onClick={() => setActivePhotoId(photo.id)} aria-label={`View ${photo.roomType} photo`}>
-                          <img {...responsiveImageProps(photo.url, "120px", [160, 320])} alt="" loading="lazy" />
-                          <span>{photo.roomType}</span>
-                        </button>
-                      ))
-                    ) : (
-                      <p>Add the first photo to this zone</p>
-                    )}
-                    <button
-                      className="listing-floor-add"
-                      onClick={() => {
-                        setSelectedMappingPhotos([]);
-                        setMappingZoneId(zone.id);
-                      }}
-                      aria-label={`Add photos to ${zone.name}`}
-                    >
-                      +
-                    </button>
-                  </div>
-                </section>
-              ))}
-              {!zoneRows.length && (
-                <div className="listing-zone-empty">
-                  <div className="listing-zone-empty-intro">
-                    <span>✦</span>
-                    <b>Build the tour route</b>
-                  </div>
-                  {!!localPhotos.length ? (
-                    <button className="listing-zone-auto" disabled={mappingBusy} onClick={() => void applySmartMap()}>
-                      <span>✦</span>
-                      <b>{mappingBusy ? "Organizing…" : "Organize automatically"}</b>
-                    </button>
-                  ) : (
-                    <div className="listing-zone-photo-hint">
-                      <span>＋</span>
-                      <b>Add photos to begin</b>
-                    </div>
-                  )}
-                  <div className="listing-zone-presets">
-                    <div>
-                      {zonePresets.map((preset) => (
-                        <button disabled={mappingBusy} key={preset.name} onClick={() => void createZone(preset.name, preset.kind)}>
-                          <span>＋</span>
-                          {preset.name}
-                        </button>
-                      ))}
-                      <button className="custom" onClick={() => setZoneComposerOpen(true)}>
-                        ＋ Other
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
+          <div className="listing-right-carousel" role="region" aria-label="Listing image carousel">
+            {activePhoto && <img src={activePhoto.url} alt={`${activePhoto.roomType || "Property"} at ${listing.address}`} />}
+            <div className="listing-carousel-nav">
+              <button disabled={gallery.length < 2} aria-label="Previous photo" onClick={() => setActivePhotoId(gallery[(gallery.findIndex((photo) => photo.id === activePhoto?.id) - 1 + gallery.length) % gallery.length].id)}>←</button>
+              <span aria-live="polite">{gallery.findIndex((photo) => photo.id === activePhoto?.id) + 1} / {gallery.length}</span>
+              <button disabled={gallery.length < 2} aria-label="Next photo" onClick={() => setActivePhotoId(gallery[(gallery.findIndex((photo) => photo.id === activePhoto?.id) + 1) % gallery.length].id)}>→</button>
             </div>
-            {!!zoneRows.length && (
-              <div className="listing-zone-actions">
-                {unmappedPhotos > 0 && (
-                  <button
-                    className="listing-map-unmapped"
-                    onClick={() => {
-                      setSelectedMappingPhotos([]);
-                      setMappingZoneId(localZones[0]?.id ?? null);
-                    }}
-                  >
-                    <span>Photos waiting to be mapped</span>
-                    <b>{unmappedPhotos}</b>
-                  </button>
-                )}
-                <button className="listing-add-zone" onClick={() => setZoneComposerOpen((open) => !open)}>
-                  ＋ Add zone
-                </button>
-              </div>
-            )}
-            {zoneComposerOpen && (
-              <div className="listing-zone-composer">
-                <input autoFocus value={newZoneName} onChange={(event) => setNewZoneName(event.target.value)} placeholder="Name this space…" />
-                <select value={newZoneKind} onChange={(event) => setNewZoneKind(event.target.value as ListingZoneItem["kind"])}>
-                  <option value="floor">Floor</option>
-                  <option value="outdoor">Outdoor</option>
-                  <option value="structure">Separate structure</option>
-                  <option value="amenity">Amenity</option>
-                </select>
-                <button disabled={!newZoneName.trim() || mappingBusy} onClick={() => void createZone(newZoneName, newZoneKind)}>
-                  Add
-                </button>
-              </div>
-            )}
-          </section>
+            <div className="listing-right-thumbs">{gallery.map((photo, index) => <button key={photo.id} aria-label={`View photo ${index + 1}`} aria-pressed={photo.id === activePhoto?.id} onClick={() => setActivePhotoId(photo.id)}><img src={photo.url} alt="" loading="lazy" /></button>)}</div>
+          </div>
+          <button className="listing-map-button" onClick={() => setMappingOpen(true)}>Map house</button>
           <div className="listing-showcase-current">
             <span>Viewing</span>
             <strong>{activePhoto?.roomType || "Property overview"}</strong>
@@ -1995,69 +1704,12 @@ function ListingDetail({ listing, photos, zones, workspaceId, onBack, onCreateVi
             </label>
           </div>
         </div>
-        {activeMappingZone && (
-          <div className="listing-mapping-tray" role="dialog" aria-modal="true" aria-label={`Map photos to ${activeMappingZone.name}`}>
-            <button className="listing-mapping-tray-close" onClick={() => setMappingZoneId(null)} aria-label="Close photo mapping">
-              ×
-            </button>
-            <header>
-              <p className="eyebrow">{activeMappingZone.name}</p>
-              <h2>Which photos belong here?</h2>
-              <p>Select one or more photos, then choose the room or space.</p>
-            </header>
-            <div className="listing-mapping-photo-grid">
-              {unmappedItems.map((photo, index) => {
-                const selected = selectedMappingPhotos.includes(photo.id);
-                return (
-                  <button className={selected ? "selected" : ""} key={photo.id} onClick={() => setSelectedMappingPhotos((current) => (current.includes(photo.id) ? current.filter((id) => id !== photo.id) : [...current, photo.id]))}>
-                    <img {...responsiveImageProps(photo.url, "180px", [160, 320])} alt="" />
-                    <span>{selected ? "✓" : "+"}</span>
-                    <small>Suggested: {suggestedRoom(photo, index)}</small>
-                  </button>
-                );
-              })}
-            </div>
-            {!unmappedItems.length && (
-              <div className="listing-mapping-complete">
-                <span>✓</span>
-                <b>Everything is mapped</b>
-                <p>You can create a video or select a mapped thumbnail to review it.</p>
-              </div>
-            )}
-            <footer>
-              <div>
-                <span>Assign selected to</span>
-                <div>
-                  {roomChoices.map((room) => (
-                    <button
-                      disabled={!selectedMappingPhotos.length || mappingBusy}
-                      key={room}
-                      onClick={() =>
-                        void saveRoomAssignments(
-                          selectedMappingPhotos.map((id) => ({
-                            id,
-                            roomType: room,
-                            zoneId: activeMappingZone.id,
-                          })),
-                          `${selectedMappingPhotos.length} photo${selectedMappingPhotos.length === 1 ? "" : "s"} added to ${activeMappingZone.name}`,
-                        )
-                      }
-                    >
-                      {room}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <small>{selectedMappingPhotos.length} selected</small>
-            </footer>
-          </div>
-        )}
       </section>
+      {mappingOpen && <ListingMapBoard listingId={listing.id} photos={localPhotos} onClose={() => setMappingOpen(false)} onMove={(photoId, zoneId) => setLocalPhotos((current) => current.map((photo) => photo.id === photoId ? { ...photo, zoneId } : photo))} />}
     </div>
   );
 }
 
-const defaultRoomOrder = ["Exterior", "Entry", "Living room", "Kitchen", "Dining room", "Bedroom", "Bathroom", "Outdoor", "Unsorted"];
 function inferRoomType(fileName: string) {
   const name = fileName.toLowerCase();
   const matches: [string, string[]][] = [
@@ -2073,14 +1725,36 @@ function inferRoomType(fileName: string) {
   return matches.find(([, keywords]) => keywords.some((keyword) => name.includes(keyword)))?.[0] ?? "Unsorted";
 }
 
+function mappingZoneForRoom(roomType: string) {
+  if (["Exterior", "Outdoor"].includes(roomType)) return { name: "Exterior", kind: "outdoor" as const, sortOrder: 0 };
+  if (["Bedroom", "Primary bedroom", "Bathroom", "Office"].includes(roomType)) return { name: "Floor two", kind: "floor" as const, sortOrder: 2 };
+  return { name: "Floor one", kind: "floor" as const, sortOrder: 1 };
+}
+
+function autoOrganizeListingPhotos(photos: MappedListingPhoto[]) {
+  const fallbackRoute = ["Exterior", "Entry", "Living room", "Kitchen", "Dining room", "Bedroom", "Bathroom", "Outdoor"];
+  const assigned = photos.map((photo, index) => {
+    const inferred = inferRoomType(photo.file.name);
+    return {
+      ...photo,
+      roomType: inferred === "Unsorted" ? fallbackRoute[index % fallbackRoute.length] : inferred,
+      isHero: false,
+    };
+  });
+  const firstByRoom = new Set<string>();
+  return assigned.map((photo) => {
+    if (firstByRoom.has(photo.roomType)) return photo;
+    firstByRoom.add(photo.roomType);
+    return { ...photo, isHero: true };
+  });
+}
+
 function CreateListingModal({ onClose, onCreate }: { onClose: () => void; onCreate: (values: { title: string; photos: MappedListingPhoto[] }) => Promise<void> }) {
   const [title, setTitle] = useState("");
-  const [step, setStep] = useState<"upload" | "map">("upload");
-  const [rooms, setRooms] = useState(defaultRoomOrder);
   const [photos, setPhotos] = useState<{ file: File; preview: string; roomType: string; isHero: boolean }[]>([]);
-  const [draggedPhoto, setDraggedPhoto] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
   function addPhotos(files: FileList | null) {
     if (!files) return;
     const next = Array.from(files)
@@ -2094,222 +1768,77 @@ function CreateListingModal({ onClose, onCreate }: { onClose: () => void; onCrea
       }));
     setPhotos((current) => [...current, ...next]);
   }
+
   function removePhoto(index: number) {
     setPhotos((current) => {
       URL.revokeObjectURL(current[index].preview);
       return current.filter((_, photoIndex) => photoIndex !== index);
     });
   }
-  function movePhoto(index: number, roomType: string) {
-    setPhotos((current) => current.map((photo, photoIndex) => (photoIndex === index ? { ...photo, roomType, isHero: false } : photo)));
-  }
-  function setHero(index: number) {
-    setPhotos((current) => current.map((photo, photoIndex) => (photo.roomType === current[index].roomType ? { ...photo, isHero: photoIndex === index } : photo)));
-  }
-  function renameRoom(index: number, name: string) {
-    const previous = rooms[index];
-    setRooms((current) => current.map((room, roomIndex) => (roomIndex === index ? name : room)));
-    setPhotos((current) => current.map((photo) => (photo.roomType === previous ? { ...photo, roomType: name } : photo)));
-  }
-  function moveRoom(index: number, direction: -1 | 1) {
-    const target = index + direction;
-    if (target < 0 || target >= rooms.length) return;
-    setRooms((current) => {
-      const next = [...current];
-      [next[index], next[target]] = [next[target], next[index]];
-      return next;
-    });
-  }
-  function autoOrganizePhotos() {
-    const fallbackRoute = ["Exterior", "Entry", "Living room", "Kitchen", "Dining room", "Bedroom", "Bathroom", "Outdoor"];
-    setPhotos((current) => {
-      const assigned = current.map((photo, index) => ({
-        ...photo,
-        roomType: inferRoomType(photo.file.name) === "Unsorted" ? fallbackRoute[Math.min(index, fallbackRoute.length - 1)] : inferRoomType(photo.file.name),
-        isHero: false,
-      }));
-      const firstByRoom = new Set<string>();
-      return assigned.map((photo) => {
-        if (firstByRoom.has(photo.roomType)) return photo;
-        firstByRoom.add(photo.roomType);
-        return { ...photo, isHero: true };
-      });
-    });
-  }
-  function continueToMap() {
-    if (!title.trim()) return setError("Add a listing title");
-    if (!photos.length) return setError("Add at least one property photo");
-    setError("");
-    autoOrganizePhotos();
-    setStep("map");
-  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (step === "upload") return continueToMap();
+    if (!title.trim()) return setError("Add a listing title");
+    if (!photos.length) return setError("Add at least one property photo");
     setSaving(true);
     setError("");
-    const ordered = rooms.flatMap((room) => photos.filter((photo) => photo.roomType === room));
     try {
-      await onCreate({
-        title,
-        photos: ordered.map(({ file, roomType, isHero }) => ({
-          file,
-          roomType,
-          isHero,
-        })),
-      });
+      await onCreate({ title, photos: autoOrganizeListingPhotos(photos) });
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Could not create listing");
       setSaving(false);
     }
   }
-  const mappedCount = photos.filter((photo) => photo.roomType !== "Unsorted").length;
-  const indexedPhotos = photos.map((photo, index) => ({ ...photo, index }));
-  const visibleRooms = rooms.filter((room) => room !== "Unsorted" && (indexedPhotos.some((photo) => photo.roomType === room) || room.startsWith("New room")));
+
   return (
     <div className="create-listing-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
-      <form className={`create-listing-modal ${step === "map" ? "mapping" : ""}`} onSubmit={submit}>
-        <button type="button" className="create-listing-close" aria-label="Close" onClick={onClose}>
-          ×
-        </button>
-        {step === "upload" ? (
+      <form className="create-listing-modal" onSubmit={submit}>
+        <button type="button" className="create-listing-close" aria-label="Close" onClick={onClose}>×</button>
+        <p className="eyebrow">New listing</p>
+        <h2>Add your photos.</h2>
+        <p className="create-listing-lead">Upload the property photos and Homie will organize the rooms and tour route automatically.</p>
+        <div className="create-listing-grid">
+          <label className="wide">
+            <span>Listing title *</span>
+            <input autoFocus required value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Oak Park Cottage" />
+          </label>
+        </div>
+        <label className="create-listing-dropzone">
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            multiple
+            onChange={(event) => {
+              addPhotos(event.target.files);
+              event.target.value = "";
+            }}
+          />
+          <span>＋</span>
+          <b>Add property photos</b>
+          <small>JPG, PNG or WebP · up to 50 photos</small>
+        </label>
+        {photos.length > 0 && (
           <>
-            <p className="eyebrow">New listing</p>
-            <h2>Add your photos.</h2>
-            <p className="create-listing-lead">Give the property a recognizable title and upload the photos you want available for video creation.</p>
-            <div className="create-listing-grid">
-              <label className="wide">
-                <span>Listing title *</span>
-                <input autoFocus required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Oak Park Cottage" />
-              </label>
+            <div className="create-listing-photo-head">
+              <b>{photos.length} photo{photos.length === 1 ? "" : "s"}</b>
+              <span>The first image becomes the cover</span>
             </div>
-            <label className="create-listing-dropzone">
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                multiple
-                onChange={(e) => {
-                  addPhotos(e.target.files);
-                  e.target.value = "";
-                }}
-              />
-              <span>＋</span>
-              <b>Add property photos</b>
-              <small>JPG, PNG or WebP · up to 50 photos</small>
-            </label>
-            {photos.length > 0 && (
-              <>
-                <div className="create-listing-photo-head">
-                  <b>
-                    {photos.length} photo{photos.length === 1 ? "" : "s"}
-                  </b>
-                  <span>The first image becomes the cover</span>
+            <div className="create-listing-photos">
+              {photos.map((photo, index) => (
+                <div key={`${photo.file.name}-${index}`}>
+                  <img src={photo.preview} alt="" />
+                  {index === 0 && <span>Cover</span>}
+                  <button type="button" aria-label={`Remove ${photo.file.name}`} onClick={() => removePhoto(index)}>×</button>
                 </div>
-                <div className="create-listing-photos">
-                  {photos.map((photo, index) => (
-                    <div key={`${photo.file.name}-${index}`}>
-                      <img src={photo.preview} alt="" />
-                      {index === 0 && <span>Cover</span>}
-                      <button type="button" aria-label={`Remove ${photo.file.name}`} onClick={() => removePhoto(index)}>
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-          </>
-        ) : (
-          <>
-            <div className="mapping-heading">
-              <div>
-                <p className="eyebrow">Home map</p>
-                <h2>Review the tour route.</h2>
-                <p>Your home is already organized. Drag a photo or reorder a room only if you want to make a change.</p>
-              </div>
-              <div className="mapping-progress">
-                <b>
-                  {mappedCount}/{photos.length}
-                </b>
-                <span>mapped</span>
-                <i>
-                  <em
-                    style={{
-                      width: `${photos.length ? (mappedCount / photos.length) * 100 : 0}%`,
-                    }}
-                  />
-                </i>
-              </div>
+              ))}
             </div>
-            <div className="route-label">
-              <div>
-                <b>Tour route</b>
-                <span>Move rooms left or right to change the story</span>
-              </div>
-              <small>{visibleRooms.length} stops</small>
-            </div>
-            <div className="room-groups room-board">
-              {visibleRooms
-                .map((room, visibleIndex) => {
-                  const roomIndex = rooms.indexOf(room);
-                  const roomPhotos = indexedPhotos.filter((photo) => photo.roomType === room);
-                  return (
-                    <section
-                      className="room-group"
-                      key={`${room}-${roomIndex}`}
-                      onDragOver={(e) => e.preventDefault()}
-                      onDrop={() => {
-                        if (draggedPhoto !== null) movePhoto(draggedPhoto, room);
-                        setDraggedPhoto(null);
-                      }}
-                    >
-                      <header>
-                        <span className="room-order">{String(visibleIndex + 1).padStart(2, "0")}</span>
-                        <input aria-label={`Rename ${room}`} value={room} onChange={(e) => renameRoom(roomIndex, e.target.value)} />
-                        <small>
-                          {roomPhotos.length} photo
-                          {roomPhotos.length === 1 ? "" : "s"}
-                        </small>
-                        <div>
-                          <button type="button" aria-label="Move room earlier" onClick={() => moveRoom(roomIndex, -1)}>
-                            ←
-                          </button>
-                          <button type="button" aria-label="Move room later" onClick={() => moveRoom(roomIndex, 1)}>
-                            →
-                          </button>
-                        </div>
-                      </header>
-                      <div className="room-photo-row">
-                        {roomPhotos.map((photo) => (
-                          <div className={photo.isHero ? "room-photo hero" : "room-photo"} key={`${photo.file.name}-${photo.index}`} draggable onDragStart={() => setDraggedPhoto(photo.index)}>
-                            <img src={photo.preview} alt="" />
-                            <button type="button" onClick={() => setHero(photo.index)}>
-                              {photo.isHero ? "★ Hero" : "☆"}
-                            </button>
-                          </div>
-                        ))}
-                        {roomPhotos.length === 0 && <span className="room-empty">Drop here</span>}
-                      </div>
-                    </section>
-                  );
-                })}
-            </div>
-            <button type="button" className="add-room-btn" onClick={() => setRooms((current) => [...current.slice(0, -1), `New room ${current.length}`, current[current.length - 1]])}>
-              ＋ Add another room
-            </button>
           </>
         )}
-        {error && (
-          <p className="create-listing-error" role="alert">
-            {error}
-          </p>
-        )}
+        {error && <p className="create-listing-error" role="alert">{error}</p>}
         <div className="create-listing-actions">
-          <button type="button" onClick={() => (step === "map" ? setStep("upload") : onClose())}>
-            {step === "map" ? "Back" : "Cancel"}
-          </button>
+          <button type="button" onClick={onClose}>Cancel</button>
           <button className="primary" disabled={saving || !title.trim() || !photos.length}>
-            {saving ? `Uploading ${photos.length}…` : step === "upload" ? "Continue to mapping" : "Create"}
+            {saving ? `Creating ${photos.length}-photo listing…` : "Create listing"}
           </button>
         </div>
       </form>
@@ -2317,10 +1846,10 @@ function CreateListingModal({ onClose, onCreate }: { onClose: () => void; onCrea
   );
 }
 
-function MyVideos({ items, search, statusFilter, formatFilter, loading, error, onBrowseTemplates, onOpenVideo, onDelete, flash }: { items: VideoItem[]; search: string; statusFilter: string; formatFilter: string; loading: boolean; error: string; onBrowseTemplates: () => void; onOpenVideo: (v: VideoItem) => void; onDelete: (id: string) => Promise<void>; flash: (message: string) => void }) {
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+function MyVideos({ items, search, statusFilter, formatFilter, loading, error, onBrowseTemplates, onOpenVideo, onDelete, flash }: { items: VideoItem[]; search: string; statusFilter: string; formatFilter: string; loading: boolean; error: string; onBrowseTemplates: () => void; onOpenVideo: (v: VideoItem) => void; onDelete: (id: number) => Promise<void>; flash: (message: string) => void }) {
+  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const q = search.trim().toLowerCase();
   const filteredItems = items.filter((video) => (!q || `${video.title} ${video.address} ${video.city} ${video.template}`.toLowerCase().includes(q)) && (statusFilter === "All" || video.status === statusFilter) && (formatFilter === "All" || video.format === formatFilter));
   function startCardPreview(card: HTMLElement) {
@@ -2379,10 +1908,10 @@ function MyVideos({ items, search, statusFilter, formatFilter, loading, error, o
             <article className={`myvideo-card ${video.status === "Generating" ? "is-generating" : ""}`} key={video.id} onClick={() => onOpenVideo(video)} tabIndex={0} onMouseEnter={(event) => startCardPreview(event.currentTarget)} onMouseLeave={(event) => stopCardPreview(event.currentTarget)} onFocus={(event) => startCardPreview(event.currentTarget)} onBlur={(event) => stopCardPreview(event.currentTarget)} onKeyDown={(e) => e.key === "Enter" && onOpenVideo(video)}>
               {video.status === "Generating" ? (
                 <div className="video-card-loading" aria-label={`${video.title} is generating`}>
-                  <span className="video-card-loader" aria-hidden="true"><i /><i /><i /></span>
-                  <b>Creating your video</b>
-                  <small>{video.stage ?? "Waiting for generation"}</small>
-                  <em>{video.progress}%</em>
+                  <div className="video-generating-pill">
+                    <span className="video-card-loader" aria-hidden="true" />
+                    <b>Generating</b>
+                  </div>
                 </div>
               ) : video.videoUrl ? (
                 <video src={video.videoUrl} poster={video.image} muted loop playsInline preload="metadata" aria-label={`${video.title} video preview`} />
@@ -2392,7 +1921,7 @@ function MyVideos({ items, search, statusFilter, formatFilter, loading, error, o
                   ▶
                 </button>
               )}
-              <button
+              {video.status !== "Generating" && <button
                 className={`myvideo-more ${openMenuId === video.id ? "active" : ""}`}
                 aria-label={`More options for ${video.title}`}
                 aria-haspopup="menu"
@@ -2404,8 +1933,8 @@ function MyVideos({ items, search, statusFilter, formatFilter, loading, error, o
                 }}
               >
                 •••
-              </button>
-              {openMenuId === video.id && (
+              </button>}
+              {video.status !== "Generating" && openMenuId === video.id && (
                 <div className="listing-card-menu myvideo-card-menu" role="menu" onClick={(event) => event.stopPropagation()}>
                   <p>{video.title}</p>
                   {confirmDeleteId === video.id ? (
@@ -2559,8 +2088,22 @@ function VideoModal({ video, onClose, flash }: { video: VideoItem; onClose: () =
   );
 }
 
-function SubscribePage({ plans, subscription, creditBalance, onChoose, onManage }: { plans: BillingPlan[]; subscription: WorkspaceSubscription | null; creditBalance: number; onChoose: (plan: BillingPlan) => Promise<void>; onManage: () => Promise<void> }) {
+function SubscriptionIcon({ name }: { name: "video" | "home" | "publish" | "check" | "arrow" | "minus" }) {
+  return (
+    <svg className="subscription-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+      {name === "video" && <><rect x="3" y="4" width="18" height="16" rx="4" /><path d="m10 9 5 3-5 3Z" /></>}
+      {name === "home" && <><path d="m3 10 9-7 9 7M5 9v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9" /><path d="M9 21v-7h6v7" /></>}
+      {name === "publish" && <><path d="M12 15V3m-4 4 4-4 4 4M4 14v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5" /></>}
+      {name === "check" && <path d="m5 12 4 4L19 6" />}
+      {name === "arrow" && <path d="M4 12h16m-6-6 6 6-6 6" />}
+      {name === "minus" && <path d="M6 12h12" />}
+    </svg>
+  );
+}
+
+function SubscribePage({ plans, subscription, creditBalance, onChoose, onManage }: { plans: BillingPlan[]; subscription: WorkspaceSubscription | null; creditBalance: number; onChoose: (plan: BillingPlan, billingInterval: "monthly" | "yearly") => Promise<void>; onManage: () => Promise<void> }) {
   const [planGroup, setPlanGroup] = useState<"individual" | "business">("individual");
+  const [billingInterval, setBillingInterval] = useState<"monthly" | "yearly">("monthly");
   const [busyPlan, setBusyPlan] = useState<string | null>(null);
   const currentPlan = plans.find((plan) => plan.id === subscription?.planId) ?? plans.find((plan) => plan.slug === "free-trial") ?? null;
   const renewalDate = subscription?.currentPeriodEndsAt ?? subscription?.trialEndsAt;
@@ -2587,29 +2130,37 @@ function SubscribePage({ plans, subscription, creditBalance, onChoose, onManage 
               Business plans
             </button>
           </div>
-          <p className="subscribe-billing-note">Secure monthly billing by Polar</p>
+          <div className="billing-toggle" role="group" aria-label="Billing period">
+            <button className={billingInterval === "monthly" ? "active" : ""} aria-pressed={billingInterval === "monthly"} onClick={() => setBillingInterval("monthly")}>Monthly</button>
+            <button className={billingInterval === "yearly" ? "active" : ""} aria-pressed={billingInterval === "yearly"} onClick={() => setBillingInterval("yearly")}>Annual <small>Save 17%</small></button>
+          </div>
         </header>
         {visiblePlans.length ? (
           <div className="subscribe-plan-grid">
             {visiblePlans.map((plan) => {
               const isCurrent = plan.id === currentPlan?.id;
               const featured = plan.slug === "pro";
-              const price = plan.monthlyPrice;
+              const firstVideo = plan.slug === "free-trial" || plan.slug === "first-video";
+              const yearlyPrice = PUBLIC_ANNUAL_PRICES[plan.slug] ?? plan.yearlyPrice;
+              const annual = billingInterval === "yearly" && !firstVideo && yearlyPrice != null;
+              const price = firstVideo ? PUBLIC_PRICES["first-video"] : annual ? Math.round(yearlyPrice / 12) : PUBLIC_PRICES[plan.slug] ?? plan.monthlyPrice;
+              const includedVideos = annual ? plan.monthlyCredits * 12 : plan.monthlyCredits;
+              const displayName = firstVideo ? "First Video" : plan.name;
               return (
                 <article className={`subscribe-plan-card ${featured ? "featured" : ""} ${isCurrent ? "current" : ""}`} key={plan.id}>
                   <div className="subscribe-plan-top">
                     <span>{plan.audience === "team" ? "For teams" : "For agents"}</span>
                     {isCurrent ? <b>Current plan</b> : featured ? <b>Recommended</b> : null}
                   </div>
-                  <h3>{plan.name}</h3>
-                  <p>{plan.slug === "free-trial" ? "See what Homie can do with your own listings." : plan.audience === "team" ? "A shared creative workflow for the whole office." : "Everything a solo agent needs to publish consistently."}</p>
+                  <h3>{displayName}</h3>
+                  <p>{firstVideo ? "Create your first property video for just $1." : plan.audience === "team" ? "A shared creative workflow for the whole office." : "Everything a solo agent needs to publish consistently."}</p>
                   <div className="subscribe-plan-credits">
                     <div>
-                      <span>✦</span>
-                      <strong>{plan.monthlyCredits.toLocaleString()} video {plan.monthlyCredits === 1 ? "generation" : "generations"} / mo.</strong>
+                      <span><SubscriptionIcon name="video" /></span>
+                      <strong>{firstVideo ? "1 first video" : `${includedVideos.toLocaleString()} video generations / ${annual ? "yr." : "mo."}`}</strong>
                     </div>
-                    <p>{plan.slug === "free-trial" ? "Explore Homie with your first listing" : `Create ${plan.monthlyCredits.toLocaleString()} complete listing tours`}</p>
-                    <small>✓ Every new version uses one generation</small>
+                    <p>{firstVideo ? "First-video introductory offer" : `Create ${includedVideos.toLocaleString()} complete listing tours ${annual ? "per year" : "per month"}`}</p>
+                    <small><SubscriptionIcon name="check" /> Every new version uses one generation</small>
                   </div>
                   <div className="subscribe-price">
                     {price == null ? (
@@ -2625,32 +2176,32 @@ function SubscribePage({ plans, subscription, creditBalance, onChoose, onManage 
                             maximumFractionDigits: 0,
                           })}
                         </strong>
-                        <small>per month</small>
+                        <small>{firstVideo ? "for your first video" : annual ? `per month · $${yearlyPrice.toLocaleString("en-US")} billed yearly` : "per month"}</small>
                       </>
                     )}
                   </div>
-                  <button disabled={busyPlan !== null || (isCurrent && plan.slug === "free-trial")} onClick={async () => {
+                  <button disabled={busyPlan !== null || firstVideo} onClick={async () => {
                     setBusyPlan(plan.slug);
-                    try { if (isCurrent) await onManage(); else await onChoose(plan); } finally { setBusyPlan(null); }
+                    try { if (isCurrent) await onManage(); else await onChoose(plan, billingInterval); } finally { setBusyPlan(null); }
                   }}>
-                    {busyPlan === plan.slug ? "Opening secure billing…" : isCurrent ? (plan.slug === "free-trial" ? "Your current plan" : "Manage billing") : `Choose ${plan.name}`}
-                    <span>{!isCurrent && "→"}</span>
+                    {firstVideo ? "$1 checkout coming soon" : busyPlan === plan.slug ? "Opening secure billing…" : isCurrent ? "Manage billing" : `Choose ${displayName}`}
+                    {!isCurrent && <SubscriptionIcon name="arrow" />}
                   </button>
                   <section className="subscribe-benefit-panel">
                     <header>
-                      <span>⌂</span>
+                      <span><SubscriptionIcon name="home" /></span>
                       <b>Listing video workflow</b>
                     </header>
                     <ul>
-                      {plan.features.map((feature) => (
+                      {(firstVideo ? ["1 watermarked video", "All video templates", "Use your own property photos", "First-video introductory offer"] : plan.features).map((feature, featureIndex) => (
                         <li key={feature}>
-                          <span>✓</span>
-                          {feature}
+                          <span><SubscriptionIcon name="check" /></span>
+                          {annual && featureIndex === 0 ? `${includedVideos.toLocaleString()} video generations per year` : feature}
                         </li>
                       ))}
                       {plan.seatLimit && (
                         <li>
-                          <span>✓</span>
+                          <span><SubscriptionIcon name="check" /></span>
                           {plan.seatLimit} {plan.seatLimit === 1 ? "seat" : "seats"} included
                         </li>
                       )}
@@ -2658,18 +2209,18 @@ function SubscribePage({ plans, subscription, creditBalance, onChoose, onManage 
                   </section>
                   <section className="subscribe-benefit-panel secondary">
                     <header>
-                      <span>↗</span>
+                      <span><SubscriptionIcon name="publish" /></span>
                       <b>Publishing & approval</b>
                     </header>
                     <ul>
                       <li>
-                        <span>✓</span>Preview every tour before publishing
+                        <span><SubscriptionIcon name="check" /></span>Preview every tour before publishing
                       </li>
                       <li>
-                        <span>✓</span>Vertical 9:16 social-ready export
+                        <span><SubscriptionIcon name="check" /></span>Vertical 9:16 social-ready export
                       </li>
                       <li>
-                        <span>{plan.slug === "free-trial" ? "—" : "✓"}</span>
+                        <span><SubscriptionIcon name={plan.slug === "free-trial" ? "minus" : "check"} /></span>
                         {plan.slug === "free-trial" ? "Priority generation on paid plans" : "Priority generation queue"}
                       </li>
                     </ul>
@@ -2677,7 +2228,7 @@ function SubscribePage({ plans, subscription, creditBalance, onChoose, onManage 
                   <footer className="subscribe-plan-footer">
                     <span>
                       <i />
-                      {isCurrent ? statusLabel : plan.audience === "team" ? "Built for teams" : "Cancel or change anytime"}
+                      {firstVideo ? "First video only · not a subscription" : isCurrent ? statusLabel : annual ? "Two months free · billed annually" : plan.audience === "team" ? "Built for teams" : "Cancel or change anytime"}
                     </span>
                     {isCurrent && (
                       <small>

@@ -1,0 +1,34 @@
+.video-creation-controls{margin-top:auto;padding-top:12px}
+.creation-choices{display:grid;grid-template-columns:minmax(0,1.25fr) repeat(2,minmax(0,1fr));gap:8px;margin-bottom:14px}
+.creation-choices>button{position:relative;text-align:left;min-width:0;min-height:64px;border:1px solid var(--line);border-radius:12px;background:color-mix(in srgb,var(--sage) 5%,var(--surface));color:var(--ink);padding:10px 22px 10px 12px}
+.creation-choices small{display:block;color:var(--muted);font-size:11px;margin-bottom:6px}
+.creation-choices strong{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px;font-weight:500}
+.creation-choices button>span{position:absolute;right:8px;top:30px;color:var(--sage-dark)}
+.creation-choices button:hover{border-color:var(--sage);background:var(--sage-soft)}
+.creation-balance{font-size:12px;line-height:1.5;color:var(--muted);text-align:center;margin:10px 0 0}
+.creation-warning{font-size:13px;line-height:1.5;color:var(--ink);margin:0 0 12px}
+.creation-warning button{background:none;border:0;text-decoration:underline;color:var(--sage-dark)}
+.video-creation-controls .template-detail-create{font-size:15px;gap:8px}
+.video-creation-controls .template-detail-create:disabled{opacity:.5;cursor:not-allowed}
+.creation-picker{box-sizing:border-box;width:min(720px,calc(100vw - 32px));max-height:85dvh;margin:auto;padding:26px;border:1px solid var(--line);border-radius:22px;background:var(--surface);color:var(--ink);box-shadow:0 28px 90px #0006;overflow:hidden;overscroll-behavior:contain}
+.creation-picker[open]{display:flex;flex-direction:column}
+.creation-picker>header,.creation-picker>.chooser-search,.creation-picker>.creation-empty{flex-shrink:0}
+.creation-picker>.creation-listings,.creation-picker>.creation-options{min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable;grid-auto-rows:max-content;align-content:start;padding:4px}
+.creation-picker::backdrop{background:#080b0870;backdrop-filter:blur(6px)}
+.creation-picker>header{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:20px}
+.template-detail-info .creation-picker h2{font:500 28px/1.2 var(--serif);letter-spacing:-.5px;margin:0 0 8px;padding:0}
+.creation-picker header p{font-size:14px;line-height:1.5;margin:0;color:var(--muted)}
+.creation-picker header>button{flex:none;width:38px;height:38px;border:1px solid var(--line);border-radius:50%;background:var(--sage-soft);color:var(--ink);font-size:22px}
+.creation-listings{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.creation-listings>button{padding:0 0 12px;border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);overflow:hidden;text-align:left;min-width:0}
+.creation-listings img{width:100%;aspect-ratio:16/10;object-fit:cover}
+.creation-listings strong{display:block;font-size:14px;font-weight:500;line-height:1.4;padding:12px 12px 5px;overflow-wrap:anywhere}
+.creation-listings small{display:block;font-size:12px;color:var(--muted);padding:0 12px;line-height:1.4}
+.creation-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.creation-options>button{min-height:110px;padding:18px 12px;border:1px solid var(--line);border-radius:14px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;background:var(--surface);color:var(--ink)}
+.creation-options strong{font-size:18px;font-weight:500}.creation-options small{font-size:12px;color:var(--muted)}
+.creation-format-icon{height:24px;max-width:58px;border:1.6px solid var(--sage);border-radius:3px}
+.creation-picker button.selected{border-color:var(--sage);background:var(--sage-soft);box-shadow:0 0 0 1px var(--sage)}
+.creation-empty{padding:28px 0;font-size:14px;line-height:1.6;color:var(--muted)}
+.creation-picker button:focus-visible,.creation-choices button:focus-visible{outline:2px solid var(--sage);outline-offset:3px}
+@media(max-width:640px){.creation-picker{padding:20px;max-height:90dvh}.creation-listings{grid-template-columns:repeat(2,minmax(0,1fr))}.creation-options{grid-template-columns:repeat(2,minmax(0,1fr))}.creation-choices{gap:6px}.creation-choices>button{padding-left:9px}.creation-choices small{font-size:10px}.creation-choices strong{font-size:12px}}

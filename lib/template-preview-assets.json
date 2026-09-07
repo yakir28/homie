@@ -1,0 +1,47 @@
+{
+  "/api/media/template?key=templates/reflection-reveal/preview.mp4": {
+    "preview": "/template-previews/44-cc43e94d0f4c.mp4",
+    "image": "/template-previews/44-cc43e94d0f4c-640.webp",
+    "srcSet": "/template-previews/44-cc43e94d0f4c-320.webp 320w, /template-previews/44-cc43e94d0f4c-640.webp 640w, /template-previews/44-cc43e94d0f4c-960.webp 960w"
+  },
+  "/api/media/template?key=templates/pulse-tour/preview.mp4": {
+    "preview": "/template-previews/43-477f8ad2192b.mp4",
+    "image": "/template-previews/43-477f8ad2192b-640.webp",
+    "srcSet": "/template-previews/43-477f8ad2192b-320.webp 320w, /template-previews/43-477f8ad2192b-640.webp 640w, /template-previews/43-477f8ad2192b-960.webp 960w"
+  },
+  "/api/media/template?key=templates/foreground-reveal/preview.mp4": {
+    "preview": "/template-previews/42-397fb42158d6.mp4",
+    "image": "/template-previews/42-397fb42158d6-640.webp",
+    "srcSet": "/template-previews/42-397fb42158d6-320.webp 320w, /template-previews/42-397fb42158d6-640.webp 640w, /template-previews/42-397fb42158d6-960.webp 960w"
+  },
+  "/api/media/template?key=templates/find-your-way-home/preview.mp4": {
+    "preview": "/template-previews/41-92275d28b021.mp4",
+    "image": "/template-previews/41-92275d28b021-640.webp",
+    "srcSet": "/template-previews/41-92275d28b021-320.webp 320w, /template-previews/41-92275d28b021-640.webp 640w, /template-previews/41-92275d28b021-960.webp 960w"
+  },
+  "/api/media/template?key=templates/maple-glass-flight/preview.mp4": {
+    "preview": "/template-previews/45-929c833bd23f.mp4",
+    "image": "/template-previews/45-929c833bd23f-640.webp",
+    "srcSet": "/template-previews/45-929c833bd23f-320.webp 320w, /template-previews/45-929c833bd23f-640.webp 640w, /template-previews/45-929c833bd23f-960.webp 960w"
+  },
+  "/api/media/template?key=templates/warm-threshold/preview.mp4": {
+    "preview": "/template-previews/46-c8a267733038.mp4",
+    "image": "/template-previews/46-c8a267733038-640.webp",
+    "srcSet": "/template-previews/46-c8a267733038-320.webp 320w, /template-previews/46-c8a267733038-640.webp 640w, /template-previews/46-c8a267733038-960.webp 960w"
+  },
+  "/api/media/template?key=templates/city-apartment/preview.mp4": {
+    "preview": "/template-previews/47-2faf8f69a23f.mp4",
+    "image": "/template-previews/47-2faf8f69a23f-640.webp",
+    "srcSet": "/template-previews/47-2faf8f69a23f-320.webp 320w, /template-previews/47-2faf8f69a23f-640.webp 640w, /template-previews/47-2faf8f69a23f-960.webp 960w"
+  },
+  "/api/media/template?key=templates/blueprint-to-reality/preview.mp4": {
+    "preview": "/template-previews/48-42cb6900ddbc.mp4",
+    "image": "/template-previews/48-42cb6900ddbc-640.webp",
+    "srcSet": "/template-previews/48-42cb6900ddbc-320.webp 320w, /template-previews/48-42cb6900ddbc-640.webp 640w, /template-previews/48-42cb6900ddbc-960.webp 960w"
+  },
+  "/api/media/template?key=templates/house-behind-the-glass/preview.mp4": {
+    "preview": "/template-previews/49-f55a00f2f88b.mp4",
+    "image": "/template-previews/49-f55a00f2f88b-640.webp",
+    "srcSet": "/template-previews/49-f55a00f2f88b-320.webp 320w, /template-previews/49-f55a00f2f88b-640.webp 640w, /template-previews/49-f55a00f2f88b-960.webp 960w"
+  }
+}

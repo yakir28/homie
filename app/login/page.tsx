@@ -75,7 +75,7 @@ export default function Login() {
         <div className="auth-scrim" />
         <a className="auth-brand" href="/" aria-label="Homie home page"><HomieLogo variant="mark-light" /></a>
         <div className="auth-collage-copy">
-          <p className="eyebrow">● {mode === "login" ? "Welcome back" : "Start free"}</p>
+          <p className="eyebrow">● {mode === "login" ? "Welcome back" : "Your first video for $1"}</p>
           <h1>
             Turn listing photos into
             <br />
@@ -88,7 +88,7 @@ export default function Login() {
       <section className="auth-form-panel">
         <div className="auth-form">
           <p className="eyebrow">{mode === "login" ? (
-            <>NO ACCOUNT? <button onClick={() => setMode("signup")}>START FREE</button></>
+            <>NO ACCOUNT? <button onClick={() => setMode("signup")}>GET STARTED</button></>
           ) : (
             <>HAVE AN ACCOUNT? <button onClick={() => setMode("login")}>LOG IN</button></>
           )}</p>

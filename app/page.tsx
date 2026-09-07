@@ -2,70 +2,44 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import HomieLogo from "./HomieLogo";
+import { PUBLIC_ANNUAL_PRICES, PUBLIC_PRICES } from "../lib/public-pricing";
+import GalleryMarquee from "./GalleryMarquee";
+import "./landing-pricing.css";
+import "./landing-typography.css";
+import "./landing-glass.css";
+import "./landing-trial-popup.css";
+import previewAssets from "../lib/template-preview-assets.json";
 import { resolveMediaUrl } from "../lib/media-url";
 
 const navLinks = [
   { label: "Product", href: "#top" },
-  { label: "How it works", href: "#how-it-works" },
   { label: "Templates", href: "#templates" },
-  { label: "Use cases", href: "#use-cases" },
   { label: "Pricing", href: "#pricing" },
   { label: "FAQ", href: "#faq" },
-];
-
-const steps = [
-  { n: "01", title: "Connect Zillow", body: "Import a listing and its photos in one click — no re-uploading, no re-typing." },
-  { n: "02", title: "Choose a template", body: "Pick a curated visual style. No prompting, no video-editing experience needed." },
-  { n: "03", title: "Approve & share", body: "Review your tour, approve it, and download it for Reels, TikTok, Stories, or Zillow." },
 ];
 
 const templatePreviews = [
   { title: "Reflection Reveal", tag: "Cinematic", video: "/api/media/template?key=templates/reflection-reveal/preview.mp4", poster: "/api/media/template?key=templates/reflection-reveal/thumbnail.jpg" },
   { title: "Pulse Tour", tag: "Fast-paced", video: "/api/media/template?key=templates/pulse-tour/preview.mp4", poster: "/api/media/template?key=templates/pulse-tour/thumbnail.jpg" },
-  { title: "Magic Build Reveal", tag: "Viral Trends", video: "/api/media/template?key=templates/cinematic-second/preview.mp4", poster: "/api/media/template?key=templates/cinematic-second/thumbnail.jpg" },
-];
-
-const proofPoints = [
-  { icon: "↗", value: "9:16", label: "Ready for Reels, TikTok & Stories" },
-  { icon: "03", value: "3 steps", label: "From listing link to finished tour" },
-  { icon: "✓", value: "100%", label: "You approve before anything is shared" },
-];
-
-const useCases = [
-  { title: "Solo agents", body: "Turn every new listing into a polished tour in minutes — no editing skills, no extra hires, no waiting on a videographer.", cta: "For solo agents" },
-  { title: "Office teams", body: "Give every agent on your team the same premium look, synced straight from Zillow, with shared templates and brand-consistent output.", cta: "For teams" },
+  { title: "Foreground Reveal", tag: "Cinematic", video: "/api/media/template?key=templates/foreground-reveal/preview.mp4", poster: "/api/media/template?key=templates/foreground-reveal/thumbnail.jpg" },
+  { title: "Find Your Way Home", tag: "Home tour", video: "/api/media/template?key=templates/find-your-way-home/preview.mp4", poster: "/api/media/template?key=templates/find-your-way-home/thumbnail.jpg" },
+  { title: "Warm Threshold", tag: "Cinematic", video: "/api/media/template?key=templates/warm-threshold/preview.mp4", poster: "/api/media/template?key=templates/warm-threshold/thumbnail.jpg" },
 ];
 
 const pricingTiers = [
-  { name: "Free Trial", price: "$0", tagline: "Try Homie on one of your own listings.", features: ["1 watermarked video", "All video templates", "No credit card required", "7-day trial"] },
-  { name: "Starter", price: "$29/mo", tagline: "For agents starting to publish listing videos.", features: ["3 video generations each month", "Zillow and Airbnb sync", "All video templates", "Social-ready exports"] },
-  { name: "Pro", price: "$59/mo", tagline: "For solo agents publishing consistently.", features: ["10 video generations each month", "Everything in Starter", "Priority generation", "Commercial usage"], highlighted: true },
-  { name: "Business", price: "$149/mo", tagline: "For offices that need a shared, consistent workflow.", features: ["30 video generations each month", "10 agent seats", "Shared team workspace", "Priority support"] },
+  { slug: "first-video", name: "First Video", monthlyPrice: PUBLIC_PRICES["first-video"], yearlyPrice: null, monthlyVideos: 1, tagline: "Create your first property video for just $1.", features: ["1 watermarked video", "All video templates", "Use your own property photos", "First-video introductory offer"] },
+  { slug: "starter", name: "Starter", monthlyPrice: PUBLIC_PRICES.starter, yearlyPrice: PUBLIC_ANNUAL_PRICES.starter, monthlyVideos: 3, tagline: "For agents starting to publish listing videos.", features: ["3 video generations each month", "Property photo uploads", "All video templates", "Social-ready exports"] },
+  { slug: "pro", name: "Pro", monthlyPrice: PUBLIC_PRICES.pro, yearlyPrice: PUBLIC_ANNUAL_PRICES.pro, monthlyVideos: 10, tagline: "For solo agents publishing consistently.", features: ["10 video generations each month", "Everything in Starter", "Priority generation", "Commercial usage"], highlighted: true },
+  { slug: "business", name: "Business", monthlyPrice: PUBLIC_PRICES.business, yearlyPrice: PUBLIC_ANNUAL_PRICES.business, monthlyVideos: 30, tagline: "For offices that need a shared, consistent workflow.", features: ["30 video generations each month", "10 agent seats", "Shared team workspace", "Priority support"] },
 ];
 
-// Only Zillow and Airbnb have an import path today; Booking is shown as pending
-// rather than implied to work.
-const integrations = [
-  { name: "Zillow", logo: "/integrations/zillow-logo.png", live: true },
-  { name: "Airbnb", logo: "/integrations/airbnb-logo.png", live: true },
-  { name: "Booking", logo: null, live: false },
-];
-
-const gallery = [
-  ...Array.from({ length: 14 }, (_, i) => `/gallery/gallery-${String(i + 1).padStart(2, "0")}.jpg`),
-  ...Array.from({ length: 31 }, (_, i) => `/gallery/gallery-${String(i + 15).padStart(2, "0")}.webp`),
-];
-// Alternate the complete collection between the two directions. Each row is
-// duplicated when rendered so the marquee stays seamless at every viewport.
-const galleryTop = gallery.filter((_, i) => i % 2 === 0);
-const galleryBottom = gallery.filter((_, i) => i % 2 === 1);
 
 const faqs = [
   { q: "Do I need any video-editing experience?", a: "No. You choose a template and Homie handles the rest — no timelines, no prompts, no software to learn." },
-  { q: "What happens during the free trial?", a: "You can generate one watermarked tour from your own listing during a 7-day trial — no credit card required to start." },
-  { q: "How do video allowances work?", a: "Every plan includes a monthly number of video generations. Creating a video or generating another version uses one; browsing templates and importing listings are always free." },
-  { q: "Can I connect my Zillow listings?", a: "Yes. Connect your public Zillow profile and Homie imports your listings along with their photos, address, and details. If a listing doesn't come through automatically, paste its Zillow link and Homie will import it directly." },
-  { q: "Can I use my own photos instead of Zillow?", a: "Zillow sync is the fastest way to start, and direct photo upload is on our roadmap for listings outside of Zillow." },
+  { q: "How does the $1 first-video offer work?", a: "Create your first watermarked property video for just $1 using your own photos and any cinematic template. This introductory price applies to your first video; additional videos are available through our paid plans." },
+  { q: "How do video allowances work?", a: "Monthly plans refresh their video allowance every month. Annual plans include the full 12-month allowance upfront. Creating a video or another version uses one generation; browsing templates and uploading property photos are always free." },
+  { q: "How do I add a property?", a: "Create a listing, add its title and property photos, then review the route Homie prepares before you generate the video." },
+  { q: "Can I use photos I already have?", a: "Yes. Upload the listing photos from your phone or computer, arrange them if needed, and reuse them with any available template." },
   { q: "Will the video invent rooms or features the property doesn't have?", a: "Every shot is built from the photos you select, and Homie is built to preserve the real architecture, layout, materials, and lighting rather than imagine new ones. AI video is still probabilistic, which is exactly why no tour is ever final until you watch it and approve it." },
   { q: "Can I use the videos in my listings, ads, and social?", a: "Yes. You keep full ownership of your photos and of the tours you generate, and you can publish them to Reels, TikTok, Stories, listing pages, and paid campaigns. You stay responsible for confirming a tour represents the property accurately and meets your brokerage or MLS rules." },
   { q: "What if I don't like the result?", a: "Generate another version. You can rerun the same template or switch to a different one; each new version uses one video generation. Only the version you approve becomes the final tour." },
@@ -102,53 +76,67 @@ function Reveal({ children, className = "", delay = 0, as: Tag = "div" }: { chil
   );
 }
 
-function TemplateVideoCard({ title, tag, video, poster }: { title: string; tag: string; video: string; poster: string }) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const wantsPlaybackRef = useRef(false);
-
-  function play() {
-    const player = videoRef.current;
+function AutoplayVideo({ video, poster, label, className = "" }: { video: string; poster: string; label: string; className?: string }) {
+  const playerRef = useRef<HTMLVideoElement>(null);
+  const assets = (previewAssets as Record<string, { preview: string; image: string }>)[video];
+  useEffect(() => {
+    const player = playerRef.current;
     if (!player) return;
-    wantsPlaybackRef.current = true;
-    const playback = player.play();
-    if (playback) {
-      void playback.catch((error: unknown) => {
-        const name = error instanceof DOMException ? error.name : "";
-        if (name !== "AbortError" && name !== "NotAllowedError") console.warn(`Could not play the ${title} preview`, error);
-      });
-    }
-  }
-
-  function pause() {
-    const player = videoRef.current;
-    if (!player) return;
-    wantsPlaybackRef.current = false;
-    player.pause();
-    try { player.currentTime = 0; } catch { /* Media metadata may still be loading. */ }
-  }
-
+    player.muted = true;
+    player.defaultMuted = true;
+    let visible = false;
+    const start = () => {
+      if (visible && !document.hidden) {
+        player.muted = true;
+        void player.play().catch(() => undefined);
+      } else player.pause();
+    };
+    const observer = new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting;
+      start();
+    }, { threshold: 0.01 });
+    observer.observe(player);
+    player.addEventListener("canplay", start);
+    document.addEventListener("visibilitychange", start);
+    window.addEventListener("pointerdown", start);
+    return () => {
+      observer.disconnect();
+      player.removeEventListener("canplay", start);
+      document.removeEventListener("visibilitychange", start);
+      window.removeEventListener("pointerdown", start);
+      player.pause();
+    };
+  }, [video]);
   return (
-    <button type="button" className="template-preview-card" onMouseEnter={play} onMouseLeave={pause} onFocus={play} onBlur={pause} aria-label={`Preview ${title} template`}>
-      <video ref={videoRef} muted loop playsInline preload="none" poster={resolveMediaUrl(poster)} aria-label={`${title} template preview`}>
-        <source src={resolveMediaUrl(video)} type="video/mp4" />
+      <video className={`landing-autoplay-video ${className}`} ref={playerRef} autoPlay muted loop playsInline controls={false} controlsList="nodownload nofullscreen noremoteplayback" disablePictureInPicture disableRemotePlayback preload="metadata" poster={assets?.image ?? resolveMediaUrl(poster)} aria-label={label}>
+        <source src={assets?.preview ?? resolveMediaUrl(video)} type="video/mp4" />
       </video>
-      <div className="card-shade" />
-      <span className="template-play-cue" aria-hidden="true">▶</span>
-      <div className="card-copy"><p className="eyebrow">{tag}</p><h3>{title}</h3><small>Hover to watch</small></div>
-    </button>
+  );
+}
+
+function TemplateVideoCard({ title, video, poster, clone = false }: { title: string; tag: string; video: string; poster: string; clone?: boolean }) {
+  return (
+    <div className="template-preview-card" aria-hidden={clone || undefined}>
+      <AutoplayVideo video={video} poster={poster} label={`${title} template preview`} />
+    </div>
   );
 }
 
 const COOKIE_CONSENT_KEY = "homie_cookie_consent";
+const TRIAL_POPUP_DISMISSED_KEY = "homie_trial_popup_dismissed_at";
+const TRIAL_POPUP_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
 
 export default function Marketing() {
   const [announceOpen, setAnnounceOpen] = useState(true);
   const [cookieOpen, setCookieOpen] = useState(false);
+  const [trialPopupOpen, setTrialPopupOpen] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
   const [openFaq, setOpenFaq] = useState(0);
   const [scrolled, setScrolled] = useState(false);
   const [progress, setProgress] = useState(0);
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
+  const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">("monthly");
+  const trialPopupRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!localStorage.getItem(COOKIE_CONSENT_KEY)) setCookieOpen(true);
@@ -157,6 +145,57 @@ export default function Marketing() {
   function chooseCookieConsent(choice: "accepted" | "declined") {
     localStorage.setItem(COOKIE_CONSENT_KEY, choice);
     setCookieOpen(false);
+  }
+
+  useEffect(() => {
+    if (cookieOpen) return;
+    const dismissedAt = Number(localStorage.getItem(TRIAL_POPUP_DISMISSED_KEY) ?? 0);
+    if (Date.now() - dismissedAt < TRIAL_POPUP_COOLDOWN_MS) return;
+    const timer = window.setTimeout(() => setTrialPopupOpen(true), 1400);
+    return () => window.clearTimeout(timer);
+  }, [cookieOpen]);
+
+  useEffect(() => {
+    if (!trialPopupOpen) return;
+    const dialog = trialPopupRef.current;
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const focusable = () => Array.from(dialog?.querySelectorAll<HTMLElement>('a[href], button:not([disabled])') ?? []);
+    focusable()[0]?.focus();
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        localStorage.setItem(TRIAL_POPUP_DISMISSED_KEY, String(Date.now()));
+        setTrialPopupOpen(false);
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const items = focusable();
+      if (!items.length) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = previousOverflow;
+      previousFocus?.focus();
+    };
+  }, [trialPopupOpen]);
+
+  function dismissTrialPopup() {
+    localStorage.setItem(TRIAL_POPUP_DISMISSED_KEY, String(Date.now()));
+    setTrialPopupOpen(false);
   }
 
   useEffect(() => {
@@ -189,9 +228,34 @@ export default function Marketing() {
     <main className="marketing-page" id="top">
       <div className="scroll-progress" style={{ width: `${progress}%` }} />
 
+      {trialPopupOpen && (
+        <div className="trial-popup-backdrop" onMouseDown={(event) => event.target === event.currentTarget && dismissTrialPopup()}>
+          <div ref={trialPopupRef} className="trial-popup" role="dialog" aria-modal="true" aria-labelledby="trial-popup-title" aria-describedby="trial-popup-description">
+            <button className="trial-popup-close" type="button" aria-label="Close first-video offer" onClick={dismissTrialPopup}>×</button>
+            <div className="trial-popup-preview" aria-hidden="true">
+              <AutoplayVideo video={templatePreviews[0].video} poster={templatePreviews[0].poster} label="" />
+              <span>Made with Homie</span>
+            </div>
+            <div className="trial-popup-copy">
+              <p className="trial-popup-kicker">Your first video. Just $1.</p>
+              <h2 id="trial-popup-title">Turn one listing into a cinematic video. <i>Only $1.</i></h2>
+              <p id="trial-popup-description">Upload your property photos, choose any template, and create your first video for just $1.</p>
+              <ul>
+                <li><span aria-hidden="true">✓</span> One watermarked property video</li>
+                <li><span aria-hidden="true">✓</span> Every cinematic template</li>
+                <li><span aria-hidden="true">✓</span> First-video price: $1</li>
+              </ul>
+              <a className="trial-popup-action" href="/login" onClick={() => localStorage.setItem(TRIAL_POPUP_DISMISSED_KEY, String(Date.now()))}>Create my first video for $1 <span aria-hidden="true">→</span></a>
+              <button className="trial-popup-later" type="button" onClick={dismissTrialPopup}>Maybe later</button>
+              <small>One free video per account.</small>
+            </div>
+          </div>
+        </div>
+      )}
+
       {announceOpen && (
         <div className="announce-bar">
-          <p><span className="announce-tag">● New</span>Zillow-synced templates are live. <a href="/login">Try it free →</a></p>
+          <p>Your first property video. Just $1. <a href="/login">Get started →</a></p>
           <button aria-label="Dismiss announcement" onClick={() => setAnnounceOpen(false)}>×</button>
         </div>
       )}
@@ -230,35 +294,29 @@ export default function Marketing() {
           <div className="hero-copy">
             <p className="hero-kicker hero-in" style={{ animationDelay: "40ms" }}>AI video studio for real estate</p>
             <h1 className="hero-in" style={{ animationDelay: "140ms" }}>Create hyper-realistic videos for your properties <i>in seconds</i></h1>
-            <p className="hero-sub hero-in" style={{ animationDelay: "280ms" }}>Connect your listing, choose a cinematic direction, and turn property photos into a polished 25-second vertical tour—ready to publish everywhere.</p>
-            <a className="hero-cta hero-in" style={{ animationDelay: "400ms" }} href="/login">Create your first tour <span>→</span></a>
-            <p className="hero-note hero-in" style={{ animationDelay: "500ms" }}><span aria-hidden="true">✓</span> Start free. No credit card required.</p>
+            <p className="hero-sub hero-in" style={{ animationDelay: "280ms" }}><span className="hero-description-desktop">Upload your property photos, choose a cinematic direction, and turn them into a polished 25-second vertical tour—ready to publish everywhere.</span><span className="hero-description-mobile">Your property photos. A cinematic video tour. Ready to share.</span></p>
+            <a className="hero-cta hero-in" style={{ animationDelay: "400ms" }} href="/login">Create your first video for $1 <span>→</span></a>
+            <p className="hero-note hero-in" style={{ animationDelay: "500ms" }}><span aria-hidden="true">✓</span> Your photos. Any template. First video for $1.</p>
           </div>
 
           <figure className="compare-after hero-in" style={{ animationDelay: "680ms" }} onMouseMove={tiltMove} onMouseLeave={() => setTilt({ x: 0, y: 0 })}>
             <figcaption>The result</figcaption>
             <div className="compare-video" style={{ transform: `perspective(900px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) rotate(2deg)` }}>
-              <video autoPlay muted loop playsInline preload="metadata" poster={templatePreviews[0].poster} aria-label="Homie generated property tour">
-                <source src={templatePreviews[0].video} type="video/mp4" />
-              </video>
+              <AutoplayVideo video={templatePreviews[0].video} poster={templatePreviews[0].poster} label="Homie generated property tour" />
             </div>
           </figure>
         </div>
       </section>
 
-      <section className="marketing-proof" aria-label="Product highlights">
-        <div className="proof-grid">
-          {proofPoints.map((point, i) => <Reveal delay={i * 90} key={point.value}>
-            <div className="proof-point"><i aria-hidden="true">{point.icon}</i><div><strong>{point.value}</strong><span>{point.label}</span></div></div>
-          </Reveal>)}
-        </div>
-      </section>
-
-      <section className="marketing-steps" id="how-it-works">
-        <Reveal><p className="section-kicker">How it works</p></Reveal>
-        <Reveal delay={80}><h2>From listing to home tour<br /><i>in three steps.</i></h2></Reveal>
-        <div className="steps-grid">
-          {steps.map((s, i) => <Reveal delay={i * 110} key={s.n}><div className="step-card"><span>{s.n}</span><h3>{s.title}</h3><p>{s.body}</p></div></Reveal>)}
+      <section className="marketing-templates" id="templates">
+        <Reveal><p className="section-kicker">Templates</p></Reveal>
+        <Reveal delay={80}><h2>A style for every<br /><i>listing and mood.</i></h2></Reveal>
+        <div className="template-carousel">
+          <div className="template-carousel-track">
+            {[...templatePreviews, ...templatePreviews].map((template, index) => (
+              <TemplateVideoCard {...template} clone={index >= templatePreviews.length} key={`${template.title}-${index}`} />
+            ))}
+          </div>
         </div>
       </section>
 
@@ -272,7 +330,12 @@ export default function Marketing() {
               <span /><span /><span />
               <div className="product-url">app.homie.com/templates</div>
             </div>
-            <img src="/screens/explore-placeholder.jpg" alt="The Homie template library, where every tour starts" loading="lazy" decoding="async" />
+            <AutoplayVideo
+              className="product-promo-video"
+              video="/promo/homie-promo.mp4"
+              poster="/promo/homie-promo-poster.jpg"
+              label="Homie turns listing photos into a polished property video"
+            />
           </div>
         </Reveal>
       </section>
@@ -281,105 +344,67 @@ export default function Marketing() {
         <Reveal><p className="section-kicker">The range</p></Reveal>
         <Reveal delay={80}><h2>Every listing,<br /><i>already cinematic.</i></h2></Reveal>
         <Reveal delay={140}><p className="gallery-lead">City apartments, family homes, new builds, waterfront villas — the same guided flow turns any set of listing photos into a tour worth watching.</p></Reveal>
-        <div className="gallery-marquee" aria-hidden="true">
-          {[galleryTop, galleryBottom].map((row, r) => (
-            <div className="gallery-row" key={r}>
-              <div className={r === 1 ? "gallery-track reverse" : "gallery-track"}>
-                {[...row, ...row].map((src, i) => <img key={`${src}-${i}`} src={src} alt="" loading="lazy" decoding="async" />)}
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="marketing-integrations" id="integrations">
-        <div className="connect-grid">
-          <div className="connect-copy">
-            <Reveal><p className="section-kicker">Where your listings live</p></Reveal>
-            <Reveal delay={80}><h2>Connect your <i>listings.</i></h2></Reveal>
-            <Reveal delay={140}><p>Import a listing and its photos in one click. Connect the platform you already work in and start turning listings into tours the same day.</p></Reveal>
-            <Reveal delay={200}>
-              <ul className="connect-points">
-                <li>Import listings and photos automatically</li>
-                <li>Bring in a whole profile, or just one link</li>
-                <li>Re-sync whenever a listing changes</li>
-              </ul>
-            </Reveal>
-            <Reveal delay={260}><a className="hero-cta" href="/login">Connect your account <span>→</span></a></Reveal>
-          </div>
-          <Reveal delay={180}>
-            <div className="connect-panel">
-              <div className="connect-logos">
-                {integrations.map((item, i) => (
-                  <div className={item.live ? "connect-tile" : "connect-tile soon"} key={item.name}>
-                    <span className="connect-status"><i aria-hidden="true" />{item.live ? "Available" : "Coming soon"}</span>
-                    {item.logo
-                      ? <img src={item.logo} alt={`${item.name} logo`} loading="lazy" />
-                      : <span className="connect-wordmark">{item.name}</span>}
-                    <span className="connect-name">{item.name}</span>
-                  </div>
-                ))}
-              </div>
-              <p className="connect-note">More integrations coming soon</p>
-            </div>
-          </Reveal>
-        </div>
-      </section>
-
-      <section className="marketing-templates" id="templates">
-        <Reveal><p className="section-kicker">Templates</p></Reveal>
-        <Reveal delay={80}><h2>A style for every<br /><i>listing and mood.</i></h2></Reveal>
-        <div className="templates-preview-grid">
-          {templatePreviews.map((t, i) => <Reveal delay={i * 110} key={t.title}>
-            <TemplateVideoCard {...t} />
-          </Reveal>)}
-        </div>
-        <Reveal delay={200}><a className="marketing-inline-link" href="/login">Explore the full template library <span>→</span></a></Reveal>
-      </section>
-
-      <section className="marketing-use-cases" id="use-cases">
-        <Reveal><p className="section-kicker">Use cases</p></Reveal>
-        <Reveal delay={80}><h2>Built for solo agents<br /><i>and office teams.</i></h2></Reveal>
-        <div className="use-cases-grid">
-          {useCases.map((u, i) => <Reveal delay={i * 120} key={u.title}><div className="use-case-card"><span>{u.cta}</span><h3>{u.title}</h3><p>{u.body}</p></div></Reveal>)}
-        </div>
+        <GalleryMarquee />
       </section>
 
       <section className="marketing-pricing" id="pricing">
         <Reveal><p className="section-kicker">Pricing</p></Reveal>
         <Reveal delay={80}><h2>Simple plans that<br /><i>grow with you.</i></h2></Reveal>
-        <div className="pricing-grid">
-          {pricingTiers.map((t, i) => <Reveal delay={i * 120} key={t.name}>
-            <div className={t.highlighted ? "pricing-card highlighted" : "pricing-card"}>
-              {t.highlighted && <span className="pricing-badge">Most popular</span>}
-              <h3>{t.name}</h3><p className="pricing-tagline">{t.price} · {t.tagline}</p>
-              <ul>{t.features.map((f) => <li key={f}>✓ {f}</li>)}</ul>
-              <a className={t.highlighted ? "hero-cta" : "outline-cta"} href="/login">Start free trial <span>→</span></a>
-            </div>
-          </Reveal>)}
+        <div className="marketing-billing-toggle" role="group" aria-label="Billing period">
+          <button type="button" className={billingPeriod === "monthly" ? "active" : ""} aria-pressed={billingPeriod === "monthly"} onClick={() => setBillingPeriod("monthly")}>Monthly</button>
+          <button type="button" className={billingPeriod === "yearly" ? "active" : ""} aria-pressed={billingPeriod === "yearly"} onClick={() => setBillingPeriod("yearly")}>Annual <small>Save 17%</small></button>
         </div>
-        <Reveal delay={200}><p className="pricing-note">Secure monthly billing is handled by Polar. Cancel or change your plan anytime.</p></Reveal>
+        <div className="plan-comparison">
+          {pricingTiers.map((tier, index) => {
+            const isIntro = tier.slug === "first-video";
+            const annual = billingPeriod === "yearly" && tier.yearlyPrice !== null;
+            const price = annual ? Math.round(tier.yearlyPrice! / 12) : tier.monthlyPrice;
+            const videos = annual ? tier.monthlyVideos * 12 : tier.monthlyVideos;
+            return <Reveal delay={index * 120} key={tier.name}>
+              <article className={`plan-column${tier.highlighted ? " plan-column-featured" : ""}`}>
+                {tier.highlighted && <div className="plan-ribbon">Most popular</div>}
+                <header className="plan-heading"><h3>{tier.name}</h3>{tier.highlighted && <span className="plan-label">Recommended</span>}</header>
+                <p className="plan-description">{tier.tagline}</p>
+                <div className="plan-allowance">
+                  <strong>{isIntro ? "1 video to try" : `${videos} videos / ${annual ? "year" : "month"}`}</strong>
+                  <p>{["Try a tour with your own photos.", "Start your video publishing routine.", "Keep every new listing in the spotlight.", "One consistent workflow for your office."][index]}</p>
+                  <span className="plan-allowance-note"><span aria-hidden="true">✓</span> {isIntro ? "First-video offer · just $1" : annual ? "2 months free · annual allowance" : index === 3 ? "Includes 10 agent seats" : "Monthly video allowance"}</span>
+                </div>
+                <div className="plan-price"><strong>${price.toLocaleString("en-US")}</strong><span>{isIntro ? "for your first video" : annual ? `per month · billed $${tier.yearlyPrice!.toLocaleString("en-US")} yearly` : "per month"}</span></div>
+                <a className="plan-action" href="/login">{isIntro ? "Create for $1" : "Get started"} <span aria-hidden="true">→</span></a>
+                <p className="plan-features-label">Included in {isIntro ? "your first video" : tier.name}</p>
+                <ul className="plan-features">{tier.features.map((feature, featureIndex) => <li key={feature}><span aria-hidden="true">✓</span>{annual && featureIndex === 0 ? `${videos} video generations per year` : feature}</li>)}</ul>
+              </article>
+            </Reveal>;
+          })}
+        </div>
+        <Reveal delay={200}><p className="pricing-note">Secure {billingPeriod === "yearly" ? "annual" : "monthly"} billing is handled by Polar. Cancel or change your plan anytime.</p></Reveal>
       </section>
 
       <section className="marketing-faq" id="faq">
-        <Reveal><p className="section-kicker">FAQ</p></Reveal>
-        <Reveal delay={80}><h2>Questions,<br /><i>answered.</i></h2></Reveal>
-        <div className="faq-list">
-          {faqs.map((f, i) => <Reveal delay={i * 70} key={f.q}>
-            <div className={openFaq === i ? "faq-item open" : "faq-item"}>
-              <button onClick={() => setOpenFaq(openFaq === i ? -1 : i)} aria-expanded={openFaq === i}>
-                {f.q}
-                <span className="faq-toggle-icon" aria-hidden="true"><i /><i /></span>
-              </button>
-              <div className="faq-answer"><div><p>{f.a}</p></div></div>
-            </div>
-          </Reveal>)}
+        <div className="faq-layout">
+          <div className="faq-intro">
+            <Reveal><p className="section-kicker">FAQ</p></Reveal>
+            <Reveal delay={80}><h2>Questions,<br /><i>answered.</i></h2></Reveal>
+            <Reveal delay={140}><p>Everything you need to know before turning your first listing into a tour.</p></Reveal>
+          </div>
+          <div className="faq-list">
+            {faqs.map((f, i) => <Reveal delay={i * 70} key={f.q}>
+              <div className={openFaq === i ? "faq-item open" : "faq-item"}>
+                <button onClick={() => setOpenFaq(openFaq === i ? -1 : i)} aria-expanded={openFaq === i}>
+                  <span><b>{String(i + 1).padStart(2, "0")}</b>{f.q}</span>
+                  <span className="faq-toggle-icon" aria-hidden="true"><i /><i /></span>
+                </button>
+                <div className="faq-answer"><div><p>{f.a}</p></div></div>
+              </div>
+            </Reveal>)}
+          </div>
         </div>
       </section>
 
       <section className="marketing-cta-band">
         <Reveal><h2>Your next listing deserves<br /><i>more than a slideshow.</i></h2></Reveal>
-        <Reveal delay={120}><a className="hero-cta" href="/login">Start free <span>→</span></a></Reveal>
+        <Reveal delay={120}><a className="hero-cta" href="/login">Create your first video for $1 <span>→</span></a></Reveal>
       </section>
 
       <footer className="marketing-footer">

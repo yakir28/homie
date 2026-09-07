@@ -1,0 +1,33 @@
+.marketing-page .marketing-pricing{background:#ffffff}
+.marketing-billing-toggle{width:max-content;margin:30px auto 76px;padding:4px;display:flex;border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.78);box-shadow:0 10px 28px rgba(45,56,38,.08)}
+.marketing-billing-toggle button{min-height:42px;padding:0 18px;border:0;border-radius:999px;background:transparent;color:#687061;font:600 12px var(--sans)}
+.marketing-billing-toggle button.active{background:var(--ink);color:#fff;box-shadow:0 6px 16px rgba(28,34,24,.18)}
+.marketing-billing-toggle small{margin-left:6px;color:#78906a;font-size:10px}.marketing-billing-toggle button.active small{color:#cfe0c3}
+.marketing-billing-toggle button:focus-visible{outline:3px solid rgba(82,107,68,.34);outline-offset:3px}
+.plan-comparison{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));text-align:left;border:1px solid var(--line);border-radius:22px;margin-top:0;background:#ffffff}
+.plan-comparison>.reveal{display:flex;min-width:0}
+.plan-column{position:relative;width:100%;padding:28px 22px 32px;border-right:1px solid var(--line);color:var(--ink)}
+.plan-comparison>.reveal:last-child .plan-column{border-right:0}
+.plan-column-featured{background:#ffffff;border:3px solid var(--sage);border-radius:22px;margin:-3px -1px;z-index:1;box-shadow:0 16px 36px rgba(70,87,55,.08)}
+.plan-ribbon{position:absolute;bottom:calc(100% - 1px);left:-3px;right:-3px;height:40px;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--sage);color:white;border-radius:22px 22px 0 0;font-size:12px;font-weight:600}
+.plan-heading{display:flex;align-items:center;gap:8px;min-height:36px;flex-wrap:wrap}
+.plan-heading h3{font:500 26px/1.2 var(--serif);letter-spacing:-.8px;margin:0}
+.plan-label{font-size:9px;font-weight:600;color:white;background:var(--sage);padding:5px 7px;border-radius:20px}
+.plan-description{font-size:13px;line-height:1.6;color:#62685d;min-height:64px;margin:22px 0 16px}
+.plan-allowance{position:relative;padding:20px 14px 14px;border-radius:16px;background:rgba(255,255,255,.65);min-height:184px;display:flex;flex-direction:column}
+.plan-allowance strong{font-size:15px;line-height:1.4;font-weight:600}
+.plan-allowance p{font-size:12px;line-height:1.5;color:#62685d;margin:8px 0 16px}
+.plan-allowance-note{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:auto;padding:10px 5px;border-radius:8px;background:#e3eadb;color:#4d6240;font-size:10px;font-weight:500;text-align:center}
+.plan-price{display:flex;align-items:baseline;gap:9px;margin:28px 0 20px;min-height:44px}
+.plan-price strong{font-size:36px;line-height:1.2;letter-spacing:-1.5px;font-weight:600}
+.plan-price>span{font-size:11px;color:#62685d}
+.plan-action{display:flex;align-items:center;justify-content:center;gap:12px;min-height:46px;border-radius:9px;background:#1a1d18;color:#fff;text-decoration:none;font-size:13px;font-weight:500;box-shadow:inset 0 -3px 0 rgba(255,255,255,.12);transition:background .2s}
+.plan-column-featured .plan-action{background:var(--sage)}
+.plan-action:hover{background:#4d6240}
+.plan-action:focus-visible{outline:3px solid var(--sage);outline-offset:4px}
+.plan-features-label{margin:23px 0 16px;font-size:11px;color:#62685d}
+.plan-features{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:14px}
+.plan-features li{display:flex;align-items:flex-start;gap:9px;font-size:12px;line-height:1.6}
+.plan-features li>span{flex:none;display:grid;place-items:center;width:18px;height:18px;border-radius:5px;background:#e3eadb;color:#4d6240;font-size:11px;margin-top:1px}
+@media(max-width:980px){.plan-comparison{grid-template-columns:repeat(2,minmax(0,1fr));gap:50px 18px;border:0;background:#ffffff}.plan-column{border:1px solid var(--line);border-radius:20px;background:#ffffff}.plan-comparison>.reveal:last-child .plan-column{border-right:1px solid var(--line)}.plan-column-featured{border:3px solid var(--sage);background:#ffffff}.plan-description{min-height:42px}}
+@media(max-width:560px){.marketing-billing-toggle{margin:22px auto 52px}.marketing-billing-toggle button{padding:0 14px}.plan-comparison{grid-template-columns:1fr;gap:52px}.plan-column{padding:26px}.plan-description{min-height:0;margin-top:16px}.plan-allowance{min-height:165px}.plan-heading h3{font-size:28px}.plan-features li{font-size:14px}.plan-label{font-size:11px}}

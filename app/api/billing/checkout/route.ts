@@ -1,4 +1,4 @@
-import { isPolarPlanSlug, appOrigin, polarApi, polarProductId, workspaceExternalCustomerId } from "../../../../lib/polar";
+import { isPolarBillingInterval, isPolarPlanSlug, appOrigin, polarApi, polarProductId, workspaceExternalCustomerId } from "../../../../lib/polar";
 import { authenticatedSupabase } from "../../../../lib/supabase/server-auth";
 
 export async function POST(request: Request) {
@@ -6,8 +6,8 @@ export async function POST(request: Request) {
     const auth = await authenticatedSupabase(request);
     if (!auth) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
-    const body = await request.json() as { planSlug?: unknown; workspaceId?: unknown };
-    if (!isPolarPlanSlug(body.planSlug) || (typeof body.workspaceId !== "string" && typeof body.workspaceId !== "number")) {
+    const body = await request.json() as { planSlug?: unknown; billingInterval?: unknown; workspaceId?: unknown };
+    if (!isPolarPlanSlug(body.planSlug) || !isPolarBillingInterval(body.billingInterval) || (typeof body.workspaceId !== "string" && typeof body.workspaceId !== "number")) {
       return Response.json({ error: "Invalid billing request" }, { status: 400 });
     }
     const workspaceId = String(body.workspaceId);
@@ -21,8 +21,8 @@ export async function POST(request: Request) {
       .maybeSingle();
     if (!membership) return Response.json({ error: "Workspace access denied" }, { status: 403 });
 
-    const productId = polarProductId(body.planSlug);
-    if (!productId) return Response.json({ error: `Polar product for ${body.planSlug} is not configured` }, { status: 503 });
+    const productId = polarProductId(body.planSlug, body.billingInterval);
+    if (!productId) return Response.json({ error: `Polar ${body.billingInterval} product for ${body.planSlug} is not configured` }, { status: 503 });
 
     const origin = appOrigin(request);
     const checkout = await polarApi<{ url: string }>("checkouts/", {
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
       external_customer_id: workspaceExternalCustomerId(workspaceId),
       customer_email: auth.user.email,
       customer_ip_address: request.headers.get("cf-connecting-ip") ?? request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? undefined,
-      metadata: { workspace_id: Number(workspaceId), plan_slug: body.planSlug },
+      metadata: { workspace_id: Number(workspaceId), plan_slug: body.planSlug, billing_interval: body.billingInterval },
       allow_discount_codes: true,
       success_url: `${origin}/app?checkout=success`,
       return_url: `${origin}/app`,

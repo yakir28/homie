@@ -11,7 +11,7 @@ const args = new Set(process.argv.slice(2));
 const once = args.has("--once");
 const dryRun = args.has("--dry-run");
 const pollMs = Number(process.env.VIDEO_WORKER_POLL_MS ?? 5000);
-const higgsfieldModel = process.env.HIGGSFIELD_VIDEO_MODEL ?? "seedance_2_0_mini";
+const higgsfieldModel = process.env.HIGGSFIELD_VIDEO_MODEL ?? "seedance_2_0";
 const higgsfieldResolution = process.env.HIGGSFIELD_VIDEO_RESOLUTION ?? "720p";
 const higgsfieldWaitTimeout = process.env.HIGGSFIELD_WAIT_TIMEOUT ?? "30m";
 const supabaseUrl = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -108,6 +108,27 @@ function inferredRole(index, total) {
 
 function makeShotPlan(project, photos) {
   const config = project.template_prompt_snapshot ?? project.video_templates?.generation_config ?? {};
+  if (config.workflow === "single_30s_all_references") {
+    const directorPrompt = config.director_prompt
+      ?? config.structured_prompt
+      ?? config.timed_prompt
+      ?? "Create one coherent property film using the supplied references in their exact chronological order.";
+    return [{
+      order: 0,
+      role: "complete_property_film",
+      duration: Math.min(30, project.duration_seconds),
+      prompt: `${config.base_prompt ?? BASE_PROMPT} ${config.preservation_prompt ?? PRESERVATION_PROMPT} ${directorPrompt}`,
+      startPath: null,
+      endPath: null,
+      referencePaths: photos.map((photo) => photo.path),
+      provider: "higgsfield",
+      model: config.higgsfield_model ?? config.model ?? higgsfieldModel,
+      resolution: config.higgsfield_resolution ?? config.resolution ?? higgsfieldResolution,
+      mode: config.higgsfield_mode ?? null,
+      bitrateMode: config.higgsfield_bitrate_mode ?? null,
+      generateAudio: config.supports_generate_audio === false ? null : config.generate_audio ?? false,
+    }];
+  }
   const configured = Array.isArray(config.shots) ? config.shots : [];
   const desiredShotCount = Math.round(project.duration_seconds / 6);
   const targetShots = Math.max(1, Math.min(photos.length, configured.length || desiredShotCount));
@@ -131,7 +152,7 @@ function makeShotPlan(project, photos) {
     const endLabel = photos[endIndex].roomType ?? inferredRole(endIndex, photos.length);
     const basePrompt = config.base_prompt ?? BASE_PROMPT;
     const preservationPrompt = config.preservation_prompt ?? PRESERVATION_PROMPT;
-    const referenceMode = definition.reference_mode ?? "start";
+    const referenceMode = definition.reference_mode ?? (hasExplicitEnd ? "both" : "start");
     const imageAdaptation = referenceMode === "end"
       ? `The end reference is the ground-truth property reveal. Begin with the described stylized setup, then converge cleanly and exactly on that reference without changing the home's architecture, materials, or surroundings.`
       : referenceMode === "start"
@@ -169,6 +190,8 @@ async function runHiggsfield(shot, aspectRatio) {
   if (shot.startPath) command.push("--start-image", shot.startPath);
   if (shot.endPath) command.push("--end-image", shot.endPath);
   for (const referencePath of shot.referencePaths) command.push("--image", referencePath);
+  if (shot.mode) command.push("--mode", shot.mode);
+  if (shot.bitrateMode) command.push("--bitrate_mode", shot.bitrateMode);
   command.push(
     "--duration", String(shot.duration),
     "--resolution", shot.resolution,
