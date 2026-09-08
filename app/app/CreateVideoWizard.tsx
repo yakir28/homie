@@ -109,10 +109,10 @@ export default function CreateVideoWizard({ template, initialListings, workspace
     {insufficientCredits && <p className="creation-warning">You need {cost! - walletBalance} more credits. Choose a lower resolution or top up your balance.</p>}
     {priceError && <p className="creation-warning">Could not load pricing. <button onClick={() => setReloadPrice((value) => value + 1)}>Retry</button></p>}
     {error && <p className="creation-warning" role="alert">{error}</p>}
-    <button className="template-detail-create" disabled={creating || cost === undefined || insufficientCredits || needsPhotos || missingPrompt} onClick={() => void generate()}>
-      <span>{creating ? "Creating…" : "Create"}</span><span>{cost === undefined ? "Loading price…" : `${cost} ${cost === 1 ? "credit" : "credits"}`} <span aria-hidden="true">→</span></span>
+    <button className="template-detail-create" disabled={!selected || creating || cost === undefined || insufficientCredits || needsPhotos || missingPrompt} onClick={() => void generate()}>
+      <span>{creating ? "Creating…" : "Create"}</span><span>{!selected ? "Choose a listing" : cost === undefined ? "Loading price…" : `${cost} ${cost === 1 ? "credit" : "credits"}`} {selected && <span aria-hidden="true">→</span>}</span>
     </button>
-    <p className="creation-balance" aria-live="polite">{cost === undefined ? "Checking current pricing" : `${walletBalance} credits available${insufficientCredits ? "" : ` · ${walletBalance - cost} after creation`}`}</p>
+    <p className="creation-balance" aria-live="polite">{!selected ? `${walletBalance} credits available · Select a listing to continue` : cost === undefined ? "Checking current pricing" : `${walletBalance} credits available${insufficientCredits ? "" : ` · ${walletBalance - cost} after creation`}`}</p>
     {picker && <dialog ref={dialog} className="creation-picker" aria-labelledby="creation-picker-title" onCancel={(event) => { event.preventDefault(); closePicker(); }} onClick={(event) => { if (event.target === event.currentTarget) { const rect = event.currentTarget.getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) closePicker(); } }}>
       <header><div><h2 id="creation-picker-title">{picker === "listing" ? "Choose a listing" : picker === "format" ? "Choose a format" : "Choose resolution"}</h2><p>{picker === "listing" ? "Which property would you like to bring to life?" : picker === "format" ? "Choose the frame that fits your audience." : "Higher resolution uses more credits."}</p></div><button aria-label="Close selection" onClick={closePicker}>×</button></header>
       {picker === "listing" ? <>

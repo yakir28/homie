@@ -1,0 +1,160 @@
+/* Workspace-only layout rules, after the shared desktop styles. */
+.app-shell .main-panel,
+.app-shell .global-search,
+.app-shell .global-search input,
+.app-shell .page,
+.app-shell .page > *,
+.app-shell .settings-content,
+.app-shell .settings-field {
+  min-width: 0;
+}
+
+.app-shell .topbar > .mobile-brand,
+.app-shell .filter-square { flex-shrink: 0; }
+.app-shell .content-tabs { overflow-x: auto; }
+.app-shell .content-tabs button { flex-shrink: 0; white-space: nowrap; }
+.app-shell .mobile-more {
+  inset: auto 12px calc(76px + env(safe-area-inset-bottom));
+  width: auto;
+  max-height: calc(100dvh - 110px - env(safe-area-inset-bottom));
+  margin: 0;
+  padding: 10px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 18px 60px #0005;
+}
+.mobile-more nav { display: grid; gap: 4px; }
+.mobile-more nav :is(button, a) {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  text-decoration: none;
+  font: inherit;
+  font-size: 14px;
+}
+.mobile-more nav :is(button, a):hover { background: var(--sage-soft); }
+.mobile-more nav :is(button, a):focus-visible { outline: 2px solid var(--sage); }
+
+@media (min-width: 761px) and (max-width: 1100px) {
+  .app-shell .sidebar { width: 210px; }
+  .app-shell .main-panel { margin-left: 210px; width: calc(100% - 210px); }
+  .app-shell .topbar { padding-inline: 20px; }
+  .app-shell .template-grid,
+  .app-shell .video-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .app-shell .template-card.wide { grid-column: span 2; }
+  .app-shell .settings-modal { grid-template-columns: 190px minmax(0, 1fr); }
+  .app-shell .settings-content { padding-inline: 28px; }
+  .app-shell .settings-actions { margin-inline: -28px; padding-inline: 28px; }
+}
+
+@media (max-width: 800px) {
+  .app-shell .listing-showcase {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(200px, 38dvh) minmax(0, 1fr);
+  }
+  .app-shell .listing-showcase:has(.house-map-embedded) {
+    grid-template-rows: minmax(160px, 30dvh) minmax(0, 1fr);
+  }
+  .app-shell .listing-showcase-copy {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-bottom: max(20px, env(safe-area-inset-bottom));
+  }
+  .app-shell .listing-showcase-cta { flex-shrink: 0; }
+  .app-shell .house-map-embedded { flex-shrink: 0; min-height: 320px; }
+}
+
+@media (max-width: 760px) {
+  .app-shell { min-height: 100dvh; }
+  .app-shell .main-panel {
+    margin-left: 0;
+    width: 100%;
+    padding-bottom: calc(76px + env(safe-area-inset-bottom));
+  }
+  .app-shell .mobile-nav {
+    height: calc(65px + env(safe-area-inset-bottom));
+    padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  .app-shell .mobile-nav button { min-height: 44px; font-size: 11px; }
+  .app-shell .mobile-nav button { gap: 3px; font-weight: 500; }
+  .app-shell .mobile-nav .mobile-nav-icon {
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 30px;
+    border-radius: 12px;
+    transition: background .18s ease, color .18s ease;
+  }
+  .app-shell .mobile-nav-icon svg { display: block; width: 22px; height: 22px; }
+  .app-shell .mobile-nav button.active .mobile-nav-icon,
+  .app-shell .mobile-nav button[aria-expanded="true"] .mobile-nav-icon {
+    background: var(--sage-soft);
+    color: var(--sage);
+  }
+  .app-shell .mobile-nav button:focus-visible { outline: 2px solid var(--sage); outline-offset: -4px; border-radius: 12px; }
+  .app-shell .topbar,
+  .app-shell .topbar:has(.template-tools) { height: auto; min-height: 66px; padding: 12px 16px; flex-wrap: nowrap; gap: 10px; }
+  .app-shell .topbar .global-search { min-width: 0; flex: 1; padding-inline: 10px; }
+  .app-shell .topbar .template-tools { width: auto; flex: 0 0 auto; }
+  .app-shell .template-filter-trigger { position: relative; width: 44px; min-height: 44px; padding: 0; }
+  .app-shell .template-filter-label { display: none; }
+  .app-shell .template-filter-trigger b { position: absolute; top: -5px; right: -5px; min-width: 18px; height: 18px; font-size: 10px; }
+  .app-shell .page { padding-inline: 16px; }
+  .app-shell .content-tabs { gap: 24px; }
+  .app-shell .template-filter-popover { bottom: calc(76px + env(safe-area-inset-bottom)); max-height: 65dvh; }
+  .app-shell .template-results-bar { flex-wrap: wrap; }
+  .app-shell .settings-backdrop { padding: 0; }
+  .app-shell .settings-modal {
+    width: 100%; height: 100dvh; max-height: 100dvh;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    border: 0; border-radius: 0;
+  }
+  .app-shell .settings-nav { min-width: 0; display: flex; overflow-x: auto; border-right: 0; padding: 12px; }
+  .app-shell .settings-nav button { width: auto; flex-shrink: 0; min-height: 44px; }
+  .app-shell .settings-content { padding: 70px 20px 30px; }
+  .app-shell .settings-option { flex-wrap: wrap; gap: 16px; }
+  .app-shell .settings-avatar-row { flex-wrap: wrap; gap: 14px; overflow-wrap: anywhere; }
+  .app-shell .settings-actions { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
+  .app-shell .profile-form-card,
+  .app-shell .profile-side-card { padding: 18px; }
+  .app-shell .profile-heading { overflow-wrap: anywhere; }
+  .app-shell .subscribe-account-summary { min-width: 0; max-width: 100%; flex-wrap: wrap; }
+  .app-shell .subscribe-plan-card { min-height: 0; }
+  .app-shell .subscribe-footer-note { flex-wrap: wrap; }
+  .app-shell .topup-modal { height: 100dvh; padding-bottom: max(24px, env(safe-area-inset-bottom)); }
+  .app-shell .wizard-modal,
+  .app-shell .zillow-import-modal,
+  .app-shell .create-listing-modal { max-height: 100dvh; }
+  .app-shell :is(input, textarea, select) { font-size: 16px; }
+  .app-shell .toast { bottom: calc(80px + env(safe-area-inset-bottom)); }
+}
+
+@media (min-width: 540px) and (max-width: 760px) {
+  .app-shell .template-grid,
+  .app-shell .video-grid,
+  .app-shell .listings-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .app-shell .template-card.wide { grid-column: span 1; }
+  .app-shell .template-card.tall { grid-row: span 1; }
+}
+
+@media (max-width: 380px) {
+  .app-shell .creation-choices { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .app-shell .creation-choices > button:first-child { grid-column: 1 / -1; }
+  .app-shell .creation-listings,
+  .app-shell .listing-chooser .wizard-listing-grid { grid-template-columns: minmax(0, 1fr); }
+  .app-shell .topup-bundles article { grid-template-columns: 20px minmax(0, 1fr); }
+  .app-shell .topup-purchase { grid-column: 2; grid-row: auto; width: 100%; }
+  .app-shell .topup-bundle-price { align-items: flex-start; }
+  .app-shell .topup-switch button { padding-inline: 14px; }
+}

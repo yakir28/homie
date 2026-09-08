@@ -19,9 +19,9 @@ export default function TemplateFilters({ format, onFormat, formats, count }: {
   }, [open]);
   const labels: Record<string, string> = { "9:16": "Vertical", "1:1": "Square", "16:9": "Landscape" };
   return <div className="template-tools" ref={root}>
-    <button ref={trigger} className={`template-filter-trigger ${open || count ? "selected" : ""}`} aria-expanded={open} aria-controls="template-format-options" onClick={() => setOpen(!open)}>
+    <button ref={trigger} className={`template-filter-trigger ${open || count ? "selected" : ""}`} aria-label={count ? `Filters (${count} active)` : "Filters"} aria-expanded={open} aria-controls="template-format-options" onClick={() => setOpen(!open)}>
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><path d="M4 7h7m4 0h5M4 17h3m4 0h9" /><circle cx="13" cy="7" r="2" /><circle cx="9" cy="17" r="2" /></svg>
-      Filters {count > 0 && <b>{count}</b>}
+      <span className="template-filter-label">Filters</span> {count > 0 && <b>{count}</b>}
     </button>
     {open && <section className="template-filter-popover" id="template-format-options" aria-label="Template filters" onBlur={(event) => { if (!event.currentTarget.parentElement?.contains(event.relatedTarget as Node)) setOpen(false); }}>
       <header><div><h2>Video format</h2><p>Choose where your video will live.</p></div><button aria-label="Close filters" onClick={() => { setOpen(false); trigger.current?.focus(); }}>×</button></header>

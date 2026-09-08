@@ -7,19 +7,31 @@ import ZillowImportModal from "./ZillowImportModal";
 import HomieLogo from "../HomieLogo";
 import { useWorkspaceLoading } from "../SiteLoading";
 import TemplateMedia from "./TemplateMedia";
-import ListingMapBoard from "./ListingMapBoard";
+import ListingMapBoard, { ListingMapSummary } from "./ListingMapBoard";
 import TemplateFilters from "./TemplateFilters";
 import "./template-detail.css";
+import "./responsive.css";
 import { PUBLIC_ANNUAL_PRICES, PUBLIC_PRICES } from "../../lib/public-pricing";
 import { resolveMediaUrl, responsiveImageProps } from "../../lib/media-url";
 
 type View = "templates" | "favorites" | "listings" | "videos" | "integrations" | "profile" | "subscribe";
 
 const nav = [
-  { id: "templates" as View, label: "Templates", icon: "◇" },
-  { id: "listings" as View, label: "Listings", icon: "▤" },
-  { id: "videos" as View, label: "My videos", icon: "▷" },
+  { id: "templates" as const, label: "Templates" },
+  { id: "listings" as const, label: "Listings" },
+  { id: "videos" as const, label: "My videos" },
 ];
+
+function MobileNavIcon({ name }: { name: "templates" | "listings" | "videos" | "more" }) {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+      {name === "templates" && <><rect x="3" y="3" width="7" height="7" rx="2" /><rect x="14" y="3" width="7" height="7" rx="2" /><rect x="3" y="14" width="7" height="7" rx="2" /><rect x="14" y="14" width="7" height="7" rx="2" /></>}
+      {name === "listings" && <><path d="m3 10 9-7 9 7v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><path d="M9 21v-8h6v8" /></>}
+      {name === "videos" && <><rect x="3" y="4" width="18" height="16" rx="4" /><path d="m10 8 6 4-6 4z" /></>}
+      {name === "more" && <><circle cx="5" cy="12" r="1.5" fill="currentColor" stroke="none" /><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" /><circle cx="19" cy="12" r="1.5" fill="currentColor" stroke="none" /></>}
+    </svg>
+  );
+}
 
 const categoryOptions = ["All", "Luxury", "Viral Trends", "Casual", "Timelapse", "Effects", "Cinematic", "Fast-paced"];
 export type TemplateItem = {
@@ -139,6 +151,7 @@ export default function Home() {
   const [toast, setToast] = useState("");
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [profileOpen, setProfileOpen] = useState(false);
+  const mobileMoreRef = useRef<HTMLDivElement>(null);
   const [search, setSearch] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [category, setCategory] = useState("All");
@@ -448,6 +461,7 @@ export default function Home() {
   }
 
   function changeView(v: View) {
+    mobileMoreRef.current?.hidePopover();
     setView(v);
     if (v !== "listings") setSelectedListingId(null);
     setSearch("");
@@ -1000,12 +1014,27 @@ export default function Home() {
 
         <nav className="mobile-nav" aria-label="Mobile navigation">
           {nav.map((item) => (
-            <button key={item.id} className={view === item.id ? "active" : ""} onClick={() => changeView(item.id)}>
-              <span>{item.icon}</span>
+            <button key={item.id} className={view === item.id ? "active" : ""} aria-current={view === item.id ? "page" : undefined} onClick={() => changeView(item.id)}>
+              <span className="mobile-nav-icon"><MobileNavIcon name={item.id} /></span>
               {item.label === "My videos" ? "Videos" : item.label}
             </button>
           ))}
+          <button popoverTarget="mobile-more" className={!nav.some((item) => item.id === view) ? "active" : ""}>
+            <span className="mobile-nav-icon"><MobileNavIcon name="more" /></span>
+            More
+          </button>
         </nav>
+        <div id="mobile-more" ref={mobileMoreRef} popover="auto" className="mobile-more">
+          <nav aria-label="More navigation">
+            <button onClick={() => changeView("favorites")}>Favorites</button>
+            <button onClick={() => changeView("integrations")}>Integrations</button>
+            <button onClick={() => changeView("profile")}>Profile</button>
+            <button onClick={() => { mobileMoreRef.current?.hidePopover(); setSettingsOpen(true); }}>Settings</button>
+            <button onClick={() => changeView("subscribe")}>Plans & subscription</button>
+            <button onClick={() => { mobileMoreRef.current?.hidePopover(); setTopUpOpen(true); }}>Top up credits · {creditBalance}</button>
+            <a href="/docs">Help</a>
+          </nav>
+        </div>
       </section>
       {toast && (
         <div className="toast">
@@ -1013,7 +1042,7 @@ export default function Home() {
           {toast}
         </div>
       )}
-      {selectedListingId && workspaceId && <ListingDetail listing={listingItems.find((item) => item.id === selectedListingId) ?? null} photos={selectedListingPhotos} workspaceId={workspaceId} onBack={() => setSelectedListingId(null)} onCreateVideo={() => changeView("templates")} flash={flash} />}
+      {selectedListingId && workspaceId && <ListingDetail listing={listingItems.find((item) => item.id === selectedListingId) ?? null} photos={selectedListingPhotos} workspaceId={workspaceId} onBack={() => setSelectedListingId(null)} flash={flash} />}
       {selectedVideo && <VideoModal video={videoItems.find((video) => video.id === selectedVideo.id) ?? selectedVideo} onClose={() => setSelectedVideo(null)} flash={flash} />}
       {settingsOpen && <SettingsModal details={profileDetails} onChange={setProfileDetails} onSave={saveProfile} saving={savingProfile} theme={theme} onThemeChange={setTheme} credits={creditBalance} onPasswordChange={changePassword} onClose={() => setSettingsOpen(false)} flash={flash} />}
       {topUpOpen && (
@@ -1533,8 +1562,9 @@ function Listings({ items, search, sourceFilter, photoFilter, sort, onClear, onO
   );
 }
 
-function ListingDetail({ listing, photos, workspaceId, onBack, onCreateVideo, flash }: { listing: ListingItem | null; photos: ListingPhotoItem[]; workspaceId: string; onBack: () => void; onCreateVideo: () => void; flash: (message: string) => void }) {
+function ListingDetail({ listing, photos, workspaceId, onBack, flash }: { listing: ListingItem | null; photos: ListingPhotoItem[]; workspaceId: string; onBack: () => void; flash: (message: string) => void }) {
   const [mappingOpen, setMappingOpen] = useState(false);
+  const [mapRevision, setMapRevision] = useState(0);
   const [localPhotos, setLocalPhotos] = useState(photos);
   const [photoBusy, setPhotoBusy] = useState(false);
   const gallery = localPhotos.length
@@ -1646,31 +1676,12 @@ function ListingDetail({ listing, photos, workspaceId, onBack, onCreateVideo, fl
         <button className="listing-showcase-close" aria-label="Close listing" onClick={onBack}>
           ×
         </button>
-        <div className="listing-showcase-copy">
+        <div className="listing-showcase-copy listing-showcase-copy-mapped">
           <div className="listing-showcase-title">
             <span>{listing.city || "Your property"}</span>
             <h1>{listing.address}</h1>
           </div>
-          <div className="listing-right-carousel" role="region" aria-label="Listing image carousel">
-            {activePhoto && <img src={activePhoto.url} alt={`${activePhoto.roomType || "Property"} at ${listing.address}`} />}
-            <div className="listing-carousel-nav">
-              <button disabled={gallery.length < 2} aria-label="Previous photo" onClick={() => setActivePhotoId(gallery[(gallery.findIndex((photo) => photo.id === activePhoto?.id) - 1 + gallery.length) % gallery.length].id)}>←</button>
-              <span aria-live="polite">{gallery.findIndex((photo) => photo.id === activePhoto?.id) + 1} / {gallery.length}</span>
-              <button disabled={gallery.length < 2} aria-label="Next photo" onClick={() => setActivePhotoId(gallery[(gallery.findIndex((photo) => photo.id === activePhoto?.id) + 1) % gallery.length].id)}>→</button>
-            </div>
-            <div className="listing-right-thumbs">{gallery.map((photo, index) => <button key={photo.id} aria-label={`View photo ${index + 1}`} aria-pressed={photo.id === activePhoto?.id} onClick={() => setActivePhotoId(photo.id)}><img src={photo.url} alt="" loading="lazy" /></button>)}</div>
-          </div>
-          <button className="listing-map-button" onClick={() => setMappingOpen(true)}>Map house</button>
-          <div className="listing-showcase-current">
-            <span>Viewing</span>
-            <strong>{activePhoto?.roomType || "Property overview"}</strong>
-            <small>
-              {String(gallery.findIndex((photo) => photo.id === activePhoto?.id) + 1).padStart(2, "0")} / {String(gallery.length).padStart(2, "0")}
-            </small>
-          </div>
-          <button className="listing-showcase-cta" onClick={onCreateVideo}>
-            Create a video tour <span>→</span>
-          </button>
+          <ListingMapSummary key={mapRevision} listingId={listing.id} photos={localPhotos} onEdit={() => setMappingOpen(true)} />
         </div>
         <div className="listing-showcase-visual">
           {activePhoto && <img key={activePhoto.id} {...responsiveImageProps(activePhoto.url, "(max-width: 900px) 100vw, 70vw", [640, 960, 1280, 1600])} alt={`${activePhoto.roomType} at ${listing.address}`} decoding="async" />}
@@ -1705,7 +1716,7 @@ function ListingDetail({ listing, photos, workspaceId, onBack, onCreateVideo, fl
           </div>
         </div>
       </section>
-      {mappingOpen && <ListingMapBoard listingId={listing.id} photos={localPhotos} onClose={() => setMappingOpen(false)} onMove={(photoId, zoneId) => setLocalPhotos((current) => current.map((photo) => photo.id === photoId ? { ...photo, zoneId } : photo))} />}
+      {mappingOpen && <ListingMapBoard listingId={listing.id} photos={localPhotos} onClose={() => { setMappingOpen(false); setMapRevision((value) => value + 1); }} onMove={(photoId, zoneId) => setLocalPhotos((current) => current.map((photo) => photo.id === photoId ? { ...photo, zoneId } : photo))} />}
     </div>
   );
 }
