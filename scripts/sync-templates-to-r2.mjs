@@ -63,7 +63,7 @@ async function upload(slug, kind, source) {
   return mediaOrigin ? `${mediaOrigin}/${key}` : `/api/media/template?key=${encodeURIComponent(key)}`;
 }
 
-const { data: templates, error } = await db.from("video_templates").select("id, slug, preview_url, thumbnail_url").eq("is_active", true).order("sort_order");
+const { data: templates, error } = await db.from("video_templates").select("id, slug, preview_url, thumbnail_url").eq("is_active", true).neq("preview_url", "").order("sort_order");
 if (error) throw error;
 
 for (const template of templates ?? []) {

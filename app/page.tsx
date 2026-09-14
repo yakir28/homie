@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import HomieLogo from "./HomieLogo";
 import { PUBLIC_ANNUAL_PRICES, PUBLIC_PRICES } from "../lib/public-pricing";
 import GalleryMarquee from "./GalleryMarquee";
-import "./landing-pricing.css";
+import { Pricing } from "../components/ui/pricing";
 import "./landing-typography.css";
 import "./landing-glass.css";
 import "./landing-trial-popup.css";
@@ -347,38 +347,21 @@ export default function Marketing() {
         <GalleryMarquee />
       </section>
 
-      <section className="marketing-pricing" id="pricing">
-        <Reveal><p className="section-kicker">Pricing</p></Reveal>
-        <Reveal delay={80}><h2>Simple plans that<br /><i>grow with you.</i></h2></Reveal>
-        <div className="marketing-billing-toggle" role="group" aria-label="Billing period">
-          <button type="button" className={billingPeriod === "monthly" ? "active" : ""} aria-pressed={billingPeriod === "monthly"} onClick={() => setBillingPeriod("monthly")}>Monthly</button>
-          <button type="button" className={billingPeriod === "yearly" ? "active" : ""} aria-pressed={billingPeriod === "yearly"} onClick={() => setBillingPeriod("yearly")}>Annual <small>Save 17%</small></button>
-        </div>
-        <div className="plan-comparison">
-          {pricingTiers.map((tier, index) => {
-            const isIntro = tier.slug === "first-video";
+      <section id="pricing">
+        <Pricing annual={billingPeriod === "yearly"} onAnnualChange={(annual) => setBillingPeriod(annual ? "yearly" : "monthly")}
+          plans={pricingTiers.map((tier) => {
+            const intro = tier.slug === "first-video";
             const annual = billingPeriod === "yearly" && tier.yearlyPrice !== null;
-            const price = annual ? Math.round(tier.yearlyPrice! / 12) : tier.monthlyPrice;
-            const videos = annual ? tier.monthlyVideos * 12 : tier.monthlyVideos;
-            return <Reveal delay={index * 120} key={tier.name}>
-              <article className={`plan-column${tier.highlighted ? " plan-column-featured" : ""}`}>
-                {tier.highlighted && <div className="plan-ribbon">Most popular</div>}
-                <header className="plan-heading"><h3>{tier.name}</h3>{tier.highlighted && <span className="plan-label">Recommended</span>}</header>
-                <p className="plan-description">{tier.tagline}</p>
-                <div className="plan-allowance">
-                  <strong>{isIntro ? "1 video to try" : `${videos} videos / ${annual ? "year" : "month"}`}</strong>
-                  <p>{["Try a tour with your own photos.", "Start your video publishing routine.", "Keep every new listing in the spotlight.", "One consistent workflow for your office."][index]}</p>
-                  <span className="plan-allowance-note"><span aria-hidden="true">✓</span> {isIntro ? "First-video offer · just $1" : annual ? "2 months free · annual allowance" : index === 3 ? "Includes 10 agent seats" : "Monthly video allowance"}</span>
-                </div>
-                <div className="plan-price"><strong>${price.toLocaleString("en-US")}</strong><span>{isIntro ? "for your first video" : annual ? `per month · billed $${tier.yearlyPrice!.toLocaleString("en-US")} yearly` : "per month"}</span></div>
-                <a className="plan-action" href="/login">{isIntro ? "Create for $1" : "Get started"} <span aria-hidden="true">→</span></a>
-                <p className="plan-features-label">Included in {isIntro ? "your first video" : tier.name}</p>
-                <ul className="plan-features">{tier.features.map((feature, featureIndex) => <li key={feature}><span aria-hidden="true">✓</span>{annual && featureIndex === 0 ? `${videos} video generations per year` : feature}</li>)}</ul>
-              </article>
-            </Reveal>;
-          })}
-        </div>
-        <Reveal delay={200}><p className="pricing-note">Secure {billingPeriod === "yearly" ? "annual" : "monthly"} billing is handled by Polar. Cancel or change your plan anytime.</p></Reveal>
+            return {
+              id: tier.slug, name: tier.name, popular: tier.highlighted,
+              price: annual ? Math.round(tier.yearlyPrice! / 12) : tier.monthlyPrice,
+              period: intro ? "first video" : "/ month",
+              billing: intro ? "One-time introductory offer" : annual ? `$${tier.yearlyPrice!.toLocaleString("en-US")} billed annually` : "Billed monthly",
+              features: tier.features.map((feature, index) => annual && index === 0 ? `${tier.monthlyVideos * 12} video generations per year` : feature),
+              description: tier.tagline,
+              action: <a href="/login">{intro ? "Create for $1" : "Get started"}</a>,
+            };
+          })} />
       </section>
 
       <section className="marketing-faq" id="faq">

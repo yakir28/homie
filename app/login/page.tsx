@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { Suspense, useEffect, useState, type FormEvent } from "react";
 import { getSupabaseBrowserClient } from "../../lib/supabase/client";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import HomieLogo from "../HomieLogo";
 
 const gallery = Array.from({ length: 14 }, (_, i) => `/gallery/gallery-${String(i + 1).padStart(2, "0")}.jpg`);
@@ -14,12 +16,25 @@ const collageColumns = [0, 1, 2, 3].map((column) => {
 });
 
 export default function Login() {
-  const [mode, setMode] = useState<"login" | "signup">("login");
+  return <Suspense fallback={<main className="auth-page">Loading account options…</main>}><LoginForm /></Suspense>;
+}
+
+function LoginForm() {
+  const searchParams = useSearchParams();
+  const [chosenMode, setMode] = useState<"login" | "signup" | null>(null);
+  const mode = chosenMode ?? (searchParams.get("mode") === "signup" ? "signup" : "login");
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    const query = new URLSearchParams(window.location.search);
+    if (query.get("source") === "side-hustle") {
+      try { sessionStorage.setItem("homie-acquisition", JSON.stringify({ source: "side-hustle", offer: "first-video" })); } catch { /* Signup remains available when storage is blocked. */ }
+    }
+  }, []);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -73,7 +88,7 @@ export default function Login() {
           ))}
         </div>
         <div className="auth-scrim" />
-        <a className="auth-brand" href="/" aria-label="Homie home page"><HomieLogo variant="mark-light" /></a>
+        <Link className="auth-brand" href="/" aria-label="Homie home page"><HomieLogo variant="mark-light" /></Link>
         <div className="auth-collage-copy">
           <p className="eyebrow">● {mode === "login" ? "Welcome back" : "Your first video for $1"}</p>
           <h1>
@@ -114,7 +129,7 @@ export default function Login() {
 
           {mode === "login" && <button className="auth-forgot" onClick={resetPassword} disabled={loading}>Forgot password?</button>}
 
-          <p className="auth-legal">By continuing, you agree to our <a href="/terms">Terms</a> · <a href="/privacy">Privacy</a></p>
+          <p className="auth-legal">By continuing, you agree to our <Link href="/terms">Terms</Link> · <Link href="/privacy">Privacy</Link></p>
         </div>
       </section>
     </main>

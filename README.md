@@ -118,6 +118,27 @@ Use `SUPABASE_SECRET_KEY` for current
 Supabase projects; the worker also accepts the legacy
 `SUPABASE_SERVICE_ROLE_KEY` name.
 
+## Explore prompt films
+
+Explore's prompt composer creates one 15- or 30-second film from all of a listing's
+photos in their saved order (1–30 photos), with a selected aspect ratio and 1080p
+output. `lib/real-estate-video-prompt.mjs` implements version 1 of the Real Estate
+AI Video skill as a structured director's brief, using Seedance 2.5 in
+`omni_reference` mode. The original user prompt and recipe version are saved with
+the project; the compiled director's brief is recorded with the generated shot.
+
+Apply `supabase/migrations/20260913161859_add_prompt_video_composer.sql` before
+using the composer. Its internal recipes inherit the existing Seedance 2.5
+per-second tariff and resolution multipliers. The server verifies the quoted
+cost, workspace and listing access, and charges retries only once.
+
+Run the regular worker above to process every queued project, or
+`npm run video:worker -- --prompt-only` to process only prompt-created films.
+The worker must remain running for queued videos to progress. Verify the prompt
+compiler with `node --test tests/prompt-video.test.mjs`. The integration checks in
+`tests/prompt-video-db.sql` require a funded paid workspace with listing photos
+and roll back all their test jobs and credit debits.
+
 ## Cloudflare R2 media storage
 
 Homie stores generated videos and template media in the private `homie`

@@ -5,11 +5,13 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import { createClient } from "@supabase/supabase-js";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { createPromptFilmShot } from "../lib/real-estate-video-prompt.mjs";
 
 const execFileAsync = promisify(execFile);
 const args = new Set(process.argv.slice(2));
 const once = args.has("--once");
 const dryRun = args.has("--dry-run");
+const promptOnly = args.has("--prompt-only");
 const pollMs = Number(process.env.VIDEO_WORKER_POLL_MS ?? 5000);
 const higgsfieldModel = process.env.HIGGSFIELD_VIDEO_MODEL ?? "seedance_2_0";
 const higgsfieldResolution = process.env.HIGGSFIELD_VIDEO_RESOLUTION ?? "720p";
@@ -60,10 +62,12 @@ async function event(projectId, stage, message, progress, metadata = {}) {
 }
 
 async function claimNextProject() {
-  const { data: queued, error } = await db
+  let query = db
     .from("video_projects")
     .select("id, workspace_id, duration_seconds, output_format, template_prompt_snapshot, video_templates(generation_config), video_project_photos(sort_order, listing_photos(id, storage_path, source_url, room_type, metadata)), video_project_shots(shot_order, status, output_url, provider_job_id, provider_metadata)")
-    .eq("status", "queued")
+    .eq("status", "queued");
+  if (promptOnly) query = query.eq("template_prompt_snapshot->>workflow", "prompt_property_film");
+  const { data: queued, error } = await query
     .order("created_at")
     .limit(1)
     .maybeSingle();
@@ -108,6 +112,7 @@ function inferredRole(index, total) {
 
 function makeShotPlan(project, photos) {
   const config = project.template_prompt_snapshot ?? project.video_templates?.generation_config ?? {};
+  if (config.workflow === "prompt_property_film") return [createPromptFilmShot(project, photos)];
   if (config.workflow === "single_30s_all_references") {
     const directorPrompt = config.director_prompt
       ?? config.structured_prompt
@@ -277,7 +282,8 @@ async function processProject(project) {
   const directory = await mkdtemp(join(tmpdir(), `homie-video-${project.id}-`));
   try {
     const photoRows = [...(project.video_project_photos ?? [])].sort((a, b) => a.sort_order - b.sort_order);
-    if (photoRows.length < 2) throw new Error("At least two project photos are required.");
+    const minimumPhotos = project.template_prompt_snapshot?.workflow === "prompt_property_film" ? 1 : 2;
+    if (photoRows.length < minimumPhotos) throw new Error(`At least ${minimumPhotos} project photos are required.`);
     await event(project.id, "planning", "Planning the property route", 5);
     const photos = [];
     for (let index = 0; index < photoRows.length; index += 1) {
@@ -378,7 +384,7 @@ async function processProject(project) {
 async function main() {
   if (!dryRun) await execFileAsync("higgsfield", ["account", "status"]);
   if (!dryRun) await execFileAsync("ffmpeg", ["-version"]);
-  console.log(`Video provider: higgsfield (${higgsfieldModel})`);
+  console.log(`Video provider: higgsfield (${promptOnly ? "seedance_2_5; prompt films only" : higgsfieldModel})`);
   let keepRunning = true;
   while (keepRunning) {
     const project = await claimNextProject();

@@ -43,6 +43,9 @@
 }
 .mobile-more nav :is(button, a):hover { background: var(--sage-soft); }
 .mobile-more nav :is(button, a):focus-visible { outline: 2px solid var(--sage); }
+.mobile-more nav .mobile-sign-out { gap: 10px; margin-top: 6px; border-top: 1px solid var(--line); border-radius: 0 0 9px 9px; }
+.mobile-sign-out svg { width: 20px; height: 20px; flex-shrink: 0; }
+.mobile-more nav button:disabled { opacity: .6; cursor: wait; }
 
 @media (min-width: 761px) and (max-width: 1100px) {
   .app-shell .sidebar { width: 210px; }

@@ -1,0 +1,15 @@
+{
+  "name": "homie-drop-walkthrough",
+  "private": true,
+  "scripts": {
+    "studio": "remotion studio src/index.tsx",
+    "render": "remotion render src/index.tsx HomieDrop out/homie-glass-container.mp4",
+    "render:loading": "remotion render src/index.tsx HomieLoading out/homie-logo-loading.mp4"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.344",
+    "remotion": "4.0.344",
+    "react": "19.2.6",
+    "react-dom": "19.2.6"
+  }
+}

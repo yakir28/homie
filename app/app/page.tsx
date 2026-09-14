@@ -2,31 +2,34 @@
 
 import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from "react";
 import { getSupabaseBrowserClient } from "../../lib/supabase/client";
+import { Pricing } from "../../components/ui/pricing";
 import CreateVideoWizard from "./CreateVideoWizard";
+import DirectorPage from "./DirectorPage";
 import ZillowImportModal from "./ZillowImportModal";
 import HomieLogo from "../HomieLogo";
 import { useWorkspaceLoading } from "../SiteLoading";
 import TemplateMedia from "./TemplateMedia";
-import ListingMapBoard, { ListingMapSummary } from "./ListingMapBoard";
+import ListingMapBoard from "./ListingMapBoard";
 import TemplateFilters from "./TemplateFilters";
+import OnboardingTour from "./OnboardingTour";
 import "./template-detail.css";
 import "./responsive.css";
 import { PUBLIC_ANNUAL_PRICES, PUBLIC_PRICES } from "../../lib/public-pricing";
 import { resolveMediaUrl, responsiveImageProps } from "../../lib/media-url";
 
-type View = "templates" | "favorites" | "listings" | "videos" | "integrations" | "profile" | "subscribe";
+type View = "templates" | "director" | "listings" | "videos" | "integrations" | "profile" | "subscribe";
 
 const nav = [
-  { id: "templates" as const, label: "Templates" },
-  { id: "listings" as const, label: "Listings" },
+  { id: "templates" as const, label: "Explore" },
+  { id: "director" as const, label: "Director" },
   { id: "videos" as const, label: "My videos" },
 ];
 
-function MobileNavIcon({ name }: { name: "templates" | "listings" | "videos" | "more" }) {
+function MobileNavIcon({ name }: { name: "templates" | "director" | "videos" | "more" }) {
   return (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
       {name === "templates" && <><rect x="3" y="3" width="7" height="7" rx="2" /><rect x="14" y="3" width="7" height="7" rx="2" /><rect x="3" y="14" width="7" height="7" rx="2" /><rect x="14" y="14" width="7" height="7" rx="2" /></>}
-      {name === "listings" && <><path d="m3 10 9-7 9 7v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><path d="M9 21v-8h6v8" /></>}
+      {name === "director" && <path d="m12 3 2.6 6.4L21 12l-6.4 2.6L12 21l-2.6-6.4L3 12l6.4-2.6Z" />}
       {name === "videos" && <><rect x="3" y="4" width="18" height="16" rx="4" /><path d="m10 8 6 4-6 4z" /></>}
       {name === "more" && <><circle cx="5" cy="12" r="1.5" fill="currentColor" stroke="none" /><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" /><circle cx="19" cy="12" r="1.5" fill="currentColor" stroke="none" /></>}
     </svg>
@@ -151,6 +154,7 @@ export default function Home() {
   const [toast, setToast] = useState("");
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [profileOpen, setProfileOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const mobileMoreRef = useRef<HTMLDivElement>(null);
   const [search, setSearch] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -199,6 +203,7 @@ export default function Home() {
   const [topUpOpen, setTopUpOpen] = useState(false);
   const [billingPlans, setBillingPlans] = useState<BillingPlan[]>([]);
   const [subscription, setSubscription] = useState<WorkspaceSubscription | null>(null);
+  const [onboardingOpen, setOnboardingOpen] = useState(false);
 
   useEffect(() => {
     const supabase = getSupabaseBrowserClient();
@@ -425,6 +430,20 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    if (appLoading || !userId) return;
+    const key = `homie:onboarding:v2:${userId}`;
+    if (window.localStorage.getItem(key)) return;
+    const timeout = window.setTimeout(() => setOnboardingOpen(true), 0);
+    return () => window.clearTimeout(timeout);
+  }, [appLoading, userId]);
+
+  function finishOnboarding(action?: () => void) {
+    if (userId) window.localStorage.setItem(`homie:onboarding:v2:${userId}`, "complete");
+    setOnboardingOpen(false);
+    action?.();
+  }
+
+  useEffect(() => {
     const url = new URL(window.location.href);
     if (url.searchParams.get("checkout") !== "success") return;
     url.searchParams.delete("checkout");
@@ -457,6 +476,24 @@ export default function Home() {
       window.location.assign(result.url);
     } catch (error) {
       flash(error instanceof Error ? error.message : "Billing is unavailable");
+    }
+  }
+
+  async function signOut() {
+    if (signingOut) return;
+    setSigningOut(true);
+    try {
+      const { error } = await getSupabaseBrowserClient().auth.signOut();
+      if (error) throw error;
+      mobileMoreRef.current?.hidePopover();
+      setProfileOpen(false);
+      window.location.replace("/login");
+    } catch {
+      mobileMoreRef.current?.hidePopover();
+      setProfileOpen(false);
+      flash("Could not log out. Please try again.");
+    } finally {
+      setSigningOut(false);
     }
   }
 
@@ -686,44 +723,57 @@ export default function Home() {
       .single();
     if (error) throw error;
     const uploaded: { storagePath: string; signedUrl: string }[] = [];
-    for (let index = 0; index < values.photos.length; index += 1) {
-      const file = values.photos[index].file;
-      const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, "-");
-      const storagePath = `${workspaceId}/upload/${listing.id}/${index}-${safeName}`;
-      const { error: uploadError } = await supabase.storage.from("listing-photos").upload(storagePath, file, { contentType: file.type, upsert: true });
-      if (uploadError) throw uploadError;
-      const { data: signed, error: signError } = await supabase.storage.from("listing-photos").createSignedUrl(storagePath, 60 * 60 * 24 * 365);
-      if (signError || !signed) throw signError ?? new Error("Could not prepare an uploaded photo");
-      uploaded.push({ storagePath, signedUrl: signed.signedUrl });
+    const attemptedPaths: string[] = [];
+    try {
+      for (let index = 0; index < values.photos.length; index += 1) {
+        const file = values.photos[index].file;
+        const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, "-");
+        const storagePath = `${workspaceId}/upload/${listing.id}/${index}-${safeName}`;
+        attemptedPaths.push(storagePath);
+        const { error: uploadError } = await supabase.storage.from("listing-photos").upload(storagePath, file, { contentType: file.type, upsert: true });
+        if (uploadError) throw uploadError;
+        const { data: signed, error: signError } = await supabase.storage.from("listing-photos").createSignedUrl(storagePath, 60 * 60 * 24 * 365);
+        if (signError || !signed) throw signError ?? new Error("Could not prepare an uploaded photo");
+        uploaded.push({ storagePath, signedUrl: signed.signedUrl });
+      }
+      const zoneDefinitions = [...new Map(values.photos.map((photo) => {
+        const zone = mappingZoneForRoom(photo.roomType);
+        return [zone.name, zone] as const;
+      })).values()].sort((a, b) => a.sortOrder - b.sortOrder);
+      const { data: createdZones, error: zonesError } = await supabase
+        .from("listing_zones")
+        .insert(zoneDefinitions.map((zone, index) => ({ listing_id: listing.id, name: zone.name, kind: zone.kind, sort_order: index })))
+        .select("id, name");
+      if (zonesError) throw zonesError;
+      const zoneIdByName = new Map((createdZones ?? []).map((zone) => [zone.name, zone.id]));
+      const { error: photosError } = await supabase.from("listing_photos").insert(
+        uploaded.map((photo, index) => ({
+          listing_id: listing.id,
+          storage_path: photo.storagePath,
+          source_url: photo.signedUrl,
+          thumbnail_url: photo.signedUrl,
+          room_type: values.photos[index].roomType,
+          zone_id: zoneIdByName.get(mappingZoneForRoom(values.photos[index].roomType).name),
+          sort_order: index,
+          metadata: { is_room_hero: values.photos[index].isHero },
+        })),
+      );
+      if (photosError) throw photosError;
+      const { error: coverError } = await supabase.from("listings").update({ cover_photo_url: uploaded[0].signedUrl }).eq("id", listing.id);
+      if (coverError) throw coverError;
+    } catch (cause) {
+      // Only remove the new listing and paths allocated by this upload attempt.
+      if (attemptedPaths.length) await supabase.storage.from("listing-photos").remove(attemptedPaths);
+      await supabase.from("listings").delete().eq("id", listing.id).eq("workspace_id", workspaceId);
+      throw new Error(cause && typeof cause === "object" && "message" in cause ? String(cause.message) : "Could not upload photos. Please try again.");
     }
-    const zoneDefinitions = [...new Map(values.photos.map((photo) => {
-      const zone = mappingZoneForRoom(photo.roomType);
-      return [zone.name, zone] as const;
-    })).values()].sort((a, b) => a.sortOrder - b.sortOrder);
-    const { data: createdZones, error: zonesError } = await supabase
-      .from("listing_zones")
-      .insert(zoneDefinitions.map((zone, index) => ({ listing_id: listing.id, name: zone.name, kind: zone.kind, sort_order: index })))
-      .select("id, name");
-    if (zonesError) throw zonesError;
-    const zoneIdByName = new Map((createdZones ?? []).map((zone) => [zone.name, zone.id]));
-    const { error: photosError } = await supabase.from("listing_photos").insert(
-      uploaded.map((photo, index) => ({
-        listing_id: listing.id,
-        storage_path: photo.storagePath,
-        source_url: photo.signedUrl,
-        thumbnail_url: photo.signedUrl,
-        room_type: values.photos[index].roomType,
-        zone_id: zoneIdByName.get(mappingZoneForRoom(values.photos[index].roomType).name),
-        sort_order: index,
-        metadata: { is_room_hero: values.photos[index].isHero },
-      })),
-    );
-    if (photosError) throw photosError;
-    const { error: coverError } = await supabase.from("listings").update({ cover_photo_url: uploaded[0].signedUrl }).eq("id", listing.id);
-    if (coverError) throw coverError;
     await refreshListings();
     setListingCreateOpen(false);
     flash("Listing created");
+    const createdListing = { id: listing.id, address: values.title.trim(), city: "Homie upload", price: "Price on request",
+      photos: values.photos.length, videos: 0, image: uploaded[0].signedUrl, status: "Active", source: "Manual upload" } satisfies ListingItem;
+    setListingItems((current) => [createdListing, ...current.filter((item) => item.id !== createdListing.id)]);
+    return createdListing;
   }
 
   async function refreshAirbnbIntegration() {
@@ -732,8 +782,8 @@ export default function Home() {
     setAirbnbIntegration(data ?? null);
   }
 
-  const searchPlaceholder = view === "templates" || view === "favorites" ? "Search templates by name or style…" : view === "listings" ? "Search listings by title or source…" : view === "videos" ? "Search videos, listings or templates…" : view === "integrations" ? "Search integrations…" : "Search Homie…";
-  const activeFilterCount = view === "templates" || view === "favorites" ? [category !== "All", sort !== "Recent", formatFilter !== "All", creditsFilter !== "All"].filter(Boolean).length : view === "listings" ? [listingSourceFilter !== "All", listingPhotoFilter !== "All", listingSort !== "Recent"].filter(Boolean).length : view === "videos" ? [videoStatusFilter !== "All", videoFormatFilter !== "All"].filter(Boolean).length : view === "integrations" ? Number(integrationFilter !== "All") : 0;
+  const searchPlaceholder = view === "templates" ? "Search templates by name or style…" : view === "listings" ? "Search listings by title or source…" : view === "videos" ? "Search videos, listings or templates…" : view === "integrations" ? "Search integrations…" : "Search Homie…";
+  const activeFilterCount = view === "templates" ? [category !== "All", sort !== "Recent", formatFilter !== "All", creditsFilter !== "All"].filter(Boolean).length : view === "listings" ? [listingSourceFilter !== "All", listingPhotoFilter !== "All", listingSort !== "Recent"].filter(Boolean).length : view === "videos" ? [videoStatusFilter !== "All", videoFormatFilter !== "All"].filter(Boolean).length : view === "integrations" ? Number(integrationFilter !== "All") : 0;
 
 
   return (
@@ -750,20 +800,15 @@ export default function Home() {
             </span>
             Explore
           </button>
-          <button onClick={() => changeView("videos")} className={view === "videos" ? "active" : ""}>
-            <span>
-              <VideoIcon />
-            </span>
-            My videos
+          <button onClick={() => changeView("director")} className={view === "director" ? "active" : ""}>
+            <span><DirectorIcon /></span>Homie Director
           </button>
-          <button onClick={() => changeView("favorites")} className={view === "favorites" ? "active" : ""}>
-            <span>
-              <HeartIcon />
-            </span>
-            Favorites
+          <button onClick={() => changeView("videos")} className={view === "videos" ? "active" : ""}>
+            <span><VideoIcon /></span>My videos
           </button>
           <p className="nav-label">Business</p>
           <button
+            data-onboarding="listings-nav"
             onClick={() => {
               setListingNavOpen((open) => !open);
               setSelectedListingId(null);
@@ -871,13 +916,11 @@ export default function Home() {
                 <div className="profile-menu-divider" />
                 <button
                   role="menuitem"
-                  onClick={async () => {
-                    await getSupabaseBrowserClient().auth.signOut();
-                    setProfileOpen(false);
-                  }}
+                  disabled={signingOut}
+                  onClick={() => void signOut()}
                 >
                   <SignOutIcon />
-                  Sign Out
+                  {signingOut ? "Logging out…" : "Sign Out"}
                 </button>
               </div>
             </>
@@ -890,7 +933,7 @@ export default function Home() {
           <button className="mobile-brand" onClick={() => changeView("templates")} aria-label="Homie overview">
             <HomieLogo variant="mark-adaptive" />
           </button>
-          {view === "subscribe" ? (
+          {view === "director" ? <div className="director-topbar-title"><DirectorIcon /><strong>Homie Director</strong><span>Your real estate video agent</span></div> : view === "subscribe" ? (
             <div className="subscribe-topbar-title">
               <p className="eyebrow">Billing</p>
               <b>Plans & subscription</b>
@@ -906,7 +949,7 @@ export default function Home() {
                   </button>
                 )}
               </label>
-              {(view === "templates" || view === "favorites") ? <TemplateFilters format={formatFilter} onFormat={setFormatFilter} formats={[...new Set(templateItems.filter((item) => item.preview && (view !== "favorites" || favoriteIds.has(item.id))).map((item) => item.format))]} count={Number(category !== "All") + Number(formatFilter !== "All")} /> : <button className={filtersOpen ? "filter-square active" : "filter-square"} onClick={() => setFiltersOpen((value) => !value)} aria-label="Open filters" aria-expanded={filtersOpen}>
+              {(view === "templates") ? <TemplateFilters format={formatFilter} onFormat={setFormatFilter} formats={[...new Set(templateItems.filter((item) => item.preview).map((item) => item.format))]} count={Number(category !== "All") + Number(formatFilter !== "All")} /> : <button className={filtersOpen ? "filter-square active" : "filter-square"} onClick={() => setFiltersOpen((value) => !value)} aria-label="Open filters" aria-expanded={filtersOpen}>
                 <SlidersIcon />
                 {activeFilterCount > 0 && <span>{activeFilterCount}</span>}
               </button>}
@@ -914,7 +957,7 @@ export default function Home() {
           )}
         </header>
 
-        {filtersOpen && view !== "profile" && view !== "templates" && view !== "favorites" && (
+        {filtersOpen && view !== "profile" && view !== "templates" && view !== "director" && (
           <div className="filters-panel">
             <div className="filters-head">
               <div>
@@ -1005,7 +1048,18 @@ export default function Home() {
           </div>
         )}
 
-        {(view === "templates" || view === "favorites") && <Templates items={templateItems} favoriteIds={favoriteIds} onToggleFavorite={toggleFavorite} favoritesOnly={view === "favorites"} onUseTemplate={setWizardTemplate} search={search} onClearSearch={clearAllFilters} onRemoveFilter={(key) => { if (key === "search") setSearch(""); else if (key === "format") setFormatFilter("All"); else setCreditsFilter("All"); }} category={category} setCategory={setCategory} sort={sort} formatFilter={formatFilter} creditsFilter={creditsFilter} />}
+        {(view === "templates") && <Templates items={templateItems} favoriteIds={favoriteIds} onToggleFavorite={toggleFavorite} favoritesOnly={false} onUseTemplate={setWizardTemplate} search={search} onClearSearch={clearAllFilters} onRemoveFilter={(key) => { if (key === "search") setSearch(""); else if (key === "format") setFormatFilter("All"); else setCreditsFilter("All"); }} category={category} setCategory={setCategory} sort={sort} formatFilter={formatFilter} creditsFilter={creditsFilter} />}
+        {view === "director" && workspaceId && <DirectorPage userId={userId} listings={listingItems} workspaceId={workspaceId} walletBalance={creditBalance}
+          onOpenVideos={() => changeView("videos")} onAddListing={() => setListingCreateOpen(true)} onTopUp={() => setTopUpOpen(true)}
+          onUploadFiles={(files) => createListing({
+            title: files[0].name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ").trim().slice(0, 120) || "Uploaded property",
+            photos: files.map((file, index) => ({ file, roomType: inferRoomType(file.name), isHero: index === 0 })),
+          })}
+          onCreated={(project) => {
+            setVideoItems((current) => [project, ...current.filter((item) => item.id !== project.id)]);
+            flash("Your custom film is queued. Follow its progress in My videos.");
+            void getSupabaseBrowserClient().from("credit_wallets").select("balance").eq("workspace_id", workspaceId).maybeSingle().then(({ data }) => { if (data) setCreditBalance(data.balance); });
+          }} />}
         {view === "listings" && <Listings items={listingItems} search={search} sourceFilter={listingSourceFilter} photoFilter={listingPhotoFilter} sort={listingSort} onClear={clearAllFilters} onOpen={openListing} onCreateVideo={() => changeView("templates")} onDelete={deleteListing} onAdd={() => setListingCreateOpen(true)} flash={flash} />}
         {view === "videos" && <MyVideos items={videoItems} search={search} statusFilter={videoStatusFilter} formatFilter={videoFormatFilter} loading={videosLoading} error={videosError} onBrowseTemplates={() => changeView("templates")} onOpenVideo={setSelectedVideo} onDelete={deleteVideoProject} flash={flash} />}
         {view === "integrations" && <Integrations search={search} availability={integrationFilter} />}
@@ -1026,13 +1080,17 @@ export default function Home() {
         </nav>
         <div id="mobile-more" ref={mobileMoreRef} popover="auto" className="mobile-more">
           <nav aria-label="More navigation">
-            <button onClick={() => changeView("favorites")}>Favorites</button>
+            <button onClick={() => changeView("listings")}>My listings</button>
             <button onClick={() => changeView("integrations")}>Integrations</button>
             <button onClick={() => changeView("profile")}>Profile</button>
             <button onClick={() => { mobileMoreRef.current?.hidePopover(); setSettingsOpen(true); }}>Settings</button>
             <button onClick={() => changeView("subscribe")}>Plans & subscription</button>
             <button onClick={() => { mobileMoreRef.current?.hidePopover(); setTopUpOpen(true); }}>Top up credits · {creditBalance}</button>
             <a href="/docs">Help</a>
+            <button className="mobile-sign-out" disabled={signingOut} onClick={() => void signOut()}>
+              <SignOutIcon />
+              {signingOut ? "Logging out…" : "Log out"}
+            </button>
           </nav>
         </div>
       </section>
@@ -1094,7 +1152,14 @@ export default function Home() {
           }}
         />
       )}
-      {listingCreateOpen && <CreateListingModal onClose={() => setListingCreateOpen(false)} onCreate={createListing} />}
+      {listingCreateOpen && <CreateListingModal onClose={() => setListingCreateOpen(false)} onCreate={async (values) => { await createListing(values); }} />}
+      <OnboardingTour
+        open={onboardingOpen}
+        hasListings={listingItems.length > 0}
+        onDismiss={() => finishOnboarding()}
+        onShowListings={() => changeView("listings")}
+        onShowTemplates={() => changeView("templates")}
+      />
     </main>}
     </>
   );
@@ -1142,6 +1207,7 @@ function Templates({ items, favoriteIds, onToggleFavorite, favoritesOnly = false
       <div className="template-grid">
         {filteredTemplates.map((template, index) => (
           <article
+            data-onboarding={index === 0 ? "template-card" : undefined}
             className={`template-card ${template.size}`}
             key={template.title}
             onClick={() => openTemplate(template)}
@@ -1415,7 +1481,7 @@ function Listings({ items, search, sourceFilter, photoFilter, sort, onClear, onO
           <p>Select a home and turn its photos into a polished video tour.</p>
         </div>
         <div className="listing-header-actions">
-          <button className="create-listing-btn" onClick={onAdd}>
+          <button className="create-listing-btn" data-onboarding="add-listing" onClick={onAdd}>
             <span>＋</span> Add listing
           </button>
         </div>
@@ -1563,8 +1629,6 @@ function Listings({ items, search, sourceFilter, photoFilter, sort, onClear, onO
 }
 
 function ListingDetail({ listing, photos, workspaceId, onBack, flash }: { listing: ListingItem | null; photos: ListingPhotoItem[]; workspaceId: string; onBack: () => void; flash: (message: string) => void }) {
-  const [mappingOpen, setMappingOpen] = useState(false);
-  const [mapRevision, setMapRevision] = useState(0);
   const [localPhotos, setLocalPhotos] = useState(photos);
   const [photoBusy, setPhotoBusy] = useState(false);
   const gallery = localPhotos.length
@@ -1590,10 +1654,10 @@ function ListingDetail({ listing, photos, workspaceId, onBack, flash }: { listin
   }, [listing?.id, photos]);
 
   useEffect(() => {
-    const closeOnEscape = (event: KeyboardEvent) => event.key === "Escape" && !mappingOpen && onBack();
+    const closeOnEscape = (event: KeyboardEvent) => event.key === "Escape" && onBack();
     window.addEventListener("keydown", closeOnEscape);
     return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [onBack, mappingOpen]);
+  }, [onBack]);
 
   async function deletePhoto(photo: ListingPhotoItem) {
     if (!listing || photo.id === "cover" || photoBusy) return;
@@ -1681,7 +1745,7 @@ function ListingDetail({ listing, photos, workspaceId, onBack, flash }: { listin
             <span>{listing.city || "Your property"}</span>
             <h1>{listing.address}</h1>
           </div>
-          <ListingMapSummary key={mapRevision} listingId={listing.id} photos={localPhotos} onEdit={() => setMappingOpen(true)} />
+          <ListingMapBoard embedded listingId={listing.id} photos={localPhotos} onMove={(photoId, zoneId) => setLocalPhotos((current) => current.map((photo) => photo.id === photoId ? { ...photo, zoneId } : photo))} />
         </div>
         <div className="listing-showcase-visual">
           {activePhoto && <img key={activePhoto.id} {...responsiveImageProps(activePhoto.url, "(max-width: 900px) 100vw, 70vw", [640, 960, 1280, 1600])} alt={`${activePhoto.roomType} at ${listing.address}`} decoding="async" />}
@@ -1716,7 +1780,6 @@ function ListingDetail({ listing, photos, workspaceId, onBack, flash }: { listin
           </div>
         </div>
       </section>
-      {mappingOpen && <ListingMapBoard listingId={listing.id} photos={localPhotos} onClose={() => { setMappingOpen(false); setMapRevision((value) => value + 1); }} onMove={(photoId, zoneId) => setLocalPhotos((current) => current.map((photo) => photo.id === photoId ? { ...photo, zoneId } : photo))} />}
     </div>
   );
 }
@@ -2099,19 +2162,6 @@ function VideoModal({ video, onClose, flash }: { video: VideoItem; onClose: () =
   );
 }
 
-function SubscriptionIcon({ name }: { name: "video" | "home" | "publish" | "check" | "arrow" | "minus" }) {
-  return (
-    <svg className="subscription-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
-      {name === "video" && <><rect x="3" y="4" width="18" height="16" rx="4" /><path d="m10 9 5 3-5 3Z" /></>}
-      {name === "home" && <><path d="m3 10 9-7 9 7M5 9v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9" /><path d="M9 21v-7h6v7" /></>}
-      {name === "publish" && <><path d="M12 15V3m-4 4 4-4 4 4M4 14v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5" /></>}
-      {name === "check" && <path d="m5 12 4 4L19 6" />}
-      {name === "arrow" && <path d="M4 12h16m-6-6 6 6-6 6" />}
-      {name === "minus" && <path d="M6 12h12" />}
-    </svg>
-  );
-}
-
 function SubscribePage({ plans, subscription, creditBalance, onChoose, onManage }: { plans: BillingPlan[]; subscription: WorkspaceSubscription | null; creditBalance: number; onChoose: (plan: BillingPlan, billingInterval: "monthly" | "yearly") => Promise<void>; onManage: () => Promise<void> }) {
   const [planGroup, setPlanGroup] = useState<"individual" | "business">("individual");
   const [billingInterval, setBillingInterval] = useState<"monthly" | "yearly">("monthly");
@@ -2122,144 +2172,38 @@ function SubscribePage({ plans, subscription, creditBalance, onChoose, onManage 
   const visiblePlans = plans.filter((plan) => (planGroup === "business" ? plan.audience === "team" : plan.audience === "solo"));
 
   return (
-    <div className="page subscribe-page">
-      <section className="subscribe-heading">
-        <div>
-          <p className="eyebrow">Plans & subscription</p>
-          <h1>Explore all plans.</h1>
-          <p>Compare every plan side by side and pick the right fit.</p>
-        </div>
-      </section>
-
-      <section className="subscribe-plans-section">
-        <header>
-          <div className="plan-group-tabs" aria-label="Plan type">
-            <button className={planGroup === "individual" ? "active" : ""} onClick={() => setPlanGroup("individual")}>
-              Individual plans
-            </button>
-            <button className={planGroup === "business" ? "active" : ""} onClick={() => setPlanGroup("business")}>
-              Business plans
-            </button>
-          </div>
-          <div className="billing-toggle" role="group" aria-label="Billing period">
-            <button className={billingInterval === "monthly" ? "active" : ""} aria-pressed={billingInterval === "monthly"} onClick={() => setBillingInterval("monthly")}>Monthly</button>
-            <button className={billingInterval === "yearly" ? "active" : ""} aria-pressed={billingInterval === "yearly"} onClick={() => setBillingInterval("yearly")}>Annual <small>Save 17%</small></button>
-          </div>
-        </header>
-        {visiblePlans.length ? (
-          <div className="subscribe-plan-grid">
-            {visiblePlans.map((plan) => {
-              const isCurrent = plan.id === currentPlan?.id;
-              const featured = plan.slug === "pro";
-              const firstVideo = plan.slug === "free-trial" || plan.slug === "first-video";
-              const yearlyPrice = PUBLIC_ANNUAL_PRICES[plan.slug] ?? plan.yearlyPrice;
-              const annual = billingInterval === "yearly" && !firstVideo && yearlyPrice != null;
-              const price = firstVideo ? PUBLIC_PRICES["first-video"] : annual ? Math.round(yearlyPrice / 12) : PUBLIC_PRICES[plan.slug] ?? plan.monthlyPrice;
-              const includedVideos = annual ? plan.monthlyCredits * 12 : plan.monthlyCredits;
-              const displayName = firstVideo ? "First Video" : plan.name;
-              return (
-                <article className={`subscribe-plan-card ${featured ? "featured" : ""} ${isCurrent ? "current" : ""}`} key={plan.id}>
-                  <div className="subscribe-plan-top">
-                    <span>{plan.audience === "team" ? "For teams" : "For agents"}</span>
-                    {isCurrent ? <b>Current plan</b> : featured ? <b>Recommended</b> : null}
-                  </div>
-                  <h3>{displayName}</h3>
-                  <p>{firstVideo ? "Create your first property video for just $1." : plan.audience === "team" ? "A shared creative workflow for the whole office." : "Everything a solo agent needs to publish consistently."}</p>
-                  <div className="subscribe-plan-credits">
-                    <div>
-                      <span><SubscriptionIcon name="video" /></span>
-                      <strong>{firstVideo ? "1 first video" : `${includedVideos.toLocaleString()} video generations / ${annual ? "yr." : "mo."}`}</strong>
-                    </div>
-                    <p>{firstVideo ? "First-video introductory offer" : `Create ${includedVideos.toLocaleString()} complete listing tours ${annual ? "per year" : "per month"}`}</p>
-                    <small><SubscriptionIcon name="check" /> Every new version uses one generation</small>
-                  </div>
-                  <div className="subscribe-price">
-                    {price == null ? (
-                      <>
-                        <strong>Custom</strong>
-                        <small>tailored to your team</small>
-                      </>
-                    ) : (
-                      <>
-                        <strong>
-                          $
-                          {price.toLocaleString("en-US", {
-                            maximumFractionDigits: 0,
-                          })}
-                        </strong>
-                        <small>{firstVideo ? "for your first video" : annual ? `per month · $${yearlyPrice.toLocaleString("en-US")} billed yearly` : "per month"}</small>
-                      </>
-                    )}
-                  </div>
-                  <button disabled={busyPlan !== null || firstVideo} onClick={async () => {
-                    setBusyPlan(plan.slug);
-                    try { if (isCurrent) await onManage(); else await onChoose(plan, billingInterval); } finally { setBusyPlan(null); }
-                  }}>
-                    {firstVideo ? "$1 checkout coming soon" : busyPlan === plan.slug ? "Opening secure billing…" : isCurrent ? "Manage billing" : `Choose ${displayName}`}
-                    {!isCurrent && <SubscriptionIcon name="arrow" />}
-                  </button>
-                  <section className="subscribe-benefit-panel">
-                    <header>
-                      <span><SubscriptionIcon name="home" /></span>
-                      <b>Listing video workflow</b>
-                    </header>
-                    <ul>
-                      {(firstVideo ? ["1 watermarked video", "All video templates", "Use your own property photos", "First-video introductory offer"] : plan.features).map((feature, featureIndex) => (
-                        <li key={feature}>
-                          <span><SubscriptionIcon name="check" /></span>
-                          {annual && featureIndex === 0 ? `${includedVideos.toLocaleString()} video generations per year` : feature}
-                        </li>
-                      ))}
-                      {plan.seatLimit && (
-                        <li>
-                          <span><SubscriptionIcon name="check" /></span>
-                          {plan.seatLimit} {plan.seatLimit === 1 ? "seat" : "seats"} included
-                        </li>
-                      )}
-                    </ul>
-                  </section>
-                  <section className="subscribe-benefit-panel secondary">
-                    <header>
-                      <span><SubscriptionIcon name="publish" /></span>
-                      <b>Publishing & approval</b>
-                    </header>
-                    <ul>
-                      <li>
-                        <span><SubscriptionIcon name="check" /></span>Preview every tour before publishing
-                      </li>
-                      <li>
-                        <span><SubscriptionIcon name="check" /></span>Vertical 9:16 social-ready export
-                      </li>
-                      <li>
-                        <span><SubscriptionIcon name={plan.slug === "free-trial" ? "minus" : "check"} /></span>
-                        {plan.slug === "free-trial" ? "Priority generation on paid plans" : "Priority generation queue"}
-                      </li>
-                    </ul>
-                  </section>
-                  <footer className="subscribe-plan-footer">
-                    <span>
-                      <i />
-                      {firstVideo ? "First video only · not a subscription" : isCurrent ? statusLabel : annual ? "Two months free · billed annually" : plan.audience === "team" ? "Built for teams" : "Cancel or change anytime"}
-                    </span>
-                    {isCurrent && (
-                      <small>
-                        {creditBalance} video generations available
-                        {renewalDate ? ` · ${subscription?.status === "trialing" ? "Trial ends" : "Renews"} ${new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(new Date(renewalDate))}` : ""}
-                      </small>
-                    )}
-                  </footer>
-                </article>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="subscribe-loading">
-            <span />
-            <span />
-            <span />
-          </div>
-        )}
-      </section>
+    <div className="page">
+      <Pricing headingLevel={1} annual={billingInterval === "yearly"} onAnnualChange={(annual) => setBillingInterval(annual ? "yearly" : "monthly")}
+        controls={<div className="plan-group-tabs" role="group" aria-label="Plan type">
+          <button aria-pressed={planGroup === "individual"} className={planGroup === "individual" ? "active" : ""} onClick={() => setPlanGroup("individual")}>Individual plans</button>
+          <button aria-pressed={planGroup === "business"} className={planGroup === "business" ? "active" : ""} onClick={() => setPlanGroup("business")}>Business plans</button>
+        </div>}
+        plans={visiblePlans.map((plan) => {
+          const isCurrent = plan.id === currentPlan?.id;
+          const firstVideo = plan.slug === "free-trial" || plan.slug === "first-video";
+          const yearlyPrice = PUBLIC_ANNUAL_PRICES[plan.slug] ?? plan.yearlyPrice;
+          const annual = billingInterval === "yearly" && !firstVideo && yearlyPrice != null;
+          const includedVideos = annual ? plan.monthlyCredits * 12 : plan.monthlyCredits;
+          const displayName = firstVideo ? "First Video" : plan.name;
+          return {
+            id: String(plan.id), name: displayName, popular: plan.slug === "pro", current: isCurrent,
+            price: firstVideo ? PUBLIC_PRICES["first-video"] : annual ? Math.round(yearlyPrice / 12) : PUBLIC_PRICES[plan.slug] ?? plan.monthlyPrice,
+            period: firstVideo ? "first video" : "/ month",
+            billing: firstVideo ? "One-time introductory offer" : annual ? `$${yearlyPrice.toLocaleString("en-US")} billed annually` : plan.monthlyPrice === null ? "Tailored to your team" : "Billed monthly",
+            features: [
+              ...(firstVideo ? ["1 watermarked video", "All video templates", "Use your own property photos", "First-video introductory offer"] : plan.features.map((feature, index) => annual && index === 0 ? `${includedVideos.toLocaleString()} video generations per year` : feature)),
+              ...(plan.seatLimit ? [`${plan.seatLimit} ${plan.seatLimit === 1 ? "seat" : "seats"} included`] : []),
+              "Preview every tour before publishing", "Vertical 9:16 social-ready export",
+            ],
+            description: firstVideo ? "First video only · not a subscription" : plan.audience === "team" ? "A shared creative workflow for the whole office." : "For agents publishing listing videos consistently.",
+            note: isCurrent ? `${statusLabel} · ${creditBalance} video generations available${renewalDate ? ` · ${subscription?.status === "trialing" ? "Trial ends" : "Renews"} ${new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(new Date(renewalDate))}` : ""}` : undefined,
+            action: <button disabled={busyPlan !== null || firstVideo} onClick={async () => {
+              setBusyPlan(plan.slug);
+              try { if (isCurrent) await onManage(); else await onChoose(plan, billingInterval); } finally { setBusyPlan(null); }
+            }}>{firstVideo ? "$1 checkout coming soon" : busyPlan === plan.slug ? "Opening secure billing…" : isCurrent ? "Manage billing" : `Choose ${displayName}`}</button>,
+          };
+        })} />
+      {!visiblePlans.length && <p role="status">Plans are loading. If they do not appear, refresh to try again.</p>}
     </div>
   );
 }
@@ -2934,3 +2878,5 @@ function SignOutIcon() {
     </svg>
   );
 }
+
+function DirectorIcon() { return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" aria-hidden="true"><path d="m12 3 2.6 6.4L21 12l-6.4 2.6L12 21l-2.6-6.4L3 12l6.4-2.6z" /></svg>; }
