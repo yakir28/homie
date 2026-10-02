@@ -19,6 +19,8 @@ import { resolveMediaUrl, responsiveImageProps } from "../../lib/media-url";
 
 type View = "templates" | "director" | "listings" | "videos" | "integrations" | "profile" | "subscribe";
 
+const DIRECTOR_COMING_SOON = true;
+
 const nav = [
   { id: "templates" as const, label: "Explore" },
   { id: "director" as const, label: "Director" },
@@ -29,7 +31,7 @@ function MobileNavIcon({ name }: { name: "templates" | "director" | "videos" | "
   return (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
       {name === "templates" && <><rect x="3" y="3" width="7" height="7" rx="2" /><rect x="14" y="3" width="7" height="7" rx="2" /><rect x="3" y="14" width="7" height="7" rx="2" /><rect x="14" y="14" width="7" height="7" rx="2" /></>}
-      {name === "director" && <path d="m12 3 2.6 6.4L21 12l-6.4 2.6L12 21l-2.6-6.4L3 12l6.4-2.6Z" />}
+      {name === "director" && <><path d="M3 10h18v10H3zM3 10 2 5l18-3 1 5zM7 4l3 4M14 3l3 4" /></>}
       {name === "videos" && <><rect x="3" y="4" width="18" height="16" rx="4" /><path d="m10 8 6 4-6 4z" /></>}
       {name === "more" && <><circle cx="5" cy="12" r="1.5" fill="currentColor" stroke="none" /><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" /><circle cx="19" cy="12" r="1.5" fill="currentColor" stroke="none" /></>}
     </svg>
@@ -153,6 +155,8 @@ export default function Home() {
   const [view, setView] = useState<View>("templates");
   const [toast, setToast] = useState("");
   const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [savingTheme, setSavingTheme] = useState(false);
+  const themeSaveLock = useRef(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const mobileMoreRef = useRef<HTMLDivElement>(null);
@@ -209,7 +213,7 @@ export default function Home() {
     const supabase = getSupabaseBrowserClient();
     let active = true;
     let projectsChannel: ReturnType<typeof supabase.channel> | null = null;
-    let videosPoll: ReturnType<typeof window.setInterval> | null = null;
+    let videosPoll: number | null = null;
 
     async function loadWorkspace() {
       const {
@@ -220,6 +224,7 @@ export default function Home() {
         return;
       }
       const currentUser = session.user;
+      const accessToken = session.access_token;
 
       if (!active) return;
       setUserId(session.user.id);
@@ -246,7 +251,7 @@ export default function Home() {
                 image: resolveMediaUrl(item.thumbnail_url ?? "/homes/modern-villa.jpg"),
                 preview: item.preview_url && /\.(mp4|webm|mov)$/i.test(item.preview_url) ? resolveMediaUrl(item.preview_url) : undefined,
                 size: index === 0 ? "tall" : item.format === "16:9" ? "wide" : "normal",
-                minPhotos: item.min_photos ?? 6,
+                minPhotos: item.min_photos ?? 1,
                 maxPhotos: item.max_photos ?? 30,
                 generationConfig: item.generation_config && typeof item.generation_config === "object" ? (item.generation_config as Record<string, unknown>) : undefined,
               }))
@@ -257,9 +262,11 @@ export default function Home() {
       if (workspaceError) flash(workspaceError.message);
       if (workspaceId) setWorkspaceId(workspaceId);
 
-      const [{ data: wallet }, { data: homes }, { data: savedFavorites }, { data: profile }, { data: zillow }, { data: airbnb }, { data: plans }, { data: currentSubscription }] = await Promise.all([workspaceId ? supabase.from("credit_wallets").select("balance").eq("workspace_id", workspaceId).maybeSingle() : Promise.resolve({ data: null }), workspaceId ? supabase.from("listings").select("id, address_line1, city, region, price, cover_photo_url, status, source, listing_photos(count), video_projects(count)").eq("workspace_id", workspaceId).order("created_at", { ascending: false }) : Promise.resolve({ data: null }), supabase.from("template_favorites").select("template_id").eq("user_id", session.user.id), supabase.from("profiles").select("display_name, bio, phone, job_title, company_name").eq("id", session.user.id).maybeSingle(), workspaceId ? supabase.from("integrations").select("id, status, external_account_name, last_synced_at, last_error").eq("workspace_id", workspaceId).eq("provider", "zillow").maybeSingle() : Promise.resolve({ data: null }), workspaceId ? supabase.from("integrations").select("id, status, external_account_name, last_synced_at, last_error").eq("workspace_id", workspaceId).eq("provider", "airbnb").maybeSingle() : Promise.resolve({ data: null }), supabase.from("plans").select("id,name,slug,audience,monthly_price,yearly_price,monthly_credits,seat_limit,features").eq("is_active", true).order("sort_order"), workspaceId ? supabase.from("subscriptions").select("plan_id,status,billing_interval,trial_ends_at,current_period_ends_at").eq("workspace_id", workspaceId).maybeSingle() : Promise.resolve({ data: null })]);
+      const [{ data: wallet }, { data: homes }, { data: savedFavorites }, { data: profile, error: profileError }, { data: zillow }, { data: airbnb }, { data: plans }, { data: currentSubscription }] = await Promise.all([workspaceId ? supabase.from("credit_wallets").select("balance").eq("workspace_id", workspaceId).maybeSingle() : Promise.resolve({ data: null }), workspaceId ? supabase.from("listings").select("id, address_line1, city, region, price, cover_photo_url, status, source, listing_photos(count), video_projects(count)").eq("workspace_id", workspaceId).order("created_at", { ascending: false }) : Promise.resolve({ data: null }), supabase.from("template_favorites").select("template_id").eq("user_id", session.user.id), supabase.from("profiles").select("display_name, bio, phone, job_title, company_name, theme").eq("id", session.user.id).maybeSingle(), workspaceId ? supabase.from("integrations").select("id, status, external_account_name, last_synced_at, last_error").eq("workspace_id", workspaceId).eq("provider", "zillow").maybeSingle() : Promise.resolve({ data: null }), workspaceId ? supabase.from("integrations").select("id, status, external_account_name, last_synced_at, last_error").eq("workspace_id", workspaceId).eq("provider", "airbnb").maybeSingle() : Promise.resolve({ data: null }), supabase.from("plans").select("id,name,slug,audience,monthly_price,yearly_price,monthly_credits,seat_limit,features").eq("is_active", true).order("sort_order"), workspaceId ? supabase.from("subscriptions").select("plan_id,status,billing_interval,trial_ends_at,current_period_ends_at").eq("workspace_id", workspaceId).maybeSingle() : Promise.resolve({ data: null })]);
 
       if (!active) return;
+      if (profileError) throw profileError;
+      setTheme(profile?.theme === "light" ? "light" : "dark");
       setFavoriteIds(new Set(savedFavorites?.map((favorite) => favorite.template_id) ?? []));
       if (profile) {
         const nextName = profile.display_name ?? session.user.email?.split("@")[0] ?? "Agent";
@@ -377,7 +384,7 @@ export default function Home() {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
-                Authorization: `Bearer ${session.access_token}`,
+                Authorization: `Bearer ${accessToken}`,
               },
               body: JSON.stringify({ projectId: video.id }),
             });
@@ -479,8 +486,27 @@ export default function Home() {
     }
   }
 
+  async function saveTheme(nextTheme: "dark" | "light") {
+    if (!userId || themeSaveLock.current || signingOut || nextTheme === theme) return;
+    const previousTheme = theme;
+    themeSaveLock.current = true;
+    setSavingTheme(true);
+    setTheme(nextTheme);
+    try {
+      const { data, error } = await getSupabaseBrowserClient().from("profiles")
+        .update({ theme: nextTheme }).eq("id", userId).select("theme").single();
+      if (error || !data || data.theme !== nextTheme) throw error ?? new Error("Theme not saved");
+    } catch {
+      setTheme(previousTheme);
+      flash("Could not save your appearance. Please try again.");
+    } finally {
+      themeSaveLock.current = false;
+      setSavingTheme(false);
+    }
+  }
+
   async function signOut() {
-    if (signingOut) return;
+    if (signingOut || themeSaveLock.current) return;
     setSigningOut(true);
     try {
       const { error } = await getSupabaseBrowserClient().auth.signOut();
@@ -499,6 +525,7 @@ export default function Home() {
 
   function changeView(v: View) {
     mobileMoreRef.current?.hidePopover();
+    if (v === "director" && DIRECTOR_COMING_SOON) return flash("Homie Director is coming soon");
     setView(v);
     if (v !== "listings") setSelectedListingId(null);
     setSearch("");
@@ -706,7 +733,7 @@ export default function Home() {
     flash("Video deleted");
   }
 
-  async function createListing(values: { title: string; photos: MappedListingPhoto[] }) {
+  async function createListing(values: { title: string; photos: MappedListingPhoto[]; fromDirector?: boolean }) {
     if (!workspaceId) throw new Error("Your workspace is still loading. Please try again.");
     const supabase = getSupabaseBrowserClient();
     const { data: listing, error } = await supabase
@@ -769,7 +796,7 @@ export default function Home() {
     }
     await refreshListings();
     setListingCreateOpen(false);
-    flash("Listing created");
+    flash(values.fromDirector ? "Photos attached" : "Listing created");
     const createdListing = { id: listing.id, address: values.title.trim(), city: "Homie upload", price: "Price on request",
       photos: values.photos.length, videos: 0, image: uploaded[0].signedUrl, status: "Active", source: "Manual upload" } satisfies ListingItem;
     setListingItems((current) => [createdListing, ...current.filter((item) => item.id !== createdListing.id)]);
@@ -800,11 +827,11 @@ export default function Home() {
             </span>
             Explore
           </button>
-          <button onClick={() => changeView("director")} className={view === "director" ? "active" : ""}>
-            <span><DirectorIcon /></span>Homie Director
-          </button>
           <button onClick={() => changeView("videos")} className={view === "videos" ? "active" : ""}>
             <span><VideoIcon /></span>My videos
+          </button>
+          <button onClick={() => changeView("director")} className={view === "director" ? "active" : DIRECTOR_COMING_SOON ? "soon" : ""} aria-disabled={DIRECTOR_COMING_SOON || undefined}>
+            <span><DirectorIcon /></span>Director{DIRECTOR_COMING_SOON && <em className="nav-soon">Soon</em>}
           </button>
           <p className="nav-label">Business</p>
           <button
@@ -905,8 +932,9 @@ export default function Home() {
                 </button>
                 <button
                   role="menuitem"
+                  disabled={savingTheme || signingOut}
                   onClick={() => {
-                    setTheme((t) => (t === "dark" ? "light" : "dark"));
+                    void saveTheme(theme === "dark" ? "light" : "dark");
                     setProfileOpen(false);
                   }}
                 >
@@ -916,7 +944,7 @@ export default function Home() {
                 <div className="profile-menu-divider" />
                 <button
                   role="menuitem"
-                  disabled={signingOut}
+                  disabled={signingOut || savingTheme}
                   onClick={() => void signOut()}
                 >
                   <SignOutIcon />
@@ -929,7 +957,7 @@ export default function Home() {
       </aside>
 
       <section className="main-panel">
-        <header className={view === "subscribe" ? "topbar subscribe-topbar" : "topbar"}>
+        <header hidden={view === "director"} className={view === "subscribe" ? "topbar subscribe-topbar" : "topbar"}>
           <button className="mobile-brand" onClick={() => changeView("templates")} aria-label="Homie overview">
             <HomieLogo variant="mark-adaptive" />
           </button>
@@ -1049,9 +1077,10 @@ export default function Home() {
         )}
 
         {(view === "templates") && <Templates items={templateItems} favoriteIds={favoriteIds} onToggleFavorite={toggleFavorite} favoritesOnly={false} onUseTemplate={setWizardTemplate} search={search} onClearSearch={clearAllFilters} onRemoveFilter={(key) => { if (key === "search") setSearch(""); else if (key === "format") setFormatFilter("All"); else setCreditsFilter("All"); }} category={category} setCategory={setCategory} sort={sort} formatFilter={formatFilter} creditsFilter={creditsFilter} />}
-        {view === "director" && workspaceId && <DirectorPage userId={userId} listings={listingItems} workspaceId={workspaceId} walletBalance={creditBalance}
+        {view === "director" && workspaceId && <DirectorPage userId={userId} videos={videoItems} listings={listingItems} workspaceId={workspaceId} walletBalance={creditBalance}
           onOpenVideos={() => changeView("videos")} onAddListing={() => setListingCreateOpen(true)} onTopUp={() => setTopUpOpen(true)}
           onUploadFiles={(files) => createListing({
+            fromDirector: true,
             title: files[0].name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ").trim().slice(0, 120) || "Uploaded property",
             photos: files.map((file, index) => ({ file, roomType: inferRoomType(file.name), isHero: index === 0 })),
           })}
@@ -1068,8 +1097,8 @@ export default function Home() {
 
         <nav className="mobile-nav" aria-label="Mobile navigation">
           {nav.map((item) => (
-            <button key={item.id} className={view === item.id ? "active" : ""} aria-current={view === item.id ? "page" : undefined} onClick={() => changeView(item.id)}>
-              <span className="mobile-nav-icon"><MobileNavIcon name={item.id} /></span>
+            <button key={item.id} className={view === item.id ? "active" : item.id === "director" && DIRECTOR_COMING_SOON ? "soon" : ""} aria-current={view === item.id ? "page" : undefined} aria-disabled={(item.id === "director" && DIRECTOR_COMING_SOON) || undefined} onClick={() => changeView(item.id)}>
+              <span className="mobile-nav-icon"><MobileNavIcon name={item.id} />{item.id === "director" && DIRECTOR_COMING_SOON && <em className="nav-soon">Soon</em>}</span>
               {item.label === "My videos" ? "Videos" : item.label}
             </button>
           ))}
@@ -1087,7 +1116,7 @@ export default function Home() {
             <button onClick={() => changeView("subscribe")}>Plans & subscription</button>
             <button onClick={() => { mobileMoreRef.current?.hidePopover(); setTopUpOpen(true); }}>Top up credits · {creditBalance}</button>
             <a href="/docs">Help</a>
-            <button className="mobile-sign-out" disabled={signingOut} onClick={() => void signOut()}>
+            <button className="mobile-sign-out" disabled={signingOut || savingTheme} onClick={() => void signOut()}>
               <SignOutIcon />
               {signingOut ? "Logging out…" : "Log out"}
             </button>
@@ -1102,7 +1131,7 @@ export default function Home() {
       )}
       {selectedListingId && workspaceId && <ListingDetail listing={listingItems.find((item) => item.id === selectedListingId) ?? null} photos={selectedListingPhotos} workspaceId={workspaceId} onBack={() => setSelectedListingId(null)} flash={flash} />}
       {selectedVideo && <VideoModal video={videoItems.find((video) => video.id === selectedVideo.id) ?? selectedVideo} onClose={() => setSelectedVideo(null)} flash={flash} />}
-      {settingsOpen && <SettingsModal details={profileDetails} onChange={setProfileDetails} onSave={saveProfile} saving={savingProfile} theme={theme} onThemeChange={setTheme} credits={creditBalance} onPasswordChange={changePassword} onClose={() => setSettingsOpen(false)} flash={flash} />}
+      {settingsOpen && <SettingsModal details={profileDetails} onChange={setProfileDetails} onSave={saveProfile} saving={savingProfile} theme={theme} onThemeChange={saveTheme} savingTheme={savingTheme} credits={creditBalance} onPasswordChange={changePassword} onClose={() => setSettingsOpen(false)} flash={flash} />}
       {topUpOpen && (
         <TopUpCreditsModal
           currentCredits={creditBalance}
@@ -1674,63 +1703,68 @@ function ListingDetail({ listing, photos, workspaceId, onBack, flash }: { listin
     setPhotoBusy(false);
   }
 
-  async function addPhotos(files: FileList | null) {
+  async function addPhotos(files: File[]) {
     if (!listing || !files?.length || photoBusy) return;
     setPhotoBusy(true);
-    const supabase = getSupabaseBrowserClient();
-    const added: ListingPhotoItem[] = [];
-    const { data: lastPhoto, error: orderError } = await supabase.from("listing_photos").select("sort_order").eq("listing_id", listing.id).order("sort_order", { ascending: false }).limit(1).maybeSingle();
-    if (orderError) {
-      flash(orderError.message);
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const added: ListingPhotoItem[] = [];
+      const { data: lastPhoto, error: orderError } = await supabase.from("listing_photos").select("sort_order").eq("listing_id", listing.id).order("sort_order", { ascending: false }).limit(1).maybeSingle();
+      if (orderError) {
+        flash(orderError.message);
+        setPhotoBusy(false);
+        return;
+      }
+      const nextSortOrder = (lastPhoto?.sort_order ?? -1) + 1;
+      for (const [offset, file] of files.entries()) {
+        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "-");
+        const storagePath = `${workspaceId}/upload/${listing.id}/${crypto.randomUUID()}-${safeName}`;
+        const { error: uploadError } = await supabase.storage.from("listing-photos").upload(storagePath, file, { contentType: file.type });
+        if (uploadError) {
+          flash(uploadError.message);
+          continue;
+        }
+        const { data: signed, error: signError } = await supabase.storage.from("listing-photos").createSignedUrl(storagePath, 60 * 60 * 24 * 365);
+        if (signError || !signed) {
+          flash(signError?.message ?? "Could not prepare the photo");
+          continue;
+        }
+        const { data: row, error: insertError } = await supabase
+          .from("listing_photos")
+          .insert({
+            listing_id: listing.id,
+            storage_path: storagePath,
+            source_url: signed.signedUrl,
+            thumbnail_url: signed.signedUrl,
+            room_type: "Unsorted",
+            sort_order: nextSortOrder + offset,
+            metadata: { is_room_hero: false },
+          })
+          .select("id")
+          .single();
+        if (insertError) {
+          await supabase.storage.from("listing-photos").remove([storagePath]);
+          flash(insertError.message);
+        } else if (row)
+          added.push({
+            id: String(row.id),
+            url: signed.signedUrl,
+            roomType: "Unsorted",
+            zoneId: null,
+            isHero: false,
+            storagePath,
+          });
+      }
+      if (added.length) {
+        setLocalPhotos((current) => [...current, ...added]);
+        setActivePhotoId(added[0].id);
+        flash(`${added.length} photo${added.length === 1 ? "" : "s"} added`);
+      }
+    } catch (cause) {
+      flash(cause instanceof Error ? cause.message : "Could not upload photos. Please try again.");
+    } finally {
       setPhotoBusy(false);
-      return;
     }
-    const nextSortOrder = (lastPhoto?.sort_order ?? -1) + 1;
-    for (const [offset, file] of Array.from(files).entries()) {
-      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "-");
-      const storagePath = `${workspaceId}/upload/${listing.id}/${crypto.randomUUID()}-${safeName}`;
-      const { error: uploadError } = await supabase.storage.from("listing-photos").upload(storagePath, file, { contentType: file.type });
-      if (uploadError) {
-        flash(uploadError.message);
-        continue;
-      }
-      const { data: signed, error: signError } = await supabase.storage.from("listing-photos").createSignedUrl(storagePath, 60 * 60 * 24 * 365);
-      if (signError || !signed) {
-        flash(signError?.message ?? "Could not prepare the photo");
-        continue;
-      }
-      const { data: row, error: insertError } = await supabase
-        .from("listing_photos")
-        .insert({
-          listing_id: listing.id,
-          storage_path: storagePath,
-          source_url: signed.signedUrl,
-          thumbnail_url: signed.signedUrl,
-          room_type: "Unsorted",
-          sort_order: nextSortOrder + offset,
-          metadata: { is_room_hero: false },
-        })
-        .select("id")
-        .single();
-      if (insertError) {
-        await supabase.storage.from("listing-photos").remove([storagePath]);
-        flash(insertError.message);
-      } else if (row)
-        added.push({
-          id: String(row.id),
-          url: signed.signedUrl,
-          roomType: "Unsorted",
-          zoneId: null,
-          isHero: false,
-          storagePath,
-        });
-    }
-    if (added.length) {
-      setLocalPhotos((current) => [...current, ...added]);
-      setActivePhotoId(added[0].id);
-      flash(`${added.length} photo${added.length === 1 ? "" : "s"} added`);
-    }
-    setPhotoBusy(false);
   }
 
   if (!listing) return null;
@@ -1763,18 +1797,20 @@ function ListingDetail({ listing, photos, workspaceId, onBack, flash }: { listin
                 )}
               </div>
             ))}
-            <label className={photoBusy ? "listing-thumb-add busy" : "listing-thumb-add"} aria-label="Add photos">
+            <label className={photoBusy ? "listing-thumb-add busy" : "listing-thumb-add"} aria-label={photoBusy ? "Processing photos" : "Add photos"} aria-busy={photoBusy}>
               <input
                 type="file"
                 accept="image/*"
                 multiple
                 disabled={photoBusy}
                 onChange={(event) => {
-                  void addPhotos(event.target.files);
+                  // Snapshot before clearing the input: FileList is live across awaits.
+                  const selectedFiles = Array.from(event.currentTarget.files ?? []);
+                  void addPhotos(selectedFiles);
                   event.target.value = "";
                 }}
               />
-              <span>{photoBusy ? "…" : "+"}</span>
+              <span className={photoBusy ? "listing-upload-dots" : undefined} aria-hidden="true">{photoBusy ? <><i /><i /><i /></> : "+"}</span>
               <small>Add</small>
             </label>
           </div>
@@ -1926,18 +1962,25 @@ function MyVideos({ items, search, statusFilter, formatFilter, loading, error, o
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const q = search.trim().toLowerCase();
   const filteredItems = items.filter((video) => (!q || `${video.title} ${video.address} ${video.city} ${video.template}`.toLowerCase().includes(q)) && (statusFilter === "All" || video.status === statusFilter) && (formatFilter === "All" || video.format === formatFilter));
+  const previewTimer = useRef<number | null>(null);
+  // Wait briefly before playing so sweeping the cursor across the grid doesn't start a download per card.
   function startCardPreview(card: HTMLElement) {
     const preview = card.querySelector("video");
     if (!preview) return;
-    const playback = preview.play();
-    if (playback) void playback.catch(() => undefined);
+    if (previewTimer.current) window.clearTimeout(previewTimer.current);
+    previewTimer.current = window.setTimeout(() => {
+      previewTimer.current = null;
+      if (preview.preload !== "auto") preview.preload = "auto";
+      const playback = preview.play();
+      if (playback) void playback.catch(() => undefined);
+    }, 180);
   }
   function stopCardPreview(card: HTMLElement) {
-    const preview = card.querySelector("video");
-    if (!preview) return;
-    preview.pause();
-    preview.currentTime = 0;
+    if (previewTimer.current) window.clearTimeout(previewTimer.current);
+    previewTimer.current = null;
+    card.querySelector("video")?.pause();
   }
+  useEffect(() => () => { if (previewTimer.current) window.clearTimeout(previewTimer.current); }, []);
   useEffect(() => {
     if (!openMenuId) return;
     const closeMenu = () => {
@@ -1982,13 +2025,11 @@ function MyVideos({ items, search, statusFilter, formatFilter, loading, error, o
             <article className={`myvideo-card ${video.status === "Generating" ? "is-generating" : ""}`} key={video.id} onClick={() => onOpenVideo(video)} tabIndex={0} onMouseEnter={(event) => startCardPreview(event.currentTarget)} onMouseLeave={(event) => stopCardPreview(event.currentTarget)} onFocus={(event) => startCardPreview(event.currentTarget)} onBlur={(event) => stopCardPreview(event.currentTarget)} onKeyDown={(e) => e.key === "Enter" && onOpenVideo(video)}>
               {video.status === "Generating" ? (
                 <div className="video-card-loading" aria-label={`${video.title} is generating`}>
-                  <div className="video-generating-pill">
-                    <span className="video-card-loader" aria-hidden="true" />
-                    <b>Generating</b>
-                  </div>
+                  {video.image && <img className="video-queue-photo" src={video.image} alt="" loading="lazy" />}
+                  <span className="video-card-loader" aria-hidden="true" />
                 </div>
               ) : video.videoUrl ? (
-                <video src={video.videoUrl} poster={video.image} muted loop playsInline preload="metadata" aria-label={`${video.title} video preview`} />
+                <video src={video.videoUrl} poster={video.image} muted loop playsInline preload="none" aria-label={`${video.title} video preview`} />
               ) : <img src={video.image} alt={`${video.title} home tour`} />}
               {video.status !== "Generating" && video.status !== "Failed" && (
                 <button className="play" aria-label={`Play ${video.title}`}>
@@ -2009,8 +2050,13 @@ function MyVideos({ items, search, statusFilter, formatFilter, loading, error, o
                 •••
               </button>}
               {video.status !== "Generating" && openMenuId === video.id && (
-                <div className="listing-card-menu myvideo-card-menu" role="menu" onClick={(event) => event.stopPropagation()}>
-                  <p>{video.title}</p>
+                <div className="listing-card-menu myvideo-card-menu" role="menu" aria-label="Video actions" onClick={(event) => event.stopPropagation()} onKeyDown={(event) => {
+                  event.stopPropagation();
+                  if (event.key === "Escape") {
+                    setOpenMenuId(null); setConfirmDeleteId(null);
+                    event.currentTarget.parentElement?.querySelector<HTMLButtonElement>(".myvideo-more")?.focus();
+                  }
+                }}>
                   {confirmDeleteId === video.id ? (
                     <div className="listing-delete-confirm">
                       <b>Delete this video?</b>
@@ -2033,7 +2079,7 @@ function MyVideos({ items, search, statusFilter, formatFilter, loading, error, o
                     </div>
                   ) : <>
                     <button role="menuitem" onClick={() => { setOpenMenuId(null); onOpenVideo(video); }}>
-                      <span><VideoActionIcon type="open" /></span><div><b>Open video</b><small>View and share this project</small></div>
+                      <span><VideoActionIcon type="open" /></span><div><b>Open video</b><small>Preview and share</small></div>
                     </button>
                     {video.videoUrl && <button role="menuitem" onClick={() => {
                       const link = document.createElement("a");
@@ -2042,10 +2088,10 @@ function MyVideos({ items, search, statusFilter, formatFilter, loading, error, o
                       link.click();
                       setOpenMenuId(null);
                     }}>
-                      <span><VideoActionIcon type="download" /></span><div><b>Download</b><small>Save the finished video</small></div>
+                      <span><VideoActionIcon type="download" /></span><div><b>Download</b><small>Save to your device</small></div>
                     </button>}
                     <button className="danger" role="menuitem" onClick={() => setConfirmDeleteId(video.id)}>
-                      <span><VideoActionIcon type="delete" /></span><div><b>Delete video</b><small>Remove this project</small></div>
+                      <span><VideoActionIcon type="delete" /></span><div><b>Delete video</b><small>Permanently remove</small></div>
                     </button>
                   </>}
                 </div>
@@ -2140,7 +2186,7 @@ function VideoModal({ video, onClose, flash }: { video: VideoItem; onClose: () =
             </svg>
           </button>}
           {video.videoUrl ? (
-            <video ref={videoRef} src={video.videoUrl} poster={video.image} autoPlay loop muted playsInline preload="metadata" aria-label={`${video.title} video`} onClick={togglePlayback} onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)} onLoadedMetadata={(event) => setDuration(event.currentTarget.duration)} />
+            <video ref={videoRef} src={video.videoUrl} poster={video.image} autoPlay loop muted playsInline preload="auto" aria-label={`${video.title} video`} onClick={togglePlayback} onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)} onLoadedMetadata={(event) => setDuration(event.currentTarget.duration)} />
           ) : (
             <div className="my-video-preview-state">
               {generating && <span className="spinner" />}
@@ -2340,7 +2386,7 @@ function SettingsSectionIcon({ section }: { section: SettingsSection }) {
   );
 }
 
-function SettingsModal({ details, onChange, onSave, saving, theme, onThemeChange, credits, onPasswordChange, onClose, flash }: { details: ProfileDetails; onChange: (details: ProfileDetails) => void; onSave: () => Promise<void>; saving: boolean; theme: "dark" | "light"; onThemeChange: (theme: "dark" | "light") => void; credits: number; onPasswordChange: (password: string) => Promise<void>; onClose: () => void; flash: (message: string) => void }) {
+function SettingsModal({ details, onChange, onSave, saving, theme, onThemeChange, savingTheme, credits, onPasswordChange, onClose, flash }: { details: ProfileDetails; onChange: (details: ProfileDetails) => void; onSave: () => Promise<void>; saving: boolean; theme: "dark" | "light"; onThemeChange: (theme: "dark" | "light") => void; savingTheme: boolean; credits: number; onPasswordChange: (password: string) => Promise<void>; onClose: () => void; flash: (message: string) => void }) {
   const [section, setSection] = useState<SettingsSection>("profile");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -2457,13 +2503,13 @@ function SettingsModal({ details, onChange, onSave, saving, theme, onThemeChange
               <div className="settings-option">
                 <div>
                   <b>Appearance</b>
-                  <small>Switch between light and dark theme</small>
+                  <small>{savingTheme ? "Saving appearance…" : "Saved to your account"}</small>
                 </div>
                 <div className="theme-choice">
-                  <button className={theme === "light" ? "active" : ""} onClick={() => onThemeChange("light")} aria-label="Light mode">
+                  <button disabled={savingTheme} className={theme === "light" ? "active" : ""} onClick={() => onThemeChange("light")} aria-label="Light mode">
                     ☼
                   </button>
-                  <button className={theme === "dark" ? "active" : ""} onClick={() => onThemeChange("dark")} aria-label="Dark mode">
+                  <button disabled={savingTheme} className={theme === "dark" ? "active" : ""} onClick={() => onThemeChange("dark")} aria-label="Dark mode">
                     ◐
                   </button>
                 </div>
@@ -2879,4 +2925,4 @@ function SignOutIcon() {
   );
 }
 
-function DirectorIcon() { return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" aria-hidden="true"><path d="m12 3 2.6 6.4L21 12l-6.4 2.6L12 21l-2.6-6.4L3 12l6.4-2.6z" /></svg>; }
+function DirectorIcon() { return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" aria-hidden="true"><path d="M3 10h18v10H3zM3 10 2 5l18-3 1 5zM7 4l3 4M14 3l3 4M8 10v10" /></svg>; }

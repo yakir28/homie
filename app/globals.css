@@ -83,8 +83,8 @@
 /* My videos */
 .video-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:280px;gap:8px}
 .myvideo-card{position:relative;overflow:hidden;color:#fff;cursor:pointer;border-radius:14px}
-.myvideo-card>img,.myvideo-card>video{width:100%;height:100%;object-fit:cover;display:block;transition:transform .55s ease}
-.myvideo-card:hover>img,.myvideo-card:hover>video{transform:scale(1.025)}
+.myvideo-card>img,.myvideo-card>video{width:100%;height:100%;object-fit:cover;display:block;transition:transform .55s ease}.myvideo-card>video{transition:none}
+.myvideo-card:hover>img{transform:scale(1.025)}
 .myvideo-card .card-shade{background:linear-gradient(0deg,rgba(10,12,8,.78),transparent 62%)}
 .video-status{position:absolute;top:16px;left:16px;z-index:1;font:8px var(--mono);text-transform:uppercase;letter-spacing:1px;background:rgba(247,246,240,.92);padding:7px 9px;border-radius:6px}
 .video-status.green{color:#3f5a35}
@@ -102,18 +102,21 @@
 .myvideo-card .card-copy h3{font:400 22px var(--serif);margin:5px 0 8px}
 .myvideo-card .card-copy>div{display:flex;flex-wrap:wrap;gap:10px;font:8px var(--mono);text-transform:uppercase;color:#d0d2cb}
 .myvideo-card .card-copy>div span+span{border-left:1px solid rgba(255,255,255,.4);padding-left:10px}
-.myvideo-card.is-generating{background:#1a1e1f;cursor:default;border:1px solid rgba(255,255,255,.045);border-radius:24px}
-.video-card-loading{position:absolute;inset:0;padding:26px;display:flex;align-items:flex-start;justify-content:flex-start;background:linear-gradient(145deg,rgba(255,255,255,.012),transparent 55%)}
-.video-generating-pill{height:44px;display:inline-flex;align-items:center;gap:10px;padding:0 16px;border:1px solid rgba(255,255,255,.06);border-radius:999px;background:rgba(255,255,255,.035);box-shadow:inset 0 1px 0 rgba(255,255,255,.025)}
-.video-card-loader{width:22px;height:22px;flex:none;border:4px solid rgba(116,134,104,.2);border-top-color:var(--sage);border-right-color:var(--sage);border-radius:50%;animation:video-card-spin .9s linear infinite}
-.video-generating-pill b{font:600 15px var(--serif);color:var(--sage);letter-spacing:-.15px}
+.myvideo-card.is-generating{background:var(--surface);cursor:pointer;border:1px solid var(--line);border-radius:14px;isolation:isolate}
+.video-card-loading{position:absolute;inset:0;isolation:isolate;padding:20px;display:flex;flex-direction:column;justify-content:space-between;gap:24px;background:#20251e;color:#fafaf5}
+.video-queue-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.5;z-index:-2;transition:transform .6s ease}
+.video-card-loading:after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(18,23,17,.1),rgba(18,23,17,.45) 35%,#181e17 82%)}
+.myvideo-card.is-generating:is(:hover,:focus-visible) .video-queue-photo{transform:scale(1.035)}
+.myvideo-card.is-generating:focus-visible{outline:2px solid var(--sage);outline-offset:4px}
+.video-card-loading>.video-card-loader{width:30px;height:30px;flex:none;border:3px solid #bdd0a833;border-top-color:#c6d7b1;border-right-color:#c6d7b1;border-radius:50%;animation:video-card-spin .9s linear infinite}
+.video-card-loading{align-items:center;justify-content:center}
 @keyframes video-card-spin{to{transform:rotate(360deg)}}
-@media(prefers-reduced-motion:reduce){.video-card-loader{animation-duration:2s}}
+@media(prefers-reduced-motion:reduce){.video-card-loading>.video-card-loader{animation:none}.video-queue-photo,.video-queue-footer svg,.video-queue-details progress::-webkit-progress-value{transition:none}.myvideo-card.is-generating:hover .video-queue-photo,.myvideo-card.is-generating:hover .video-queue-footer svg{transform:none}}
 .modal-backdrop{position:fixed;inset:0;background:rgba(8,9,6,.72);backdrop-filter:blur(4px);z-index:50;display:flex;align-items:center;justify-content:center;padding:30px}
 .video-modal{position:relative;background:var(--surface);border-radius:16px;overflow:hidden;max-width:1080px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 30px 80px rgba(0,0,0,.45)}
 .video-modal .review-layout{background:#1a1c18}
 .video-modal .phone-video{height:520px}
-.template-preview-backdrop{position:fixed;inset:0;background:rgba(7,8,6,.82);backdrop-filter:blur(8px);z-index:70;display:flex;align-items:center;justify-content:center;padding:28px}
+.template-preview-backdrop{position:fixed;inset:0;background:rgba(7,8,6,.9);z-index:70;display:flex;align-items:center;justify-content:center;padding:28px}
 .template-preview-modal{position:relative;width:min(900px,100%);max-height:92vh;display:grid;grid-template-columns:minmax(320px,1fr) 330px;overflow:hidden;border:1px solid rgba(255,255,255,.12);border-radius:18px;background:var(--surface);box-shadow:0 35px 100px rgba(0,0,0,.58)}
 .template-preview-stage{min-height:600px;background:var(--surface);display:flex;align-items:center;justify-content:center;overflow:hidden}
 .template-preview-stage video{display:block;width:100%;height:100%;max-height:92vh;object-fit:contain;background:var(--surface)}
@@ -648,8 +651,8 @@
 .listing-showcase{position:absolute;inset:0;display:grid;grid-template-columns:minmax(390px,48%) minmax(0,52%);overflow:hidden;background:#050505;color:#f5f3ed}
 .listing-showcase-copy,.listing-showcase-visual{min-width:0;will-change:clip-path,transform}
 .listing-showcase-copy{position:relative;z-index:2;display:flex;flex-direction:column;padding:46px clamp(46px,6vw,96px) 42px;background:#050505;clip-path:inset(0);animation:listingLeftReveal .9s .22s cubic-bezier(.16,1,.3,1) both}
-.listing-showcase-visual{position:relative;background:#151713;clip-path:inset(0);animation:listingRightReveal .9s .22s cubic-bezier(.16,1,.3,1) both}
-.listing-showcase-visual>img{width:100%;height:100%;display:block;object-fit:cover;animation:listingImageIn .9s .34s cubic-bezier(.16,1,.3,1) both}
+.listing-showcase-visual{position:relative;min-height:0;overflow:hidden;background:#151713;clip-path:inset(0);animation:listingRightReveal .9s .22s cubic-bezier(.16,1,.3,1) both}
+.listing-showcase-visual>img{position:absolute;inset:0;width:100%;height:100%;display:block;object-fit:cover;animation:listingImageIn .9s .34s cubic-bezier(.16,1,.3,1) both}
 .listing-showcase-copy>.eyebrow,.listing-showcase-title,.listing-showcase-summary,.listing-showcase-cta{animation:listingCopyIn .65s cubic-bezier(.16,1,.3,1) both}
 .listing-showcase-copy>.eyebrow{animation-delay:.48s;color:#777a74}
 .listing-showcase-title{margin:auto 0;animation-delay:.58s}
@@ -1071,3 +1074,35 @@
 
 /* Keep the lightweight poster visible until a hover preview is playing. */
 .template-card > .template-hover-video{position:absolute;inset:0;opacity:0;pointer-events:none}
+
+/* A compact, themed popover for video actions. */
+.listing-card-menu.myvideo-card-menu{top:58px;right:10px;width:240px;max-width:calc(100% - 20px);box-sizing:border-box;padding:6px;border:1px solid var(--line);border-radius:14px;background:var(--surface);box-shadow:0 12px 36px #10180d24,0 2px 6px #10180d12;backdrop-filter:none;transform-origin:top right}
+.myvideo-card-menu>p{display:flex;flex-direction:column;gap:5px;margin:0 6px 5px;padding:10px 6px 12px;white-space:normal}
+.myvideo-card-menu>p>span{font:500 8px/1.4 var(--sans);letter-spacing:.12em;color:var(--muted)}
+.myvideo-card-menu>p>strong{font:500 11px/1.5 var(--sans);color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.listing-card-menu.myvideo-card-menu>button{min-height:54px;padding:10px;border-radius:8px;gap:11px;cursor:pointer;transition:background-color .16s ease,color .16s ease}
+.listing-card-menu.myvideo-card-menu>button>span{width:28px;height:28px;border:0;border-radius:7px;background:color-mix(in srgb,var(--sage-soft) 60%,transparent);color:var(--sage-dark)}
+.listing-card-menu.myvideo-card-menu>button>span svg{width:16px;height:16px;stroke-width:1.65}
+.myvideo-card-menu b{font:500 12px/1.4 var(--sans)}.myvideo-card-menu small{font:400 10px/1.4 var(--sans)}
+.listing-card-menu.myvideo-card-menu>button.danger{margin-top:6px;position:relative;color:#b45d4d}
+.listing-card-menu.myvideo-card-menu>button.danger:before{content:"";position:absolute;top:-4px;left:6px;right:6px;height:1px;background:var(--line)}
+.listing-card-menu.myvideo-card-menu>button.danger>span{background:rgba(180,93,77,.08);color:inherit}
+.listing-card-menu.myvideo-card-menu>button:focus-visible{outline:2px solid var(--sage);outline-offset:-2px;background:var(--sage-soft)}
+.myvideo-card-menu .listing-delete-confirm{padding:12px;gap:8px}.myvideo-card-menu .listing-delete-confirm>b{font-size:13px}.myvideo-card-menu .listing-delete-confirm button{height:36px;font-size:11px;cursor:pointer}
+@media(prefers-reduced-motion:reduce){.listing-card-menu.myvideo-card-menu{animation:none}.listing-card-menu.myvideo-card-menu>button{transition:none}}
+
+/* Staggered activity dots while listing photos are processed. */
+.listing-showcase-thumbs .listing-thumb-add .listing-upload-dots{display:flex;align-items:center;justify-content:center;gap:4px}
+.listing-upload-dots i{display:block;width:3px;height:3px;border-radius:50%;background:currentColor;animation:listing-upload-pulse 1.2s ease-in-out infinite}
+.listing-upload-dots i:nth-child(2){animation-delay:.15s}.listing-upload-dots i:nth-child(3){animation-delay:.3s}
+@keyframes listing-upload-pulse{0%,65%,100%{opacity:.4;transform:translateY(0)}30%{opacity:1;transform:translateY(-3px)}}
+@media(prefers-reduced-motion:reduce){.listing-upload-dots i{animation:none;opacity:1}}
+
+/* Keep the gallery track inside the viewport regardless of photo dimensions. */
+@media(min-width:801px){.listing-showcase{grid-template-rows:minmax(0,1fr)}}
+.sidebar nav button.soon{color:#7d8278}.sidebar nav button em.nav-soon{background:transparent;border:1px solid #474b42;color:#9aa18f;font:9px var(--mono);text-transform:uppercase;letter-spacing:1px}
+/* Blurring a playing video re-samples it every frame and makes playback stutter; use solid glass tints instead. */
+.template-preview-backdrop{-webkit-backdrop-filter:none;backdrop-filter:none;background:rgba(8,9,7,.88)}
+.template-video-controls,.template-preview-modal .template-preview-close,.template-preview-modal.video-only>.template-preview-use,.video-preview-download,.myvideo-more{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+.template-video-controls{background:linear-gradient(135deg,rgba(40,44,36,.72),rgba(15,18,13,.78))}
+.template-preview-modal .template-preview-close,.video-preview-download,.myvideo-more{background:rgba(20,23,18,.62)}

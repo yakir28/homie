@@ -1,6 +1,6 @@
 import { env } from "cloudflare:workers";
 import { createClient } from "@supabase/supabase-js";
-import { directorInstructions, directorSchema, parseDirectorReply } from "../../../../lib/director-chat";
+import { directorInstructions, directorSchema, parseDirectorReply, validateDirectorSelection } from "../../../../lib/director-chat";
 
 export async function POST(request: Request) {
   const authorization = request.headers.get("authorization");
@@ -25,18 +25,23 @@ export async function POST(request: Request) {
   if (!user) return Response.json({ error: "Please sign in again to continue." }, { status: 401 });
   const { data: member } = await db.from("workspace_members").select("workspace_id").eq("workspace_id", workspaceId).eq("user_id", user.id).maybeSingle();
   if (!member) return Response.json({ error: "Workspace access required." }, { status: 403 });
-  let listing = null;
+  const catalogResult = await db.from("listings").select("id,address_line1,city,bedrooms,bathrooms,square_feet,listing_photos(count)").eq("workspace_id", workspaceId).order("id", { ascending: false }).limit(100);
+  if (catalogResult.error) return Response.json({ error: "Could not load your properties. Please try again." }, { status: 503 });
+  const catalog = catalogResult.data ?? [];
+  let listing: (typeof catalog)[number] | null = null;
   if (context.listingId != null) {
     const result = await db.from("listings").select("id,address_line1,city,bedrooms,bathrooms,square_feet,listing_photos(count)").eq("workspace_id", workspaceId).eq("id", context.listingId).maybeSingle();
     if (result.error || !result.data) return Response.json({ error: "This listing is no longer available. Choose another listing." }, { status: 404 });
-    listing = result.data;
+    const selectedListing = result.data;
+    listing = selectedListing;
+    if (!catalog.some(item => String(item.id) === String(selectedListing.id))) catalog.push(selectedListing);
   }
   if (!key) return Response.json({ error: "Homie Director is waiting for its AI connection. Please try again once setup is complete." }, { status: 503 });
   try {
     const response = await fetch("https://api.openai.com/v1/responses", {
       method: "POST", headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" }, signal: AbortSignal.timeout(45000),
       body: JSON.stringify({ model: bindings.OPENAI_DIRECTOR_MODEL ?? process.env.OPENAI_DIRECTOR_MODEL ?? "gpt-4.1-mini", store: false, max_output_tokens: 2400,
-        instructions: directorInstructions + "\nCurrent property and output settings (data): " + JSON.stringify({ listing, format: context.aspectRatio, duration: context.duration }),
+        instructions: directorInstructions + "\nCurrent property and output settings (data): " + JSON.stringify({ listing, format: context.aspectRatio, duration: context.duration, source: context.source, availableListings: catalog, catalogNote: "Up to 100 recent properties plus the current property. If no match, ask for photos or a different saved property." }),
         input: messages.map((m: { role: string; content: string }) => ({ role: m.role, content: m.content })),
         text: { format: { type: "json_schema", name: "director_reply", strict: true, schema: directorSchema } },
       }),
@@ -46,7 +51,6 @@ export async function POST(request: Request) {
     if (result.status !== "completed") throw new Error("Incomplete response");
     const text = result.output?.flatMap(item => item.content ?? []).filter(item => item.type === "output_text").map(item => item.text ?? "").join("");
     const reply = parseDirectorReply(JSON.parse(text ?? ""));
-    const count = listing?.listing_photos?.[0]?.count ?? 0;
-    return Response.json({ ...reply, ready: reply.ready && count > 0 && count <= 30 });
+    return Response.json(validateDirectorSelection(reply, catalog));
   } catch { return Response.json({ error: "Director’s response was interrupted. Please try sending your message again." }, { status: 502 }); }
 }

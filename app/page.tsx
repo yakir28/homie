@@ -3,10 +3,12 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import HomieLogo from "./HomieLogo";
 import { PUBLIC_ANNUAL_PRICES, PUBLIC_PRICES } from "../lib/public-pricing";
-import GalleryMarquee from "./GalleryMarquee";
+import ScrollMorphHero from "../components/ui/scroll-morph-hero";
+import TestimonialMarquee from "../components/ui/testimonial-marquee";
 import { Pricing } from "../components/ui/pricing";
 import "./landing-typography.css";
 import "./landing-glass.css";
+import "./landing-product.css";
 import "./landing-trial-popup.css";
 import previewAssets from "../lib/template-preview-assets.json";
 import { resolveMediaUrl } from "../lib/media-url";
@@ -320,32 +322,39 @@ export default function Marketing() {
         </div>
       </section>
 
-      <section className="marketing-product" id="product">
-        <Reveal><p className="section-kicker">Inside Homie</p></Reveal>
-        <Reveal delay={80}><h2>A library of ready-to-use tour styles.<br /><i>Zero learning curve.</i></h2></Reveal>
-        <Reveal delay={140}><p className="product-lead">Open the library, pick a style, choose a listing. No timeline, no settings, nothing to learn — the studio does the rest.</p></Reveal>
-        <Reveal delay={200}>
-          <div className="product-frame">
-            <div className="product-chrome" aria-hidden="true">
-              <span /><span /><span />
-              <div className="product-url">app.homie.com/templates</div>
+      <section className="product-showcase" id="product" aria-labelledby="product-title">
+        <Reveal>
+          <div className="product-showcase-copy">
+            <p className="section-kicker">Inside Homie</p>
+            <h2 id="product-title">Pick a style.<br /><span>Make it yours.</span></h2>
+            <p className="product-showcase-lead">Your listing photos, with a cinematic touch. Choose a tour style and let Homie bring the rooms to life.</p>
+            <a className="product-showcase-link" href="#templates">Explore the templates <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6" /></svg></a>
+            <p className="product-showcase-note">No editing experience needed.</p>
+          </div>
+        </Reveal>
+        <Reveal delay={120}>
+          <div className="product-showcase-preview">
+            <div className="product-showcase-chrome" aria-hidden="true">
+              <span className="product-showcase-dots"><i /><i /><i /></span>
+              <span>Homie studio</span>
+              <span className="product-showcase-status">Preview</span>
             </div>
             <AutoplayVideo
-              className="product-promo-video"
+              className="product-showcase-video"
               video="/promo/homie-promo.mp4"
               poster="/promo/homie-promo-poster.jpg"
               label="Homie turns listing photos into a polished property video"
             />
           </div>
+          <ol className="product-showcase-steps" aria-label="Create a property tour">
+            <li><span>01</span> Add your photos</li>
+            <li><span>02</span> Choose a style</li>
+            <li><span>03</span> Review your video</li>
+          </ol>
         </Reveal>
       </section>
 
-      <section className="marketing-gallery" aria-label="The range of properties Homie handles">
-        <Reveal><p className="section-kicker">The range</p></Reveal>
-        <Reveal delay={80}><h2>Every listing,<br /><i>already cinematic.</i></h2></Reveal>
-        <Reveal delay={140}><p className="gallery-lead">City apartments, family homes, new builds, waterfront villas — the same guided flow turns any set of listing photos into a tour worth watching.</p></Reveal>
-        <GalleryMarquee />
-      </section>
+      <ScrollMorphHero />
 
       <section id="pricing">
         <Pricing annual={billingPeriod === "yearly"} onAnnualChange={(annual) => setBillingPeriod(annual ? "yearly" : "monthly")}
@@ -363,6 +372,8 @@ export default function Marketing() {
             };
           })} />
       </section>
+
+      <TestimonialMarquee />
 
       <section className="marketing-faq" id="faq">
         <div className="faq-layout">

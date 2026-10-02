@@ -45,11 +45,11 @@
 .prompt-video-submit-group { flex-shrink: 0; gap: 14px; }
 .prompt-video-upload { display: grid; place-items: center; flex-shrink: 0; width: 40px; height: 40px; padding: 0; border: 1px solid var(--line); border-radius: 10px; background: transparent; color: var(--muted); }
 .prompt-video-listing:hover:not(:disabled), .prompt-video-select:has(select:hover:not(:disabled)) { border-color: var(--sage); }
-.prompt-video-upload:hover:not(:disabled) { border-color: var(--sage); background: var(--sage-soft); }
+.prompt-video-upload:hover:not(:has(input:disabled)) { border-color: var(--sage); background: var(--sage-soft); }
 .prompt-video-upload:disabled { opacity: .5; cursor: wait; }
 .prompt-video-context:empty { display: none; }
 .prompt-video-submit { display: grid; place-items: center; flex-shrink: 0; width: 40px; height: 40px; padding: 0; border: 0; border-radius: 50%; background: var(--sage); color: var(--paper); transition: transform .18s ease, opacity .18s ease; }
-.prompt-video-submit:not(:disabled):hover { transform: translateY(-2px); }
+
 .prompt-video-submit:disabled { opacity: .4; cursor: not-allowed; }
 .prompt-video-composer[aria-busy="true"] .prompt-video-submit { cursor: wait; }
 .prompt-video-composer :is(button, select):focus-visible { outline: 2px solid var(--sage); outline-offset: 3px; }
@@ -92,4 +92,51 @@
 @media (prefers-reduced-motion: reduce) {
   .prompt-video-composer, .prompt-video-submit { transition: none; }
   .prompt-video-spinner { animation-duration: 1.8s; }
+}
+.prompt-video-upload{position:relative;overflow:hidden;cursor:pointer}
+.app-shell .prompt-video-upload input[type=file]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;padding:0;z-index:1}
+.prompt-video-upload:focus-within{outline:2px solid var(--sage);outline-offset:3px}
+.prompt-video-upload:has(input:disabled){opacity:.5;cursor:wait}
+.prompt-video-composer.is-dragging{border-color:var(--sage);outline:2px dashed var(--sage);outline-offset:4px}
+.prompt-attachments{display:flex;gap:10px;overflow-x:auto;padding:3px 3px 12px;margin-bottom:10px}
+.prompt-attachments>div{position:relative;flex:0 0 64px;height:64px}
+.prompt-attachments img{width:100%;height:100%;object-fit:cover;border-radius:10px;border:1px solid var(--line)}
+.prompt-attachments button{position:absolute;right:-2px;top:-2px;border:1px solid var(--line);border-radius:50%;width:23px;height:23px;padding:0;background:var(--paper);color:var(--ink)}
+.app-shell .topbar[hidden]{display:none}
+
+/* Consistent, gentle feedback across the home and workspace composers. */
+.prompt-video-composer :is(.prompt-video-upload, .prompt-video-listing, .prompt-video-select, .prompt-video-submit, .prompt-attachments button) {
+  transition: background-color 220ms ease, border-color 220ms ease,
+    color 220ms ease, box-shadow 220ms ease, opacity 220ms ease,
+    transform 240ms cubic-bezier(.22, 1, .36, 1);
+}
+.prompt-video-submit > svg {
+  transition: transform 240ms cubic-bezier(.22, 1, .36, 1);
+}
+@media (hover: hover) and (pointer: fine) {
+  .prompt-video-composer :is(.prompt-video-upload, .prompt-video-listing, .prompt-video-select, .prompt-attachments button):not(:disabled):not(:has(:disabled)):hover {
+    background-color: var(--sage-soft);
+    color: var(--ink);
+    border-color: color-mix(in srgb, var(--sage) 35%, transparent);
+    box-shadow: 0 3px 10px color-mix(in srgb, var(--sage) 12%, transparent);
+    transform: translateY(-1px);
+  }
+  .prompt-video-composer .prompt-video-submit:not(:disabled):hover {
+    background-color: color-mix(in srgb, var(--sage) 90%, var(--ink));
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--sage) 30%, transparent);
+    transform: translateY(-1px) scale(1.04);
+  }
+  .prompt-video-submit:not(:disabled):hover > svg { transform: translateY(-1px); }
+}
+.prompt-video-composer :is(.prompt-video-upload, .prompt-video-listing, .prompt-video-select, .prompt-video-submit, .prompt-attachments button):not(:disabled):not(:has(:disabled)):active {
+  transform: translateY(0) scale(.97);
+  box-shadow: none;
+  transition-duration: 100ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  .prompt-video-composer :is(.prompt-video-upload, .prompt-video-listing, .prompt-video-select, .prompt-video-submit, .prompt-attachments button),
+  .prompt-video-submit > svg {
+    transition: none;
+    transform: none !important;
+  }
 }

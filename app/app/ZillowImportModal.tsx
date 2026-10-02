@@ -26,7 +26,7 @@ export default function ZillowImportModal({ workspaceId, source = "zillow", onCl
       body: JSON.stringify({ ...payload, workspaceId }),
     });
     const result = await response.json();
-    if (!response.ok) throw new Error(result.error ?? `${brand} import failed`);
+    if (!response.ok) throw new Error(result && typeof result === "object" && "error" in result && typeof result.error === "string" ? result.error : `${brand} import failed`);
     return result;
   }
 

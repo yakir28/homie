@@ -1,0 +1,431 @@
+[
+  {
+    "id": 44,
+    "slug": "reflection-reveal",
+    "name": "Reflection Reveal",
+    "duration_seconds": 18,
+    "min_photos": 1,
+    "max_photos": 12,
+    "format": "9:16",
+    "generation_config": {
+      "edit": {
+        "transition": "clean_editorial_cut_on_matched_motion",
+        "speed_ramps": "editor_only",
+        "final_duration": 18,
+        "speed_multiplier": 1.11,
+        "generated_clip_duration": 5
+      },
+      "shots": [
+        {
+          "role": "reflection_to_facade_hook",
+          "prompt": "Begin very low beside the wet driveway with the exact house visible upside down in the existing shallow puddle. Perform a restrained three-percent lateral slide across the physically accurate reflection. As the reflected edge fills the frame, make a clean editorial wipe to the separate exact clean-facade view, then continue with a short stabilized push and readable hero hold. Preserve the exact facade, roofline, siding, porch, windows, garage, driveway and landscaping.",
+          "duration": 5,
+          "end_photo_index": 1,
+          "start_photo_index": 0
+        },
+        {
+          "role": "entry_to_living",
+          "prompt": "Begin in the exact entry with a restrained human-eye-level push. Transition with a clean architectural-line match cut into the exact living room, followed by a subtle three-percent lateral slide. Never invent a connecting hallway or morph the rooms.",
+          "duration": 5,
+          "end_photo_index": 3,
+          "start_photo_index": 2
+        },
+        {
+          "role": "kitchen_to_dining",
+          "prompt": "Begin in the exact kitchen with a restrained eight-degree micro-arc around the fixed island. Transition with a clean cut on matched camera direction into the exact dining room, then perform a slow three-percent push and readable hold. Never morph furniture, cabinetry or architecture.",
+          "duration": 5,
+          "end_photo_index": 5,
+          "start_photo_index": 4
+        },
+        {
+          "role": "bedroom_to_backyard_finale",
+          "prompt": "Begin in the exact primary bedroom with a calm three-percent push. Transition with a clean editorial cut into the exact backyard, followed by a gentle three-percent pullback and stable final hold. Preserve all furniture, openings, rear facade, patio, lawn, fence and landscaping.",
+          "duration": 5,
+          "end_photo_index": 7,
+          "start_photo_index": 6
+        }
+      ],
+      "version": 7,
+      "provider": "higgsfield",
+      "workflow": "four_paired_handles_reflection_reveal",
+      "base_prompt": "Photorealistic approachable real-estate film of the exact supplied property. Natural overcast daylight, realistic stabilized-camera optics, stable verticals, restrained motion and physically accurate reflections.",
+      "photo_order": [
+        "reflection_hook",
+        "clean_facade",
+        "entry",
+        "living_room",
+        "kitchen",
+        "dining_room",
+        "primary_bedroom",
+        "backyard"
+      ],
+      "higgsfield_model": "seedance_2_0",
+      "preservation_prompt": "Treat every supplied image as immutable visual ground truth. Lock architecture, roofline, siding, porch, windows, garage, doors, flooring, fireplace, cabinetry, appliances, furniture identity, furniture count, decor positions, landscaping, fences, materials, colors and lighting logic. Keep each source scene unchanged throughout its shot. Transitions must read as clean editorial cuts, never generative room morphs. No geometry drift, new openings, moving furniture, duplicate objects, invented hallways, fake doorway travel, surreal mirror behavior, people, vehicles, text, logos or watermarks.",
+      "higgsfield_resolution": "1080p",
+      "supports_generate_audio": false
+    }
+  },
+  {
+    "id": 43,
+    "slug": "pulse-tour",
+    "name": "Pulse Tour",
+    "duration_seconds": 18,
+    "min_photos": 1,
+    "max_photos": 12,
+    "format": "9:16",
+    "generation_config": {
+      "edit": {
+        "transition": "hard_cut_on_matched_direction",
+        "speed_ramps": "editor_only",
+        "final_duration": 18,
+        "speed_multiplier": 1.11,
+        "generated_clip_duration": 5,
+        "minimum_feature_hold_seconds": 0.7
+      },
+      "shots": [
+        {
+          "role": "aerial_to_front_hook",
+          "prompt": "Begin on the exact high three-quarter aerial and perform a controlled drone descent and forward approach. At peak forward motion create a clean editorial transition to the exact ground-level front walkway, followed by a short stabilized push. Stop before the front door fills the frame. Preserve the exact facade, roofline, garage, windows, walkway and landscaping.",
+          "duration": 5,
+          "end_photo_index": 1,
+          "start_photo_index": 0
+        },
+        {
+          "role": "living_to_kitchen",
+          "prompt": "Begin in the exact living room with a restrained three-percent push and readable hold. Transition with a clean architectural-line match cut into the exact kitchen, then perform a restrained eight-degree micro-arc around the fixed island. Never invent a connecting room.",
+          "duration": 5,
+          "end_photo_index": 3,
+          "start_photo_index": 2
+        },
+        {
+          "role": "dining_to_bedroom",
+          "prompt": "Begin in the exact dining room with a restrained three-percent lateral slider and readable hold. Transition with a clean cut on motion into the exact bedroom, followed by a slow three-percent push and calm hold. Never morph the two rooms.",
+          "duration": 5,
+          "end_photo_index": 5,
+          "start_photo_index": 4
+        },
+        {
+          "role": "backyard_to_aerial_finale",
+          "prompt": "Begin behind real foreground foliage in the exact backyard and perform a restrained lateral reveal followed by a small pullback. Transition with a clean editorial cut to the exact closing aerial, then perform a controlled drone pull-up and finish on a stable hold.",
+          "duration": 5,
+          "end_photo_index": 7,
+          "start_photo_index": 6
+        }
+      ],
+      "version": 6,
+      "provider": "higgsfield",
+      "workflow": "four_paired_handles_editorial_speed_ramps",
+      "base_prompt": "Photorealistic high-pace real-estate film of the exact supplied property. Fast travel, precise brake, and a readable feature reveal. Natural exposure, stable verticals, realistic 24mm lens behavior and physically filmed drone, gimbal, slider or micro-arc movement.",
+      "photo_order": [
+        "aerial_exterior",
+        "front_approach",
+        "living_room",
+        "kitchen",
+        "dining_room",
+        "primary_bedroom",
+        "backyard",
+        "closing_aerial"
+      ],
+      "higgsfield_model": "seedance_2_0",
+      "preservation_prompt": "Treat every supplied image as immutable visual ground truth. Lock architecture, roofline, walls, doors, windows, flooring, fireplace, cabinetry, appliances, furniture identity, furniture count, object positions, landscaping, fences, neighboring context, materials, colors and lighting logic. Transitions must read as clean editorial cuts, never generative room morphs. No redesigned rooms, geometry drift, new openings, moving furniture, duplicate objects, invented hallways, fake doorway travel, people, text, logos or watermarks.",
+      "higgsfield_resolution": "1080p",
+      "supports_generate_audio": false
+    }
+  },
+  {
+    "id": 42,
+    "slug": "foreground-reveal",
+    "name": "Hidden in Plain Sight",
+    "duration_seconds": 18,
+    "min_photos": 1,
+    "max_photos": 12,
+    "format": "9:16",
+    "generation_config": {
+      "edit": {
+        "transition": "clean_editorial_cut",
+        "final_duration": 18,
+        "hook_speed_ramp": {
+          "editor_only": true,
+          "middle_speed": 1.5,
+          "ease_in_seconds": 0.6,
+          "hero_hold_seconds": 1.2
+        },
+        "use_seconds_per_clip": 3,
+        "generated_clip_duration": 4
+      },
+      "shots": [
+        {
+          "role": "foreground_reveal_hook",
+          "prompt": "Use an existing tree trunk, hedge, mailbox, porch column or other real foreground object already visible near an edge of the supplied facade photo. Perform one controlled lateral slider reveal with realistic foreground parallax, gradually exposing the exact complete facade, then settle into a stable centered hero composition. If no suitable foreground object exists, use a restrained three-percent lateral slide without inventing one. Preserve the exact roofline, siding, garage, front door, porch, windows, driveway, walkway, lawn, landscaping, neighboring edges, materials, colors and shadows.",
+          "duration": 4,
+          "reference_mode": "start"
+        },
+        {
+          "role": "entry",
+          "prompt": "Perform one slow three-percent forward push at human eye level. Lock the exact entry, door, console, mirror, stairs, railing, rug, walls, openings and visible furniture. Stop before entering another room.",
+          "duration": 4,
+          "reference_mode": "start"
+        },
+        {
+          "role": "living_room",
+          "prompt": "Perform one restrained three-percent lateral slider move with subtle natural parallax. Lock the exact sofa, chairs, tables, rug, lighting, artwork, windows, doors, walls and floor.",
+          "duration": 4,
+          "reference_mode": "start"
+        },
+        {
+          "role": "kitchen",
+          "prompt": "Perform one smooth eight-degree micro-arc around the existing island or primary counter. Lock every cabinet, appliance, countertop, fixture, stool, doorway and floorboard in place.",
+          "duration": 4,
+          "reference_mode": "start"
+        },
+        {
+          "role": "dining_room",
+          "prompt": "Perform one subtle three-percent pedestal rise toward the existing dining table. Preserve the exact table, chair count, pendant, decor, windows, doors, walls and floor.",
+          "duration": 4,
+          "reference_mode": "start"
+        },
+        {
+          "role": "backyard_finale",
+          "prompt": "Perform one gentle three-percent pullback and finish on a stable composed hold. Preserve the exact rear facade, patio, furniture, lawn, fence, trees and shrubs. Animate only subtle existing foliage in a light breeze.",
+          "duration": 4,
+          "reference_mode": "start"
+        }
+      ],
+      "version": 5,
+      "provider": "higgsfield",
+      "workflow": "foreground_reveal_then_single_image_shots",
+      "base_prompt": "Photorealistic approachable real-estate film for the exact supplied property. Natural daylight, realistic stabilized-camera optics, stable verticals, restrained motion and authentic everyday character.",
+      "photo_order": [
+        "facade_with_foreground",
+        "entry",
+        "living_room",
+        "kitchen",
+        "dining_room",
+        "backyard"
+      ],
+      "higgsfield_model": "seedance_2_0",
+      "preservation_prompt": "Treat each supplied image as immutable visual ground truth. Lock every wall, ceiling, doorway, window, floor, cabinet, appliance, furniture item, exterior feature and landscaping element in its original position from first frame to last. Keep the exact same scene throughout each shot. Never invent the next room or pass through unseen geometry. No architectural transformation, moving furniture, object changes, geometry drift, morphing, redesign, people, text or logos.",
+      "higgsfield_resolution": "1080p",
+      "supports_generate_audio": false
+    }
+  },
+  {
+    "id": 41,
+    "slug": "find-your-way-home",
+    "name": "Find Your Way Home",
+    "duration_seconds": 18,
+    "min_photos": 1,
+    "max_photos": 12,
+    "format": "9:16",
+    "generation_config": {
+      "edit": {
+        "transition": "clean_editorial_cut",
+        "speed_ramps": "editor_only",
+        "final_duration": 18,
+        "use_seconds_per_clip": 3,
+        "generated_clip_duration": 4
+      },
+      "shots": [
+        {
+          "role": "neighborhood_hook",
+          "prompt": "Perform one slow controlled diagonal drone descent toward the featured home with a stable horizon and subtle natural parallax. Preserve every roof, road, tree, property boundary and building.",
+          "duration": 4,
+          "reference_mode": "start"
+        },
+        {
+          "role": "facade_arrival",
+          "prompt": "Perform one subtle forward push toward the existing front entrance, no more than a five-percent camera advance. Preserve the exact facade, roofline, garage, windows, driveway and landscaping.",
+          "duration": 4,
+          "reference_mode": "start"
+        },
+        {
+          "role": "living_room",
+          "prompt": "Perform one very slow four-percent forward camera push at human eye level. Keep the same living room and all furniture perfectly fixed throughout the shot.",
+          "duration": 4,
+          "reference_mode": "start"
+        },
+        {
+          "role": "kitchen",
+          "prompt": "Perform one restrained three-percent lateral camera slide. Lock every cabinet, appliance, countertop, island, fixture, doorway and floorboard in place.",
+          "duration": 4,
+          "reference_mode": "start"
+        },
+        {
+          "role": "dining",
+          "prompt": "Perform one slow subtle push toward the dining table. Preserve the exact table, chair count, windows, sliding doors, walls, floor and exterior view.",
+          "duration": 4,
+          "reference_mode": "start"
+        },
+        {
+          "role": "backyard_finale",
+          "prompt": "Perform one very slow three-percent backward drift and finish on a calm stable hold. Animate only gentle existing foliage and slightly warmer natural light; add nothing to the yard.",
+          "duration": 4,
+          "reference_mode": "start"
+        }
+      ],
+      "version": 4,
+      "provider": "higgsfield",
+      "workflow": "single_image_shots_editorial_cuts",
+      "base_prompt": "Photorealistic approachable real-estate film for a modest home. Natural daylight, realistic optics, stable vertical lines, restrained camera motion and warm everyday character rather than luxury styling.",
+      "higgsfield_model": "seedance_2_0",
+      "preservation_prompt": "Animate only the supplied image for each shot. Treat it as immutable visual ground truth. Lock every wall, ceiling, doorway, window, floor, cabinet, appliance, furniture item, exterior feature and landscaping element in its original position from first frame to last. Never transition into another room inside a generated shot. No architectural transformation, invented openings, moving furniture, geometry drift, morphing, redesign, people, text or logos.",
+      "higgsfield_resolution": "1080p",
+      "supports_generate_audio": false
+    }
+  },
+  {
+    "id": 45,
+    "slug": "maple-glass-flight",
+    "name": "Maple Glass Flight",
+    "duration_seconds": 30,
+    "min_photos": 1,
+    "max_photos": 9,
+    "format": "3:4",
+    "generation_config": {
+      "version": 6,
+      "provider": "higgsfield",
+      "workflow": "single_30s_all_references",
+      "base_prompt": "Create one continuous 30-second photorealistic luxury real-estate film of the exact supplied property. Treat all images as chronological fixed visual anchors. Maintain the same house identity, materials, furniture, landscaping, time of day and lens language throughout.",
+      "timed_prompt": "0-7s: fast but physically plausible elevated approach toward the exact facade, decelerating into the entrance. 7-12s: use a brief natural doorway occlusion to reveal the verified entry. 12-17s: smooth three-percent slider through the verified living area. 17-22s: shallow eight-degree arc around the verified kitchen island. 22-26s: restrained push into the verified bedroom. 26-30s: move toward the verified outdoor finale and finish on a stable one-second hold. Use clean hidden cuts at reference changes and keep forward camera direction consistent.",
+      "reference_order": "chronological",
+      "higgsfield_model": "seedance_2_0",
+      "preservation_prompt": "Do not merge, reorder, redesign or replace rooms. Lock every wall, opening, floor, cabinet, fixture, furnishing, facade element and landscape feature. No geometry drift, invented corridors, moving furniture, people, text or logos.",
+      "higgsfield_resolution": "1080p",
+      "supports_generate_audio": false
+    }
+  },
+  {
+    "id": 46,
+    "slug": "warm-threshold",
+    "name": "Warm Threshold",
+    "duration_seconds": 30,
+    "min_photos": 1,
+    "max_photos": 9,
+    "format": "4:3",
+    "generation_config": {
+      "version": 6,
+      "provider": "higgsfield",
+      "workflow": "single_30s_all_references",
+      "base_prompt": "Create one coherent 30-second photorealistic real-estate film of an authentic welcoming home using every supplied image as a chronological fixed visual anchor. Preserve warm natural light, attainable styling and realistic stabilized-camera optics.",
+      "timed_prompt": "0-6s: descend from the verified neighborhood context toward the exact home. 6-11s: approach the exact front door, let it open naturally on its real hinges, and hide the transition in the dark threshold. 11-15s: reveal the verified entry with a short forward glide. 15-20s: restrained living-room slider. 20-24s: shallow kitchen arc. 24-27s: calm bedroom push. 27-30s: verified outdoor finale with a gentle pullback and stable hold. All reference changes must use short clean occlusions rather than morphing.",
+      "reference_order": "chronological",
+      "higgsfield_model": "seedance_2_0",
+      "preservation_prompt": "Do not merge, reorder, redesign or replace rooms. Lock every architectural element, furnishing, fixture, exterior feature and view. No geometry drift, invented space, object changes, people, text or logos.",
+      "higgsfield_resolution": "1080p",
+      "supports_generate_audio": false
+    }
+  },
+  {
+    "id": 47,
+    "slug": "city-apartment",
+    "name": "City Apartment",
+    "duration_seconds": 30,
+    "min_photos": 1,
+    "max_photos": 9,
+    "format": "3:4",
+    "generation_config": {
+      "version": 6,
+      "provider": "higgsfield",
+      "workflow": "single_30s_all_references",
+      "base_prompt": "Create one continuous 30-second photorealistic urban apartment film using all supplied images as chronological fixed visual anchors. Preserve the exact building, apartment identity, dark bronze windows, light oak flooring, walnut accents, neighboring buildings and late-afternoon light.",
+      "timed_prompt": "0-7s: controlled crane descent along the verified facade toward the exact glazed lobby entrance. 7-11s: pass through a brief dark glass-door occlusion into the verified lobby and settle on the elevator. 11-15s: clean cut to the verified apartment entry, then a short forward glide toward the living-room doorway. 15-19s: restrained living-room slider. 19-23s: shallow kitchen-island arc. 23-26s: slow bedroom push. 26-28s: short bathroom pedestal rise. 28-30s: balcony push ending before the railing on a stable city-view hold. Use hidden cuts between non-adjacent verified spaces; never morph them.",
+      "reference_order": "chronological",
+      "higgsfield_model": "seedance_2_0",
+      "preservation_prompt": "Do not merge, reorder, redesign or replace spaces. Lock the facade, lobby, elevator, entry, walls, windows, flooring, cabinetry, furniture, fixtures, balcony and city view. No invented elevator journey, corridor, geometry drift, object movement, people, text or logos.",
+      "higgsfield_resolution": "1080p",
+      "supports_generate_audio": false
+    }
+  },
+  {
+    "id": 48,
+    "slug": "blueprint-to-reality",
+    "name": "Blueprint to Reality",
+    "duration_seconds": 30,
+    "min_photos": 1,
+    "max_photos": 10,
+    "format": "3:4",
+    "generation_config": {
+      "version": 7,
+      "provider": "higgsfield",
+      "workflow": "single_30s_all_references",
+      "base_prompt": "Create one premium, photorealistic 30-second portrait 3:4 real-estate film as a single Seedance 2.5 omni-reference generation using every supplied reference.",
+      "timed_prompt": "SCENE CONTEXT\nCreate a fully silent architectural launch film as one uninterrupted visual journey. A living blueprint progressively becomes the exact supplied real home. Every transition is caused by plotted geometry, extrusion, materialization, a real architectural occluder, or a proof overlay inside the scene. There are no editorial cuts, dissolves, fades, wipes, split screens, or screen-space transformation boundaries.\n\nFIRST FRAME\nDeep blueprint paper fills the frame with a faint millimeter grid. A single cold chartreuse centerline begins plotting through the precise location from which the supplied home's elevation will grow.\n\nCAMERA — ONE CONTINUOUS PERFORMANCE\nBegin static and face-on to the drafting plane. As the elevation completes, tilt the drawing into depth and arc gently into a matching three-quarter axonometric. Rise with the ink-to-matter ignition, then move to a plumb top-down view where the same geometry reads as a floor plan. Descend through that plan into the supplied living room, settle at eye height, and continue through the ordered interior and rear references using only real mullions, door edges, or verified openings as brief natural occluders. Finish with one calm pull-back and rise to the exact front facade. Motion follows soft S-curves and never stops before the final hold.\n\nACTION PROGRESSION\nThe centerline plots the front elevation at honest CAD pen speed. The completed drawing tilts into a wireframe volume. Chartreuse linework acts as a current: connected slab, wall, roof, window, driveway, porch, door, and landscape lines gain real mass from the linework itself, bottom-to-top and element-by-element. Blueprint paper develops outward from the property silhouette into the real environment. A top-down plan then extrudes into the exact living room; oak flooring, walls, windows, furniture, and daylight arrive only where their plotted twins exist. Ordered rooms are revealed through architecture already visible in the references, never through an invented corridor. At the rear exterior, the camera begins its closing pull-back. Draft-white and chartreuse proof lines plot directly over the completed home's real edges, align exactly, and sink into the materials without displacing them. The light warms naturally while the home remains unchanged. End on a centered, stable facade with clean negative space for application-added copy.\n\nDRAWING / REALITY LANGUAGE\nBlueprint layer: deep paper #16233F, crisp one-pixel draft-white #EAF2FF linework, faint grid, dimension ticks and a cold green-biased chartreuse #D1EF17 accent, zero glow. Reality layer: truthful attainable real-estate photography with natural materials, physically correct glass, modest landscaping and balanced daylight. Drawing and reality are the same geometry; every line lands on its material twin.\n\nGRAPHICS, AUDIO, QUALITY\nGenerate no readable text, letters, numbers, logos, captions, signs, watermarks, music, speech, ambience, or sound effects. Keep straight verticals, a stable horizon, restrained 28–35mm optics, sharp temporal consistency, subtle motion blur, and no flicker, ghosting, texture boiling, geometry drift, floating objects, people, pets, cars, flares, impossible camera passage, or speculative architecture. Once a real element materializes it stays real through the closing hold.",
+      "generate_audio": false,
+      "director_prompt": "SCENE CONTEXT\nCreate a fully silent architectural launch film as one uninterrupted visual journey. A living blueprint progressively becomes the exact supplied real home. Every transition is caused by plotted geometry, extrusion, materialization, a real architectural occluder, or a proof overlay inside the scene. There are no editorial cuts, dissolves, fades, wipes, split screens, or screen-space transformation boundaries.\n\nFIRST FRAME\nDeep blueprint paper fills the frame with a faint millimeter grid. A single cold chartreuse centerline begins plotting through the precise location from which the supplied home's elevation will grow.\n\nCAMERA — ONE CONTINUOUS PERFORMANCE\nBegin static and face-on to the drafting plane. As the elevation completes, tilt the drawing into depth and arc gently into a matching three-quarter axonometric. Rise with the ink-to-matter ignition, then move to a plumb top-down view where the same geometry reads as a floor plan. Descend through that plan into the supplied living room, settle at eye height, and continue through the ordered interior and rear references using only real mullions, door edges, or verified openings as brief natural occluders. Finish with one calm pull-back and rise to the exact front facade. Motion follows soft S-curves and never stops before the final hold.\n\nACTION PROGRESSION\nThe centerline plots the front elevation at honest CAD pen speed. The completed drawing tilts into a wireframe volume. Chartreuse linework acts as a current: connected slab, wall, roof, window, driveway, porch, door, and landscape lines gain real mass from the linework itself, bottom-to-top and element-by-element. Blueprint paper develops outward from the property silhouette into the real environment. A top-down plan then extrudes into the exact living room; oak flooring, walls, windows, furniture, and daylight arrive only where their plotted twins exist. Ordered rooms are revealed through architecture already visible in the references, never through an invented corridor. At the rear exterior, the camera begins its closing pull-back. Draft-white and chartreuse proof lines plot directly over the completed home's real edges, align exactly, and sink into the materials without displacing them. The light warms naturally while the home remains unchanged. End on a centered, stable facade with clean negative space for application-added copy.\n\nDRAWING / REALITY LANGUAGE\nBlueprint layer: deep paper #16233F, crisp one-pixel draft-white #EAF2FF linework, faint grid, dimension ticks and a cold green-biased chartreuse #D1EF17 accent, zero glow. Reality layer: truthful attainable real-estate photography with natural materials, physically correct glass, modest landscaping and balanced daylight. Drawing and reality are the same geometry; every line lands on its material twin.\n\nGRAPHICS, AUDIO, QUALITY\nGenerate no readable text, letters, numbers, logos, captions, signs, watermarks, music, speech, ambience, or sound effects. Keep straight verticals, a stable horizon, restrained 28–35mm optics, sharp temporal consistency, subtle motion blur, and no flicker, ghosting, texture boiling, geometry drift, floating objects, people, pets, cars, flares, impossible camera passage, or speculative architecture. Once a real element materializes it stays real through the closing hold.",
+      "higgsfield_mode": "omni_reference",
+      "higgsfield_model": "seedance_2_5",
+      "reference_policy": "All supplied images are chronological fixed visual anchors. Preserve them exactly and never reorder, merge, or redesign them.",
+      "preservation_prompt": "Treat every supplied property image as immutable ground truth. Preserve exact architecture, dimensions, openings, materials, furniture, landscaping, lighting identity, and neighborhood context. Do not invent rooms, passages, floors, decor, people, pets, vehicles, signs, text, logos, or watermarks.",
+      "default_aspect_ratio": "3:4",
+      "higgsfield_resolution": "1080p",
+      "higgsfield_bitrate_mode": "high",
+      "supports_generate_audio": true,
+      "default_duration_seconds": 30
+    }
+  },
+  {
+    "id": 49,
+    "slug": "house-behind-the-glass",
+    "name": "The House Behind the Glass",
+    "duration_seconds": 30,
+    "min_photos": 1,
+    "max_photos": 10,
+    "format": "3:4",
+    "generation_config": {
+      "version": 7,
+      "provider": "higgsfield",
+      "workflow": "single_30s_all_references",
+      "base_prompt": "Create one premium, photorealistic 30-second portrait 3:4 real-estate film as a single Seedance 2.5 omni-reference generation using every supplied reference.",
+      "timed_prompt": "SCENE CONTEXT\nCreate a fully silent photorealistic real-estate reveal for the exact attainable family home in the references, as one continuous cinematic journey built around glass. The house initially withholds itself behind a dark reflective front window. Each new space is discovered through a real pane, mullion, doorway, frame edge, or physically plausible reflection already present in the ordered references. Glass is never a fantasy portal; it alternately reflects the neighborhood, reveals a verified room, and hides a seamless architectural transition.\n\nWORLD / HERO\nPreserve the exact ordinary detached home and its consistent material identity: facade, roof, garage, front door, signature dark-framed living-room window, neighboring context, mature trees, modest shrubs, imperfect lawn, driveway and sidewalk. Preserve every supplied interior exactly: warm-white walls, oak floors, woven rugs, restrained neutral furniture, muted olive accents, natural wood, dark window frames and believable practical lighting. The result is cared-for and inviting, never mansion-like or CGI-perfect.\n\nREFERENCE ORDER\nUse every supplied image as a fixed visual anchor in its supplied chronological order: exterior identity, restrained evening state, reflective front-window threshold, revealed living room, verified living-room viewpoint, kitchen and dining, bedroom, rear-door axis, backyard, and the illuminated closing facade. Never reorder, merge, redesign, borrow furniture between rooms, change openings, or invent a route.\n\nFIRST FRAME\nBegin extremely close to the exact front living-room window at blue hour. Crisp dark mullions and physically layered reflections of tree canopy and cool sky dominate the composition while the interior is barely perceptible. A shallow lateral drift changes the viewing angle, gently weakening only the plausible part of the reflection until the exact warm living room becomes visible behind the same unchanged pane.\n\nCAMERA — ONE CONTINUOUS VISUAL GRAMMAR\nMove like a precise compact gimbal with natural 28–35mm real-estate optics, straight verticals and soft curved acceleration. Approach a real mullion until it naturally fills the frame and conceals the handoff to the verified interior. Continue in the same direction across the living room. Use only existing doorway edges and dark frame occluders to reveal the kitchen and dining view without claiming an unsupported hallway. Follow a vertical window frame upward to motivate the bedroom reveal. Withdraw behind a real door edge, return to the kitchen, align with the verified rear slider, and reveal the matching backyard. A final dark frame edge conceals the return to the exact front facade, where the camera eases backward into a stable welcoming hold. No drone flight, door-opening hook, FPV rush, whip pan, crash zoom, orbit, or camera passage through walls, furniture, or solid glass.\n\nACTION / PHYSICS / LIGHT\nReflections strengthen or fade only when camera angle and relative illumination justify it. Mullions never bend, multiply, slide, or dissolve. Rooms, windows, cabinetry, furniture and landscaping remain rigid. Only subtle curtains, plant leaves and outdoor foliage may move. Follow one coherent evolution from cool early blue hour to a slightly deeper blue closing state as warm practical lights gradually become legible without clipping. Cool reflections and warm rooms coexist naturally on each pane.\n\nGRAPHICS, AUDIO, QUALITY\nGenerate no readable text, address, signs, sale boards, UI, logos, captions, subtitles, watermarks, music, narration, ambience, or effects. Maintain sharp temporal coherence in window grids, siding, roof edges, furniture and rooms. Avoid flicker, ghosting, frame blending, stutter, texture boiling, identity drift, artificial bloom, fantasy luxury styling, people, pets, vehicles, duplicated objects, moving furniture, invented openings, impossible reflections, and generative morphs.",
+      "generate_audio": false,
+      "director_prompt": "SCENE CONTEXT\nCreate a fully silent photorealistic real-estate reveal for the exact attainable family home in the references, as one continuous cinematic journey built around glass. The house initially withholds itself behind a dark reflective front window. Each new space is discovered through a real pane, mullion, doorway, frame edge, or physically plausible reflection already present in the ordered references. Glass is never a fantasy portal; it alternately reflects the neighborhood, reveals a verified room, and hides a seamless architectural transition.\n\nWORLD / HERO\nPreserve the exact ordinary detached home and its consistent material identity: facade, roof, garage, front door, signature dark-framed living-room window, neighboring context, mature trees, modest shrubs, imperfect lawn, driveway and sidewalk. Preserve every supplied interior exactly: warm-white walls, oak floors, woven rugs, restrained neutral furniture, muted olive accents, natural wood, dark window frames and believable practical lighting. The result is cared-for and inviting, never mansion-like or CGI-perfect.\n\nREFERENCE ORDER\nUse every supplied image as a fixed visual anchor in its supplied chronological order: exterior identity, restrained evening state, reflective front-window threshold, revealed living room, verified living-room viewpoint, kitchen and dining, bedroom, rear-door axis, backyard, and the illuminated closing facade. Never reorder, merge, redesign, borrow furniture between rooms, change openings, or invent a route.\n\nFIRST FRAME\nBegin extremely close to the exact front living-room window at blue hour. Crisp dark mullions and physically layered reflections of tree canopy and cool sky dominate the composition while the interior is barely perceptible. A shallow lateral drift changes the viewing angle, gently weakening only the plausible part of the reflection until the exact warm living room becomes visible behind the same unchanged pane.\n\nCAMERA — ONE CONTINUOUS VISUAL GRAMMAR\nMove like a precise compact gimbal with natural 28–35mm real-estate optics, straight verticals and soft curved acceleration. Approach a real mullion until it naturally fills the frame and conceals the handoff to the verified interior. Continue in the same direction across the living room. Use only existing doorway edges and dark frame occluders to reveal the kitchen and dining view without claiming an unsupported hallway. Follow a vertical window frame upward to motivate the bedroom reveal. Withdraw behind a real door edge, return to the kitchen, align with the verified rear slider, and reveal the matching backyard. A final dark frame edge conceals the return to the exact front facade, where the camera eases backward into a stable welcoming hold. No drone flight, door-opening hook, FPV rush, whip pan, crash zoom, orbit, or camera passage through walls, furniture, or solid glass.\n\nACTION / PHYSICS / LIGHT\nReflections strengthen or fade only when camera angle and relative illumination justify it. Mullions never bend, multiply, slide, or dissolve. Rooms, windows, cabinetry, furniture and landscaping remain rigid. Only subtle curtains, plant leaves and outdoor foliage may move. Follow one coherent evolution from cool early blue hour to a slightly deeper blue closing state as warm practical lights gradually become legible without clipping. Cool reflections and warm rooms coexist naturally on each pane.\n\nGRAPHICS, AUDIO, QUALITY\nGenerate no readable text, address, signs, sale boards, UI, logos, captions, subtitles, watermarks, music, narration, ambience, or effects. Maintain sharp temporal coherence in window grids, siding, roof edges, furniture and rooms. Avoid flicker, ghosting, frame blending, stutter, texture boiling, identity drift, artificial bloom, fantasy luxury styling, people, pets, vehicles, duplicated objects, moving furniture, invented openings, impossible reflections, and generative morphs.",
+      "higgsfield_mode": "omni_reference",
+      "higgsfield_model": "seedance_2_5",
+      "reference_policy": "All supplied images are chronological fixed visual anchors. Preserve them exactly and never reorder, merge, or redesign them.",
+      "preservation_prompt": "Treat every supplied property image as immutable ground truth. Preserve exact architecture, dimensions, openings, materials, furniture, landscaping, lighting identity, and neighborhood context. Do not invent rooms, passages, floors, decor, people, pets, vehicles, signs, text, logos, or watermarks.",
+      "default_aspect_ratio": "3:4",
+      "higgsfield_resolution": "1080p",
+      "higgsfield_bitrate_mode": "high",
+      "supports_generate_audio": true,
+      "default_duration_seconds": 30
+    }
+  },
+  {
+    "id": 50,
+    "slug": "prompt-film-15s",
+    "name": "Custom film · 15s",
+    "duration_seconds": 15,
+    "min_photos": 1,
+    "max_photos": 30,
+    "format": "16:9",
+    "generation_config": {
+      "workflow": "prompt_property_film",
+      "entry_point": "prompt",
+      "generate_audio": true,
+      "higgsfield_mode": "omni_reference",
+      "higgsfield_model": "seedance_2_5",
+      "prompt_skill_version": "real-estate-ai-video-v1",
+      "higgsfield_resolution": "1080p",
+      "higgsfield_bitrate_mode": "standard"
+    }
+  },
+  {
+    "id": 51,
+    "slug": "prompt-film-30s",
+    "name": "Custom film · 30s",
+    "duration_seconds": 30,
+    "min_photos": 1,
+    "max_photos": 30,
+    "format": "16:9",
+    "generation_config": {
+      "workflow": "prompt_property_film",
+      "entry_point": "prompt",
+      "generate_audio": true,
+      "higgsfield_mode": "omni_reference",
+      "higgsfield_model": "seedance_2_5",
+      "prompt_skill_version": "real-estate-ai-video-v1",
+      "higgsfield_resolution": "1080p",
+      "higgsfield_bitrate_mode": "standard"
+    }
+  }
+]

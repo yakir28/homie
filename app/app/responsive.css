@@ -173,3 +173,6 @@
   .app-shell .topup-bundle-price { align-items: flex-start; }
   .app-shell .topup-switch button { padding-inline: 14px; }
 }
+.app-shell .mobile-nav button.soon { opacity: .6; }
+.app-shell .mobile-nav .mobile-nav-icon { position: relative; }
+.app-shell .mobile-nav .nav-soon { position: absolute; top: -4px; right: -2px; font: 600 7px/1 var(--mono); font-style: normal; text-transform: uppercase; letter-spacing: .5px; padding: 2px 4px; border-radius: 6px; background: var(--sage); color: #fff; }

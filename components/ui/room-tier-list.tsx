@@ -106,7 +106,6 @@ export default function RoomTierList({ value, photos, onChange, onReset, busy = 
         </div>;
       })}
       {indicator >= visible.length && <span className={styles.indicator} aria-hidden="true" />}
-      {zone === POOL && !ids.length && indicator < 0 && <p className={styles.empty}>{photos.length ? "All photos assigned — drag tiles back here to unassign" : "Add property photos to start organizing"}</p>}
     </div>;
   }
   const draggingPhoto = dragId ? photoById.get(dragId) : null;
@@ -124,7 +123,7 @@ export default function RoomTierList({ value, photos, onChange, onReset, busy = 
         </div>)}
       </div>
       <div className={styles.add}><button disabled={disabled} onClick={() => { let name = "New room"; let count = 2; while (value.rows.some(row => row.name.toLowerCase() === name.toLowerCase())) name = `New room ${count++}`; onChange({ ...value, rows: [...value.rows, { id: `new-${crypto.randomUUID()}`, name, photoIds: [] }] }); }}>＋ Add row</button></div>
-      <div className={styles.pool}><header><span aria-hidden="true">▤</span> UNASSIGNED <b>{value.pool.length}</b></header>{renderTiles(value.pool, POOL)}</div>
+      {value.pool.length > 0 && renderTiles(value.pool, POOL)}
     </>}
     <p className={styles.status} role="status">{busy ? "Saving…" : status || announcement}</p>
     {draggingPhoto && createPortal(<div ref={node => { ghost.current = node; if (node && drag.current) node.style.transform = `translate3d(${drag.current.x - 28}px,${drag.current.y - 35}px,0) rotate(-4deg) scale(1.08)`; }} className={styles.ghost}><img src={draggingPhoto.url} alt="" /><span>{draggingPhoto.roomType}</span></div>, document.body)}

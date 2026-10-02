@@ -14,7 +14,15 @@ export async function POST(request: Request) {
   const authorization = request.headers.get("authorization");
   if (!authorization?.startsWith("Bearer ")) return Response.json({ error: "Authentication required" }, { status: 401 });
 
-  const { projectId } = await request.json() as { projectId?: number };
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return Response.json({ error: "Valid JSON body required" }, { status: 400 });
+  }
+  const projectId = body && typeof body === "object" && "projectId" in body
+    ? body.projectId
+    : undefined;
   if (!Number.isSafeInteger(projectId) || Number(projectId) <= 0) return Response.json({ error: "Valid projectId required" }, { status: 400 });
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;

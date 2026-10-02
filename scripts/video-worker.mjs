@@ -1,17 +1,27 @@
-import { execFile, spawn } from "node:child_process";
+import { makeReferencePlan, referenceInput, REFERENCE_MODELS } from "../lib/higgsfield-reference.mjs";
+import { createHash } from "node:crypto";
+import { execFile } from "node:child_process";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { createClient } from "@supabase/supabase-js";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
-import { createPromptFilmShot } from "../lib/real-estate-video-prompt.mjs";
+import { makeShotPlan, validateShotPlan, buildGenerationCommand } from "../lib/video-shot-plan.mjs";
+import { assembleVideo, outputDimensions } from "../lib/video-assembly.mjs";
+import { makeKlingShotPlan, klingRequest } from "../lib/kling-shot-plan.mjs";
+import { createHiggsfieldClient, higgsfieldModel as hfModel, higgsfieldInput, HIGGSFIELD_PROVIDER } from "../lib/higgsfield-api.mjs";
+import { createKlingClient } from "../lib/kling-client.mjs";
 
 const execFileAsync = promisify(execFile);
 const args = new Set(process.argv.slice(2));
 const once = args.has("--once");
 const dryRun = args.has("--dry-run");
+const resumeProjectId = process.argv.find((arg) => arg.startsWith("--resume-project="))?.split("=")[1];
+if (resumeProjectId && !/^\d+$/.test(resumeProjectId)) throw new Error("Invalid resume project ID.");
 const promptOnly = args.has("--prompt-only");
+const higgsfieldApiOnly = args.has("--higgsfield-api-only");
+const klingOnly = args.has("--kling-only");
 const pollMs = Number(process.env.VIDEO_WORKER_POLL_MS ?? 5000);
 const higgsfieldModel = process.env.HIGGSFIELD_VIDEO_MODEL ?? "seedance_2_0";
 const higgsfieldResolution = process.env.HIGGSFIELD_VIDEO_RESOLUTION ?? "720p";
@@ -37,35 +47,36 @@ const r2 = hasR2Credentials ? new S3Client({
   credentials: { accessKeyId: r2AccessKeyId, secretAccessKey: r2SecretAccessKey },
 }) : null;
 
-const BASE_PROMPT = "Polished cinematic real-estate walkthrough. Smooth controlled camera movement, stable level horizon, realistic architectural geometry, consistent furniture and openings, natural spatial continuity, balanced light, tack-sharp luxury-listing cinematography.";
-const PRESERVATION_PROMPT = "Treat every supplied property image as ground truth. Preserve the exact architecture, room proportions, doors, windows, furniture, materials, landscaping, and lighting. Do not invent rooms, openings, floors, decor, text, people, or structural transitions that are not visible in the references.";
-const MOTIONS = [
-  "Begin with a slow, stable push forward and ease to a stop on the architectural focal point.",
-  "Glide gently through the space, preserving the exact room geometry and furniture layout.",
-  "Make a restrained cinematic reveal with one smooth camera move and a level horizon.",
-  "Drift forward slowly toward the strongest feature, ending on a clean hero composition.",
-];
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+async function checked(query) {
+  const result = await query;
+  if (result.error) throw result.error;
+  return result;
+}
+
 async function event(projectId, stage, message, progress, metadata = {}) {
-  await db.from("generation_events").insert({
+  await checked(db.from("generation_events").insert({
     video_project_id: projectId,
     stage,
     message,
     progress,
     metadata,
-  });
-  await db.from("video_projects").update({ generation_progress: progress }).eq("id", projectId);
+  }));
+  await checked(db.from("video_projects").update({ generation_progress: progress }).eq("id", projectId));
 }
 
 async function claimNextProject() {
   let query = db
     .from("video_projects")
-    .select("id, workspace_id, duration_seconds, output_format, template_prompt_snapshot, video_templates(generation_config), video_project_photos(sort_order, listing_photos(id, storage_path, source_url, room_type, metadata)), video_project_shots(shot_order, status, output_url, provider_job_id, provider_metadata)")
-    .eq("status", "queued");
+    .select("id, status, workspace_id, duration_seconds, output_format, template_prompt_snapshot, video_templates(slug, generation_config), video_project_photos(sort_order, listing_photos(id, storage_path, source_url, room_type, metadata)), video_project_shots(shot_order, status, output_url, provider_job_id, provider_metadata)");
+  if (resumeProjectId) query = query.eq("id", Number(resumeProjectId)).eq("status", "failed");
+  else query = query.eq("status", "queued");
+  if (higgsfieldApiOnly) query = query.eq("template_prompt_snapshot->>provider", HIGGSFIELD_PROVIDER);
+  if (klingOnly) query = query.eq("template_prompt_snapshot->>provider", "kling");
   if (promptOnly) query = query.eq("template_prompt_snapshot->>workflow", "prompt_property_film");
   const { data: queued, error } = await query
     .order("created_at")
@@ -73,12 +84,17 @@ async function claimNextProject() {
     .maybeSingle();
   if (error) throw error;
   if (!queued) return null;
+  if (dryRun) return queued;
+  // Fail before claiming/debiting any further work when server credentials are missing.
+  if (queued.template_prompt_snapshot?.provider === "kling") getKlingClient();
+  else if (queued.template_prompt_snapshot?.provider === HIGGSFIELD_PROVIDER) getHiggsfieldClient();
+  else await execFileAsync("higgsfield", ["account", "status"]);
 
   const { data: claimed, error: claimError } = await db
     .from("video_projects")
     .update({ status: "generating", generation_progress: 1, generation_error: null })
     .eq("id", queued.id)
-    .eq("status", "queued")
+    .eq("status", queued.status)
     .select("id")
     .maybeSingle();
   if (claimError) throw claimError;
@@ -103,124 +119,11 @@ async function materializePhoto(photo, directory, index) {
   return { path, roomType: photo.room_type ?? null, metadata: photo.metadata ?? {} };
 }
 
-function inferredRole(index, total) {
-  if (index === 0) return "exterior arrival or strongest opening view";
-  if (index === total - 1) return "hero closing view";
-  if (index / total < 0.55) return "main interior living space";
-  return "feature room or lifestyle detail";
-}
-
-function makeShotPlan(project, photos) {
-  const config = project.template_prompt_snapshot ?? project.video_templates?.generation_config ?? {};
-  if (config.workflow === "prompt_property_film") return [createPromptFilmShot(project, photos)];
-  if (config.workflow === "single_30s_all_references") {
-    const directorPrompt = config.director_prompt
-      ?? config.structured_prompt
-      ?? config.timed_prompt
-      ?? "Create one coherent property film using the supplied references in their exact chronological order.";
-    return [{
-      order: 0,
-      role: "complete_property_film",
-      duration: Math.min(30, project.duration_seconds),
-      prompt: `${config.base_prompt ?? BASE_PROMPT} ${config.preservation_prompt ?? PRESERVATION_PROMPT} ${directorPrompt}`,
-      startPath: null,
-      endPath: null,
-      referencePaths: photos.map((photo) => photo.path),
-      provider: "higgsfield",
-      model: config.higgsfield_model ?? config.model ?? higgsfieldModel,
-      resolution: config.higgsfield_resolution ?? config.resolution ?? higgsfieldResolution,
-      mode: config.higgsfield_mode ?? null,
-      bitrateMode: config.higgsfield_bitrate_mode ?? null,
-      generateAudio: config.supports_generate_audio === false ? null : config.generate_audio ?? false,
-    }];
-  }
-  const configured = Array.isArray(config.shots) ? config.shots : [];
-  const desiredShotCount = Math.round(project.duration_seconds / 6);
-  const targetShots = Math.max(1, Math.min(photos.length, configured.length || desiredShotCount));
-  const duration = Math.max(4, Math.min(15, Math.round(project.duration_seconds / targetShots)));
-  const configuredTotal = configured.slice(0, targetShots).reduce((sum, shot) => sum + (Number(shot.duration) || 0), 0);
-  const usesExactTemplateTiming = configuredTotal === project.duration_seconds;
-  return Array.from({ length: targetShots }, (_, index) => {
-    const definition = configured[index] ?? {};
-    const isConfiguredShot = Boolean(configured[index]);
-    const shotSpan = Math.max(1, targetShots - 1);
-    const fallbackStartIndex = Math.min(photos.length - 1, Math.round(index * (photos.length - 1) / shotSpan));
-    const startIndex = Number.isInteger(definition.start_photo_index)
-      ? Math.max(0, Math.min(photos.length - 1, definition.start_photo_index))
-      : fallbackStartIndex;
-    const hasExplicitEnd = Number.isInteger(definition.end_photo_index);
-    const endIndex = hasExplicitEnd
-      ? Math.max(0, Math.min(photos.length - 1, definition.end_photo_index))
-      : startIndex;
-    const midpoint = Math.min(photos.length - 1, Math.round((startIndex + endIndex) / 2));
-    const startLabel = photos[startIndex].roomType ?? inferredRole(startIndex, photos.length);
-    const endLabel = photos[endIndex].roomType ?? inferredRole(endIndex, photos.length);
-    const basePrompt = config.base_prompt ?? BASE_PROMPT;
-    const preservationPrompt = config.preservation_prompt ?? PRESERVATION_PROMPT;
-    const referenceMode = definition.reference_mode ?? (hasExplicitEnd ? "both" : "start");
-    const imageAdaptation = referenceMode === "end"
-      ? `The end reference is the ground-truth property reveal. Begin with the described stylized setup, then converge cleanly and exactly on that reference without changing the home's architecture, materials, or surroundings.`
-      : referenceMode === "start"
-        ? `The start reference is the immutable ground-truth property. Keep that exact property identity, architecture, materials, landscaping, and surroundings throughout the entire shot.`
-      : `The start reference shows ${startLabel}; the end reference shows ${endLabel}. Adapt the camera path to only what is visually supported by these images. If they do not show a physically connected space, use a graceful editorial reveal rather than inventing a doorway or passage.`;
-    return {
-      order: index,
-      role: definition.role ?? (index === 0 ? "hook" : index === targetShots - 1 ? "closing" : "interior"),
-      duration: usesExactTemplateTiming ? Number(definition.duration) : duration,
-      prompt: `${basePrompt} ${preservationPrompt} ${definition.prompt ?? definition.motion ?? MOTIONS[index % MOTIONS.length]} ${imageAdaptation}`,
-      startPath: referenceMode === "end" ? null : photos[startIndex].path,
-      endPath: referenceMode === "end"
-        ? photos[startIndex].path
-        : referenceMode === "start" || !hasExplicitEnd
-          ? null
-          : photos[endIndex].path,
-      referencePaths: ["start", "end"].includes(referenceMode) || !isConfiguredShot
-        ? []
-        : referenceMode === "both" && midpoint !== startIndex && midpoint !== endIndex ? [photos[midpoint].path] : [],
-      provider: "higgsfield",
-      model: config.higgsfield_model ?? config.model ?? higgsfieldModel,
-      resolution: config.higgsfield_resolution ?? config.resolution ?? higgsfieldResolution,
-      generateAudio: config.supports_generate_audio === false
-        ? null
-        : definition.generate_audio ?? config.generate_audio ?? false,
-    };
-  });
-}
 
 async function runHiggsfield(shot, aspectRatio) {
-  const command = [
-    "generate", "create", shot.model,
-    "--prompt", shot.prompt,
-  ];
-  if (shot.startPath) command.push("--start-image", shot.startPath);
-  if (shot.endPath) command.push("--end-image", shot.endPath);
-  for (const referencePath of shot.referencePaths) command.push("--image", referencePath);
-  if (shot.mode) command.push("--mode", shot.mode);
-  if (shot.bitrateMode) command.push("--bitrate_mode", shot.bitrateMode);
-  command.push(
-    "--duration", String(shot.duration),
-    "--resolution", shot.resolution,
-    "--aspect_ratio", aspectRatio,
-    "--wait",
-    "--wait-timeout", higgsfieldWaitTimeout,
-    "--wait-interval", "5s",
-    "--json",
-  );
-  if (shot.generateAudio !== null) {
-    command.splice(command.indexOf("--wait"), 0, "--generate_audio", String(shot.generateAudio));
-  }
-  let stdout;
-  for (let attempt = 1; attempt <= 3; attempt += 1) {
-    try {
-      ({ stdout } = await execFileAsync("higgsfield", command, { maxBuffer: 10 * 1024 * 1024 }));
-      break;
-    } catch (error) {
-      const detail = `${error instanceof Error ? error.message : String(error)} ${error?.stderr ?? ""}`;
-      const retryable = /HTTP (?:429|5\d\d)|Service Unavailable|ECONNRESET|ETIMEDOUT|fetch failed/i.test(detail);
-      if (!retryable || attempt === 3) throw error;
-      await sleep(2000 * (2 ** (attempt - 1)));
-    }
-  }
+  const command = buildGenerationCommand(shot, aspectRatio, higgsfieldWaitTimeout);
+  // Never retry a create call: a lost response may already represent a paid job.
+  const { stdout } = await execFileAsync("higgsfield", command, { maxBuffer: 10 * 1024 * 1024 });
   const payload = JSON.parse(stdout);
   const job = Array.isArray(payload) ? payload[0] : Array.isArray(payload?.jobs) ? payload.jobs[0] : payload;
   const outputUrl = job?.result?.url ?? job?.result?.video_url ?? job?.result_url ?? job?.min_result_url ?? job?.output_url ?? job?.url;
@@ -232,8 +135,76 @@ async function runHiggsfield(shot, aspectRatio) {
   return { outputUrl, jobId, raw: job };
 }
 
-async function generateShot(shot, aspectRatio) {
-  return runHiggsfield(shot, aspectRatio);
+let higgsfieldApiClient;
+function getHiggsfieldClient() {
+  return higgsfieldApiClient ??= createHiggsfieldClient({ keyId: process.env.HF_API_KEY_ID, keySecret: process.env.HF_API_KEY_SECRET });
+}
+let klingClient;
+function getKlingClient() {
+  return klingClient ??= createKlingClient({ apiKey: process.env.KLING_API_KEY, baseUrl: process.env.KLING_API_BASE_URL });
+}
+
+function planProject(project, photos) {
+  if (project.template_prompt_snapshot?.provider === HIGGSFIELD_PROVIDER && project.template_prompt_snapshot?.generation_mode === "reference") return makeReferencePlan(project, photos);
+  if (project.template_prompt_snapshot?.provider === HIGGSFIELD_PROVIDER) return makeKlingShotPlan(project, photos).map(shot => ({ ...shot, provider: HIGGSFIELD_PROVIDER, model: hfModel(shot.resolution) }));
+  if (project.template_prompt_snapshot?.provider === "kling") return makeKlingShotPlan(project, photos);
+  const shots = makeShotPlan(project, photos, { higgsfieldModel, higgsfieldResolution });
+  validateShotPlan(shots, project.output_format);
+  return shots;
+}
+
+async function prepareKlingFrame(path, aspectRatio, directory, name) {
+  const [width, height] = outputDimensions("1080p", aspectRatio);
+  const frame = join(directory, `${name}.jpg`);
+  await execFileAsync("ffmpeg", ["-nostdin", "-v", "error", "-y", "-i", path, "-frames:v", "1", "-vf", `scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,setsar=1`, "-q:v", "2", frame], { timeout: 60000 });
+  const bytes = await readFile(frame);
+  if (bytes.length > 50 * 1024 * 1024) throw new Error("Kling reference image exceeds 50 MB.");
+  return bytes.toString("base64");
+}
+
+async function generateShot(shot, project, directory, storedShot) {
+  if (shot.provider === HIGGSFIELD_PROVIDER) return generateHiggsfieldApiShot(shot, project, directory, storedShot);
+  if (shot.provider !== "kling") return runHiggsfield(shot, project.output_format);
+  const firstFrame = await prepareKlingFrame(shot.startPath, project.output_format, directory, `kling-${shot.order}-first`);
+  const lastFrame = shot.endPath ? await prepareKlingFrame(shot.endPath, project.output_format, directory, `kling-${shot.order}-last`) : undefined;
+  const body = klingRequest(shot, firstFrame, lastFrame);
+  const fingerprint = createHash("sha256").update(JSON.stringify(body)).digest("hex");
+  const prior = storedShot?.provider_metadata ?? {};
+  if (prior.request_fingerprint && prior.request_fingerprint !== fingerprint) throw new Error("This Kling shot changed after submission. Create a new video version instead of reusing its task.");
+  const externalId = prior.external_id ?? `homie-${project.id}-${shot.order}-${fingerprint.slice(0, 16)}`;
+  const metadata = { ...prior, provider: "kling", external_id: externalId, request_fingerprint: fingerprint, submission_attempted: true, planner_version: shot.plannerVersion, generated_seconds: shot.duration };
+  // Save the intent BEFORE the network call. A lost POST response must never
+  // become a second paid generation on retry.
+  await checked(db.from("video_project_shots").update({ provider_metadata: metadata }).eq("video_project_id", project.id).eq("shot_order", shot.order));
+  const result = await getKlingClient().run({ body, externalId, taskId: storedShot?.provider_job_id, previouslySubmitted: Boolean(prior.submission_attempted),
+    onSubmitted: async (taskId) => checked(db.from("video_project_shots").update({ provider_job_id: taskId, provider_metadata: metadata }).eq("video_project_id", project.id).eq("shot_order", shot.order)),
+  });
+  result.raw = { ...metadata, ...result.raw };
+  return result;
+}
+
+async function generateHiggsfieldApiShot(shot, project, directory, storedShot) {
+  const client = getHiggsfieldClient();
+  const prior = storedShot?.provider_metadata ?? {};
+  if (prior.submission_attempted && !storedShot?.provider_job_id) throw new Error("Reconcile the previous Higgsfield submission in the console before retrying.");
+  const isReference = REFERENCE_MODELS.has(shot.model);
+  const references = [];
+  if (isReference) for (const [i, path] of shot.referencePaths.entries()) references.push(await prepareKlingFrame(path, shot.generationAspectRatio, directory, `reference-${i}`));
+  const first = isReference ? undefined : await prepareKlingFrame(shot.startPath, project.output_format, directory, `hf-${shot.order}-first`);
+  const last = shot.endPath ? await prepareKlingFrame(shot.endPath, project.output_format, directory, `hf-${shot.order}-last`) : undefined;
+  const fingerprint = createHash("sha256").update(JSON.stringify({ model: shot.model, input: isReference ? referenceInput(shot, references) : higgsfieldInput(shot, first, last) })).digest("hex");
+  if (prior.request_fingerprint && prior.request_fingerprint !== fingerprint) throw new Error("Higgsfield shot changed after submission; create a new version.");
+  const idempotencyKey = prior.external_id ?? `homie-${project.id}-${shot.order}-${fingerprint.slice(0, 16)}`;
+  const uploadedReferences = [];
+  if (isReference && !storedShot?.provider_job_id) for (const image of references) uploadedReferences.push(await client.upload(Buffer.from(image, "base64")));
+  const body = storedShot?.provider_job_id ? undefined : isReference ? referenceInput(shot, uploadedReferences) : higgsfieldInput(shot, await client.upload(Buffer.from(first, "base64")), last ? await client.upload(Buffer.from(last, "base64")) : undefined);
+  const metadata = { ...prior, provider: HIGGSFIELD_PROVIDER, external_id: idempotencyKey, request_fingerprint: fingerprint, submission_attempted: true, generated_seconds: shot.duration };
+  await checked(db.from("video_project_shots").update({ provider_metadata: metadata }).eq("video_project_id", project.id).eq("shot_order", shot.order));
+  const result = await client.run({ model: shot.model, body, taskId: storedShot?.provider_job_id, statusUrl: prior.status_url, previouslySubmitted: prior.submission_attempted, idempotencyKey,
+    onSubmitted: async (id, statusUrl) => checked(db.from("video_project_shots").update({ provider_job_id: id, provider_metadata: { ...metadata, status_url: statusUrl } }).eq("video_project_id", project.id).eq("shot_order", shot.order)),
+  });
+  result.raw = { ...metadata, ...result.raw };
+  return result;
 }
 
 async function download(url, path) {
@@ -242,15 +213,6 @@ async function download(url, path) {
   await writeFile(path, Buffer.from(await response.arrayBuffer()));
 }
 
-async function assemble(clips, outputPath, duration) {
-  const listPath = `${outputPath}.txt`;
-  await writeFile(listPath, clips.map((clip) => `file '${clip.replaceAll("'", "'\\''")}'`).join("\n"));
-  await new Promise((resolve, reject) => {
-    const child = spawn("ffmpeg", ["-y", "-f", "concat", "-safe", "0", "-i", listPath, "-t", String(duration), "-c:v", "libx264", "-preset", "slow", "-crf", "18", "-maxrate", "8M", "-bufsize", "16M", "-c:a", "aac", "-b:a", "192k", "-pix_fmt", "yuv420p", "-movflags", "+faststart", outputPath], { stdio: "inherit" });
-    child.once("error", reject);
-    child.once("exit", (code) => code === 0 ? resolve() : reject(new Error(`ffmpeg exited with code ${code}.`)));
-  });
-}
 
 async function uploadFinalVideo(project, finalPath, storagePath) {
   if (r2) {
@@ -282,19 +244,19 @@ async function processProject(project) {
   const directory = await mkdtemp(join(tmpdir(), `homie-video-${project.id}-`));
   try {
     const photoRows = [...(project.video_project_photos ?? [])].sort((a, b) => a.sort_order - b.sort_order);
-    const minimumPhotos = project.template_prompt_snapshot?.workflow === "prompt_property_film" ? 1 : 2;
-    if (photoRows.length < minimumPhotos) throw new Error(`At least ${minimumPhotos} project photos are required.`);
+    if (!photoRows.length) throw new Error("At least 1 project photo is required.");
+    const placeholderPhotos = photoRows.map((row, index) => ({ path: `photo-${index}.jpg`, roomType: row.listing_photos?.room_type }));
+    const preflightShots = planProject(project, placeholderPhotos);
+    if (dryRun) {
+      console.log(JSON.stringify({ projectId: project.id, shots: preflightShots.map(({ role, duration, editDuration, model, resolution }) => ({ role, duration, editDuration, model, resolution })), valid: true }));
+      return;
+    }
     await event(project.id, "planning", "Planning the property route", 5);
     const photos = [];
     for (let index = 0; index < photoRows.length; index += 1) {
       photos.push(await materializePhoto(photoRows[index].listing_photos, directory, index));
     }
-    const shots = makeShotPlan(project, photos);
-    if (dryRun) {
-      await event(project.id, "dry_run", `Validated a ${shots.length}-shot plan`, 10, { provider: shots[0]?.provider, model: shots[0]?.model, resolution: shots[0]?.resolution });
-      await db.from("video_projects").update({ status: "queued", generation_progress: 0 }).eq("id", project.id);
-      return;
-    }
+    const shots = planProject(project, photos);
 
     const clipPaths = [];
     const outputs = [];
@@ -315,7 +277,7 @@ async function processProject(project) {
         await event(project.id, "generating", `Reusing completed shot ${shot.order + 1} of ${shots.length}`, startProgress, { role: shot.role, resumed: true });
       } else {
         await event(project.id, "generating", `Generating shot ${shot.order + 1} of ${shots.length}`, startProgress, { role: shot.role });
-        await db.from("video_project_shots").upsert({
+        await checked(db.from("video_project_shots").upsert({
           video_project_id: project.id,
           shot_order: shot.order,
           role: shot.role,
@@ -324,19 +286,19 @@ async function processProject(project) {
           model: shot.model,
           status: "generating",
           error_message: null,
-        }, { onConflict: "video_project_id,shot_order" });
+        }, { onConflict: "video_project_id,shot_order" }));
         try {
-          result = await generateShot(shot, project.output_format);
+          result = await generateShot(shot, project, directory, (project.video_project_shots ?? []).find((stored) => stored.shot_order === shot.order));
         } catch (error) {
-          await db.from("video_project_shots").update({
+          await checked(db.from("video_project_shots").update({
             status: "failed",
             error_message: error instanceof Error ? error.message : String(error),
-          }).eq("video_project_id", project.id).eq("shot_order", shot.order);
+          }).eq("video_project_id", project.id).eq("shot_order", shot.order));
           throw error;
         }
       }
       outputs.push(result.outputUrl);
-      await db.from("video_project_shots").upsert({
+      await checked(db.from("video_project_shots").upsert({
         video_project_id: project.id,
         shot_order: shot.order,
         role: shot.role,
@@ -347,7 +309,7 @@ async function processProject(project) {
         output_url: result.outputUrl,
         status: "ready",
         provider_metadata: result.raw ?? {},
-      }, { onConflict: "video_project_id,shot_order" });
+      }, { onConflict: "video_project_id,shot_order" }));
       const clipPath = join(directory, `clip-${String(shot.order).padStart(2, "0")}.mp4`);
       await download(result.outputUrl, clipPath);
       clipPaths.push(clipPath);
@@ -355,26 +317,28 @@ async function processProject(project) {
 
     await event(project.id, "editing", "Assembling and normalizing the final tour", 82);
     const finalPath = join(directory, `homie-${project.id}.mp4`);
-    await assemble(clipPaths, finalPath, project.duration_seconds);
+    await assembleVideo(clipPaths, shots, finalPath, { duration: project.duration_seconds, aspectRatio: project.output_format, resolution: shots[0].resolution });
     const storagePath = `videos/${project.workspace_id}/${project.id}/version-1.mp4`;
     await event(project.id, "uploading", "Uploading the finished video to Cloudflare R2", 92);
     await uploadFinalVideo(project, finalPath, storagePath);
 
-    await db.from("video_versions").upsert({
+    await checked(db.from("video_versions").upsert({
       video_project_id: project.id,
       version_number: 1,
       status: "ready",
       video_url: null,
       duration_seconds: project.duration_seconds,
-      provider_metadata: { provider: shots[0]?.provider, storage_provider: "cloudflare-r2", bucket: r2Bucket, r2_key: storagePath, model: shots[0]?.model, shot_outputs: outputs, prompt_recipe: project.template_prompt_snapshot },
+      provider_metadata: { provider: shots[0]?.provider, storage_provider: "cloudflare-r2", bucket: r2Bucket, r2_key: storagePath, model: shots[0]?.model, shot_outputs: outputs, generated_seconds: shots.reduce((sum, shot) => sum + shot.duration, 0), shot_plan: shots.map((shot) => ({ order: shot.order, duration: shot.duration, model: shot.model, provider: shot.provider })), prompt_recipe: project.template_prompt_snapshot },
       completed_at: new Date().toISOString(),
-    }, { onConflict: "video_project_id,version_number" });
+    }, { onConflict: "video_project_id,version_number" }));
     await event(project.id, "ready", "Video ready for review", 100);
-    await db.from("video_projects").update({ status: "awaiting_approval", generation_progress: 100 }).eq("id", project.id);
+    await checked(db.from("video_projects").update({ status: "awaiting_approval", generation_progress: 100 }).eq("id", project.id));
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    await db.from("video_projects").update({ status: "failed", generation_error: message }).eq("id", project.id);
-    await event(project.id, "failed", message, 0);
+    if (!dryRun) {
+      await checked(db.from("video_projects").update({ status: "failed", generation_error: message }).eq("id", project.id));
+      await event(project.id, "failed", message, 0);
+    }
     throw error;
   } finally {
     await rm(directory, { recursive: true, force: true });
@@ -382,19 +346,18 @@ async function processProject(project) {
 }
 
 async function main() {
-  if (!dryRun) await execFileAsync("higgsfield", ["account", "status"]);
   if (!dryRun) await execFileAsync("ffmpeg", ["-version"]);
-  console.log(`Video provider: higgsfield (${promptOnly ? "seedance_2_5; prompt films only" : higgsfieldModel})`);
+  console.log("Video worker: routing by each project’s saved provider (Higgsfield API / Kling / legacy Higgsfield CLI)");
   let keepRunning = true;
   while (keepRunning) {
     const project = await claimNextProject();
     if (project) {
       console.log(`Processing video project ${project.id}${dryRun ? " (dry run)" : ""}`);
-      try { await processProject(project); } catch (error) { console.error(error); }
+      try { await processProject(project); } catch (error) { console.error(error); if (once || dryRun || resumeProjectId) process.exitCode = 1; }
     } else if (!once) {
       await sleep(pollMs);
     }
-    if (once) keepRunning = false;
+    if (once || dryRun || resumeProjectId) keepRunning = false;
   }
 }
 

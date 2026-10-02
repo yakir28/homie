@@ -42,3 +42,17 @@ video-worker.env
 
 # local media assets (not tracked)
 IG Images/
+
+# generated video/brag renders (large, local only)
+/output/
+/brag-output*/
+
+# rendered video/audio (too large for GitHub; already-tracked files unaffected)
+*.mp4
+*.mov
+*.webm
+*.m4v
+*.wav
+*.mp3
+*.m4a
+*.aac

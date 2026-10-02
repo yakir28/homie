@@ -16,3 +16,21 @@ test('director knows generation limits and does not pretend to have rendered',()
  assert.match(directorInstructions,/never claim generation has started or finished/);
  assert.match(directorInstructions,/saved chronological order/);
 });
+
+test('conversation settings are validated and preserved for rendering', async () => {
+ const { validateDirectorSelection } = await import('../lib/director-chat.ts');
+ const reply = parseDirectorReply({ answer:'A short vertical tour.', brief:'15-second vertical tour.', ready:true, context:{listingId:'12',duration:15,aspectRatio:'9:16'} });
+ assert.deepEqual(validateDirectorSelection(reply,[{id:12,listing_photos:[{count:4}]}]).context,{listingId:'12',duration:15,aspectRatio:'9:16'});
+ assert.throws(()=>validateDirectorSelection(reply,[{id:13,listing_photos:[{count:4}]}]));
+ for (const count of [0,31]) assert.equal(validateDirectorSelection(reply,[{id:12,listing_photos:[{count}]}]).ready,false);
+});
+test('rejects unsupported conversational settings',()=>{
+ for (const context of [{listingId:'12',duration:60,aspectRatio:'9:16'},{listingId:'12',duration:15,aspectRatio:'4K'},{listingId:'other-user',duration:15,aspectRatio:'16:9'}]) {
+  assert.throws(()=>parseDirectorReply({answer:'Ready',brief:'Tour',ready:true,context}));
+ }
+});
+test('no property keeps a conversation open without enabling rendering',async()=>{
+ const { validateDirectorSelection } = await import('../lib/director-chat.ts');
+ const reply=parseDirectorReply({answer:'Which home?',brief:'Tour',ready:true,context:{listingId:null,duration:30,aspectRatio:'16:9'}});
+ assert.equal(validateDirectorSelection(reply,[]).ready,false);
+});

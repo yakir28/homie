@@ -2,6 +2,7 @@
    Keep component sizes/layouts; centralize family, weight, tracking and leading. */
 :root {
   --font-ui: "Inter", Arial, sans-serif;
+  --type-display-size: clamp(32px, 4.5vw, 64px);
   --type-display-weight: 750;
   --type-display-tracking: -.055em;
   --type-display-leading: 1.08;
