@@ -146,7 +146,7 @@ function getKlingClient() {
 
 function planProject(project, photos) {
   if (project.template_prompt_snapshot?.provider === HIGGSFIELD_PROVIDER && project.template_prompt_snapshot?.generation_mode === "reference") return makeReferencePlan(project, photos);
-  if (project.template_prompt_snapshot?.provider === HIGGSFIELD_PROVIDER) return makeKlingShotPlan(project, photos).map(shot => ({ ...shot, provider: HIGGSFIELD_PROVIDER, model: hfModel(shot.resolution) }));
+  if (project.template_prompt_snapshot?.provider === HIGGSFIELD_PROVIDER) return makeKlingShotPlan(project, photos).map(shot => ({ ...shot, provider: HIGGSFIELD_PROVIDER, model: hfModel(shot.resolution), generateAudio: true }));
   if (project.template_prompt_snapshot?.provider === "kling") return makeKlingShotPlan(project, photos);
   const shots = makeShotPlan(project, photos, { higgsfieldModel, higgsfieldResolution });
   validateShotPlan(shots, project.output_format);

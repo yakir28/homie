@@ -56,3 +56,6 @@ IG Images/
 *.mp3
 *.m4a
 *.aac
+
+# Local UGC renders and extracted frames
+/ugc-higgsfield-*/

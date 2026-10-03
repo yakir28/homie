@@ -5,3 +5,7 @@ dist
 node_modules
 public/**/*.mp4
 tsconfig.tsbuildinfo
+ugc-higgsfield-*/
+output/
+video-worker.env
+.env*

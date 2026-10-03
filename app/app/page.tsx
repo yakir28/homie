@@ -1,5 +1,6 @@
 "use client";
 
+import { usePreviewSource } from "../../lib/use-preview-source";
 import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from "react";
 import { getSupabaseBrowserClient } from "../../lib/supabase/client";
 import { Pricing } from "../../components/ui/pricing";
@@ -1130,7 +1131,7 @@ export default function Home() {
         </div>
       )}
       {selectedListingId && workspaceId && <ListingDetail listing={listingItems.find((item) => item.id === selectedListingId) ?? null} photos={selectedListingPhotos} workspaceId={workspaceId} onBack={() => setSelectedListingId(null)} flash={flash} />}
-      {selectedVideo && <VideoModal video={videoItems.find((video) => video.id === selectedVideo.id) ?? selectedVideo} onClose={() => setSelectedVideo(null)} flash={flash} />}
+      {selectedVideo && <VideoModal key={selectedVideo.id} video={videoItems.find((video) => video.id === selectedVideo.id) ?? selectedVideo} onClose={() => setSelectedVideo(null)} flash={flash} />}
       {settingsOpen && <SettingsModal details={profileDetails} onChange={setProfileDetails} onSave={saveProfile} saving={savingProfile} theme={theme} onThemeChange={saveTheme} savingTheme={savingTheme} credits={creditBalance} onPasswordChange={changePassword} onClose={() => setSettingsOpen(false)} flash={flash} />}
       {topUpOpen && (
         <TopUpCreditsModal
@@ -2119,10 +2120,11 @@ function MyVideos({ items, search, statusFilter, formatFilter, loading, error, o
 }
 
 function VideoModal({ video, onClose, flash }: { video: VideoItem; onClose: () => void; flash: (m: string) => void }) {
+  const playbackUrl = usePreviewSource(video.videoUrl);
   const videoRef = useRef<HTMLVideoElement>(null);
   const generating = video.status === "Generating";
   const failed = video.status === "Failed";
-  const [playing, setPlaying] = useState(Boolean(video.videoUrl));
+  const [playing, setPlaying] = useState(Boolean(playbackUrl));
   const [muted, setMuted] = useState(true);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(Number.parseFloat(video.duration) || 0);
@@ -2161,7 +2163,7 @@ function VideoModal({ video, onClose, flash }: { video: VideoItem; onClose: () =
   }
 
   function absoluteVideoUrl() {
-    return video.videoUrl ? new URL(video.videoUrl, window.location.origin).toString() : "";
+    return playbackUrl ? new URL(playbackUrl, window.location.origin).toString() : "";
   }
 
   function downloadVideo() {
@@ -2180,13 +2182,13 @@ function VideoModal({ video, onClose, flash }: { video: VideoItem; onClose: () =
           ×
         </button>
         <div className="template-preview-stage">
-          {video.videoUrl && <button className="video-preview-download" onClick={downloadVideo} aria-label="Download video">
+          {playbackUrl && <button className="video-preview-download" onClick={downloadVideo} aria-label="Download video">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M12 3v11m-4-4 4 4 4-4M5 20h14" />
             </svg>
           </button>}
-          {video.videoUrl ? (
-            <video ref={videoRef} src={video.videoUrl} poster={video.image} autoPlay loop muted playsInline preload="auto" aria-label={`${video.title} video`} onClick={togglePlayback} onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)} onLoadedMetadata={(event) => setDuration(event.currentTarget.duration)} />
+          {playbackUrl ? (
+            <video ref={videoRef} src={playbackUrl} poster={video.image} autoPlay muted playsInline preload="auto" aria-label={`${video.title} video`} onClick={togglePlayback} onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onEnded={() => setPlaying(false)} onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)} onLoadedMetadata={(event) => setDuration(event.currentTarget.duration)} />
           ) : (
             <div className="my-video-preview-state">
               {generating && <span className="spinner" />}
@@ -2194,7 +2196,7 @@ function VideoModal({ video, onClose, flash }: { video: VideoItem; onClose: () =
               <small>{failed ? video.error : `${video.stage ?? "Waiting for generation"} · ${video.progress}%`}</small>
             </div>
           )}
-          {video.videoUrl && <div className="template-video-controls" aria-label="Video controls">
+          {playbackUrl && <div className="template-video-controls" aria-label="Video controls">
             <button onClick={togglePlayback} aria-label={playing ? "Pause video" : "Play video"}>{playing ? "Ⅱ" : "▶"}</button>
             <span>{formatVideoTime(currentTime)}</span>
             <input type="range" min="0" max={duration || 0} step="0.05" value={Math.min(currentTime, duration || 0)} onChange={(event) => seek(Number(event.target.value))} aria-label="Video progress" style={{ "--video-progress": `${duration ? (currentTime / duration) * 100 : 0}%` } as CSSProperties} />

@@ -77,3 +77,13 @@ test('Wan 3.0 Prime generates a 30s film from up to 10 references in one native-
  assert.throws(()=>makeReferencePlan({duration_seconds:30,output_format:'9:16',template_prompt_snapshot:{...snapshot,kling_resolution:'4k'}},[{path:'a'}]),/supports 480p, 720p, 1080p/);
  assert.equal(makeReferencePlan({duration_seconds:15,output_format:'16:9',template_prompt_snapshot:{...snapshot,video_model:'wan-3.0'}},[{path:'a'}])[0].model,'alibaba/wan-3.0/reference-to-video');
 });
+test('API films always request native audio, even when the template opted out',()=>{
+ for(const video_model of ['wan-3.0-prime',undefined]){
+  const snapshot={workflow:'prompt_property_film',user_prompt:'Calm tour',video_model,kling_resolution:'1080p',supports_generate_audio:false,generate_audio:false};
+  for(const shot of makeReferencePlan({duration_seconds:18,output_format:'9:16',template_prompt_snapshot:snapshot},Array.from({length:8},(_,i)=>({path:`p${i}`})))){
+   assert.equal(shot.generateAudio,true);assert.doesNotMatch(shot.prompt,/Silent film/);
+   const body=referenceInput(shot,shot.referencePaths);
+   if(video_model)assert.equal(body.generate_audio,true);else assert.equal(body.sound,'on');
+  }
+ }
+});

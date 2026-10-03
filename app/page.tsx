@@ -116,6 +116,84 @@ function AutoplayVideo({ video, poster, label, className = "" }: { video: string
   );
 }
 
+const showcaseChapters = [
+  { title: "Add your photos", detail: "One room or the whole listing.", start: 0, end: 9 },
+  { title: "Homie directs the tour", detail: "It plans the route, room by room.", start: 9, end: 13 },
+  { title: "Approve and share", detail: "No prompts. No editing.", start: 13, end: 20 },
+];
+
+function ShowcaseFilm({ video, poster, label }: { video: string; poster: string; label: string }) {
+  const playerRef = useRef<HTMLVideoElement>(null);
+  const userPaused = useRef(false);
+  const [time, setTime] = useState(0);
+  const [playing, setPlaying] = useState(false);
+  const assets = (previewAssets as Record<string, { preview: string; image: string }>)[video];
+  useEffect(() => {
+    const player = playerRef.current;
+    if (!player) return;
+    player.muted = true;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) userPaused.current = true;
+    let visible = false;
+    const sync = () => {
+      if (visible && !document.hidden && !userPaused.current) void player.play().catch(() => undefined);
+      else player.pause();
+    };
+    const observer = new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; sync(); }, { threshold: 0.25 });
+    observer.observe(player);
+    document.addEventListener("visibilitychange", sync);
+    return () => { observer.disconnect(); document.removeEventListener("visibilitychange", sync); player.pause(); };
+  }, [video]);
+  const toggle = () => {
+    const player = playerRef.current;
+    if (!player) return;
+    userPaused.current = !player.paused;
+    if (player.paused) void player.play().catch(() => undefined);
+    else player.pause();
+  };
+  const seek = (start: number) => {
+    const player = playerRef.current;
+    if (!player) return;
+    player.currentTime = start;
+    setTime(start);
+    userPaused.current = false;
+    void player.play().catch(() => undefined);
+  };
+  return (
+    <div className="showcase-film">
+      <div className="showcase-film-frame">
+        <video ref={playerRef} muted loop playsInline preload="metadata" disablePictureInPicture disableRemotePlayback
+          poster={assets?.image ?? resolveMediaUrl(poster)} aria-label={label}
+          onTimeUpdate={(event) => setTime(event.currentTarget.currentTime)}
+          onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)}>
+          <source src={assets?.preview ?? resolveMediaUrl(video)} type="video/mp4" />
+        </video>
+        <button type="button" className="showcase-film-toggle" onClick={toggle} aria-label={playing ? "Pause video" : "Play video"}>
+          {playing
+            ? <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" /></svg>
+            : <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l11-6.5a1 1 0 0 0 0-1.72l-11-6.5A1 1 0 0 0 8 5.5Z" /></svg>}
+        </button>
+      </div>
+      <ol className="showcase-chapters" aria-label="Chapters">
+        {showcaseChapters.map((chapter, index) => {
+          const progress = Math.min(1, Math.max(0, (time - chapter.start) / (chapter.end - chapter.start)));
+          const active = time >= chapter.start && time < chapter.end;
+          return (
+            <li key={chapter.title}>
+              <button type="button" className={active ? "active" : ""} aria-current={active || undefined} onClick={() => seek(chapter.start)}>
+                <span className="showcase-chapter-bar" aria-hidden="true"><i style={{ transform: `scaleX(${progress})` }} /></span>
+                <span className="showcase-chapter-index">0{index + 1}</span>
+                <strong>{chapter.title}</strong>
+                <span className="showcase-chapter-detail">{chapter.detail}</span>
+              </button>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+}
+
 function TemplateVideoCard({ title, video, poster, clone = false }: { title: string; tag: string; video: string; poster: string; clone?: boolean }) {
   return (
     <div className="template-preview-card" aria-hidden={clone || undefined}>
@@ -325,32 +403,22 @@ export default function Marketing() {
       <section className="product-showcase" id="product" aria-labelledby="product-title">
         <Reveal>
           <div className="product-showcase-copy">
-            <p className="section-kicker">Inside Homie</p>
-            <h2 id="product-title">Pick a style.<br /><span>Make it yours.</span></h2>
-            <p className="product-showcase-lead">Your listing photos, with a cinematic touch. Choose a tour style and let Homie bring the rooms to life.</p>
-            <a className="product-showcase-link" href="#templates">Explore the templates <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6" /></svg></a>
-            <p className="product-showcase-note">No editing experience needed.</p>
+            <div>
+              <p className="section-kicker">Inside Homie</p>
+              <h2 id="product-title">Pick a style.<br /><span>Make it yours.</span></h2>
+            </div>
+            <div className="product-showcase-aside">
+              <p className="product-showcase-lead">Your listing photos, with a cinematic touch. Choose a tour style and let Homie bring the rooms to life.</p>
+              <a className="product-showcase-link" href="#templates">Explore the templates <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6" /></svg></a>
+            </div>
           </div>
         </Reveal>
         <Reveal delay={120}>
-          <div className="product-showcase-preview">
-            <div className="product-showcase-chrome" aria-hidden="true">
-              <span className="product-showcase-dots"><i /><i /><i /></span>
-              <span>Homie studio</span>
-              <span className="product-showcase-status">Preview</span>
-            </div>
-            <AutoplayVideo
-              className="product-showcase-video"
-              video="/promo/homie-promo.mp4"
-              poster="/promo/homie-promo-poster.jpg"
-              label="Homie turns listing photos into a polished property video"
-            />
-          </div>
-          <ol className="product-showcase-steps" aria-label="Create a property tour">
-            <li><span>01</span> Add your photos</li>
-            <li><span>02</span> Choose a style</li>
-            <li><span>03</span> Review your video</li>
-          </ol>
+          <ShowcaseFilm
+            video="/promo/homie-launch-v4.mp4"
+            poster="/promo/homie-launch-v4-poster.jpg"
+            label="Homie turns listing photos into a polished property video"
+          />
         </Reveal>
       </section>
 
