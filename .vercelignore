@@ -9,3 +9,20 @@ ugc-higgsfield-*/
 output/
 video-worker.env
 .env*
+
+# Local production projects and reference material
+artifacts/
+crm/
+Homie Brain/
+blueprint-to-reality/
+city apartment amber brick/
+house-behind-the-glass/
+maple glass flight/
+prompt */
+homie-*/
+reference-analysis/
+brandkit/
+brag-output*/
+.agents/
+.claude/
+.mcp.json
