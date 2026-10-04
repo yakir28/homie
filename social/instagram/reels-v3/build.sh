@@ -59,3 +59,12 @@ ffmpeg -v error -y \
 [mus][a1][a2][a3][a4]amix=inputs=5:normalize=0:duration=first[a]" \
   -map "[v]" -map "[a]" -t 20.2 $ENC "$HERE/reel-2/reel.mp4"
 echo done
+
+# ---------------- Reel 1 + voiceover (run voiceover.py first) ----------------
+if [ -f "$W/vo/reel-1-vo.wav" ]; then
+ffmpeg -v error -y -i "$HERE/reel-1/reel.mp4" -i "$W/vo/reel-1-vo.wav" -filter_complex "\
+[1]aresample=44100,aformat=channel_layouts=stereo,volume=1.6,asplit=2[vo][sc];\
+[0:a][sc]sidechaincompress=threshold=0.03:ratio=8:attack=20:release=350[bed];\
+[bed][vo]amix=inputs=2:normalize=0:duration=first,alimiter=limit=0.95[a]" \
+  -map 0:v -map "[a]" -c:v copy -c:a aac -b:a 192k -movflags +faststart "$HERE/reel-1/reel-vo.mp4"
+fi
