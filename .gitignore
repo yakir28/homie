@@ -59,3 +59,6 @@ IG Images/
 
 # Local UGC renders and extracted frames
 /ugc-higgsfield-*/
+
+# Intermediate Reel render frames (regenerate with social/instagram/week-01/src/render-reels-v2.mjs)
+social/instagram/week-01/build/v2/
