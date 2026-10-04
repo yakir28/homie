@@ -10,7 +10,7 @@ SFX=${BRAG_SFX:-/home/user/latent-spaces/brag/skills/brag/assets/sfx}
 STS="prompt six stop the scroll/video"
 PD="prompt seven picture day/video/picture-day-high-pace-v1.mp4"
 FIT="scale=1080:1920:flags=lanczos,setsar=1,fps=30,format=yuv420p,settb=AVTB"
-ENC="-c:v libx264 -crf 18 -preset slow -pix_fmt yuv420p -c:a aac -b:a 192k -movflags +faststart"
+ENC="-c:v libx264 -crf 18 -preset medium -pix_fmt yuv420p -c:a aac -b:a 192k -movflags +faststart"
 mkdir -p "$HERE/reel-1" "$HERE/reel-2"
 
 # ---------------- Reel 1 (19.6s) ----------------
@@ -18,7 +18,7 @@ ffmpeg -v error -y \
   -f lavfi -t 2.6 -i "color=c=black:s=1080x1920:r=30" \
   -i "$STS/clips/01-hook.mp4" -i "$STS/clips/02-living.mp4" -i "$STS/clips/03-kitchen.mp4" \
   -i "$STS/clips/04-dining.mp4" -i "$STS/clips/05-bedroom.mp4" -i "$STS/clips/06-backyard.mp4" \
-  -framerate 30 -i "$W/r1/%05d.png" \
+  -reinit_filter 0 -framerate 30 -i "$W/r1/%05d.png" \
   -i "$STS/soundtrack.wav" \
   -i "$SFX/interface/bong_001.ogg" -i "$SFX/impact/impactSoft_medium_001.ogg" -i "$SFX/impact/impactSoft_medium_004.ogg" \
   -filter_complex "\
@@ -46,13 +46,13 @@ ffmpeg -v error -y \
 
 # ---------------- Reel 2 (20.2s) ----------------
 ffmpeg -v error -y \
-  -i "$PD" -framerate 30 -i "$W/r2/%05d.png" \
+  -i "$PD" -reinit_filter 0 -framerate 30 -i "$W/r2/%05d.png" \
   -i "$SFX/ui/click2.ogg" -i "$SFX/impact/impactSoft_medium_004.ogg" \
   -filter_complex "\
 [0:v]$FIT,tpad=stop_mode=clone:stop_duration=3[base];\
 [1]format=rgba,settb=AVTB[gfx];\
 [base][gfx]overlay=0:0:eof_action=pass,format=yuv420p[v];\
-[0:a]aresample=44100,afade=t=out:st=17.0:d=1.6,apad[mus];\
+[0:a]aresample=44100,afade=t=out:st=17.0:d=1.6,apad=whole_dur=20.2,atrim=0:20.2[mus];\
 [2]asplit=3[s1][s2][s3];\
 [s1]adelay=14900:all=1,volume=0.35[a1];[s2]adelay=15150:all=1,volume=0.35[a2];[s3]adelay=15400:all=1,volume=0.35[a3];\
 [3]adelay=17650:all=1,volume=0.4[a4];\

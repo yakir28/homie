@@ -82,8 +82,8 @@ function label({ t0, t1, idx, name }) {
 function endCard(t0) {
   const s = (d) => (t0 + d).toFixed(3);
   return `<div class="abs" style="inset:0;background:var(--cream);${anim(`up .55s var(--ease) ${t0}s both`)}">
-    <div class="abs" style="left:0;right:0;top:560px;text-align:center">
-      <img src="${WORDMARK}" style="width:760px;margin:-210px 0 -170px;${anim(`pop .5s var(--ease) ${s(0.35)}s both`)}">
+    <div class="abs" style="left:0;right:0;top:520px;text-align:center">
+      <img src="${WORDMARK}" style="width:1000px;margin:-380px 0 -420px;${anim(`pop .5s var(--ease) ${s(0.35)}s both`)}">
     </div>
     <div class="block" style="top:860px">
       <span class="line" style="font-size:88px;color:var(--char);text-shadow:none"><span class="w"><i style="${anim(`rise .5s var(--ease) ${s(0.55)}s both`)}">Your listing photos.</i></span></span>
@@ -141,7 +141,7 @@ const strip = `
   <div style="margin-top:26px;${anim("pop .45s var(--ease) 4.6s both")}"><span style="display:inline-block;background:rgba(20,22,19,.6);color:var(--cream);font-weight:700;font-size:40px;padding:14px 30px;border-radius:999px">Built from these listing photos</span></div>
 </div>`;
 const platforms = `
-<div class="abs" style="left:0;right:0;bottom:460px;text-align:center;${anim("exit .3s ease-in 17.2s forwards")}">${["Reels", "TikTok", "Stories"]
+<div class="abs" style="left:0;right:0;top:450px;text-align:center;${anim("exit .3s ease-in 17.2s forwards")}">${["Reels", "TikTok", "Stories"]
   .map((p, i) => `<span style="display:inline-block;margin:0 10px;background:rgba(249,241,226,.96);color:var(--char);font-weight:800;font-size:46px;padding:18px 36px;border-radius:999px;${anim(`pop .45s var(--ease) ${(14.9 + i * 0.25).toFixed(2)}s both`)}">${p}</span>`)
   .join("")}</div>`;
 
