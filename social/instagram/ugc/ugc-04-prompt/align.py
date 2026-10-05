@@ -35,17 +35,35 @@ if dur - t > 0.12:
 
 weight = lambda p: sum(len(w if isinstance(w, str) else w[1]) for w in p)
 n = len(PHRASES)
-# merge the closest neighbours until we have one segment per phrase
-while len(segs) > n:
-    gaps = [segs[i + 1][0] - segs[i][1] for i in range(len(segs) - 1)]
-    i = gaps.index(min(gaps))
-    segs[i:i + 2] = [[segs[i][0], segs[i + 1][1]]]
 # split the longest segments if speech ran phrases together
 while len(segs) < n:
     i = max(range(len(segs)), key=lambda k: segs[k][1] - segs[k][0])
     a, b = segs[i]
     m = a + (b - a) / 2
     segs[i:i + 1] = [[a, m], [m, b]]
+# group consecutive segments into phrases so each group's duration best matches the phrase's length (DP)
+W = [weight(p) for p in PHRASES]
+tw, td = sum(W), sum(b - a for a, b in segs)
+k = len(segs)
+INF = float("inf")
+best = [[INF] * (k + 1) for _ in range(n + 1)]
+back = [[0] * (k + 1) for _ in range(n + 1)]
+best[0][0] = 0
+for i in range(1, n + 1):
+    for j in range(i, k + 1):
+        for s0 in range(i - 1, j):
+            if best[i - 1][s0] == INF:
+                continue
+            d = sum(b - a for a, b in segs[s0:j]) / td
+            c = best[i - 1][s0] + (d - W[i - 1] / tw) ** 2
+            if c < best[i][j]:
+                best[i][j], back[i][j] = c, s0
+groups, j = [], k
+for i in range(n, 0, -1):
+    s0 = back[i][j]
+    groups.append([segs[s0][0], segs[j - 1][1]])
+    j = s0
+segs = groups[::-1]
 
 out = []
 for (a, b), p in zip(segs, PHRASES):

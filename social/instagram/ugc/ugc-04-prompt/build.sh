@@ -17,7 +17,7 @@ import json;L=json.load(open('work/layout.json'));a=L['holes']['after'];t=L['hol
 print(a['x'],a['y'],a['w'],a['h'],a['t0'],a['t1'],t['x'],t['y'],t['w'],t['h'],t['t0'],f['t0'],f['t1'])")
 TOUR="$ROOT/prompt seven picture day/video/picture-day-high-pace-v1.mp4"  # Picture Day tour, no text overlays
 AFTER="$ROOT/prompt six stop the scroll/video/clips/01-hook.mp4"  # tour of the 'Before' house
-MUSIC="$ROOT/prompt six stop the scroll/video/soundtrack.wav"
+MUSIC="${MUSIC:-$HERE/work/music.mp3}"  # background track supplied with the brief
 FIT="fps=30,format=yuv420p,settb=AVTB"
 ffmpeg -v error -y \
   -i "$AV" -i "$AFTER" -i "$TOUR" -reinit_filter 0 -framerate 30 -i work/gfx/%05d.png -i "$MUSIC" \

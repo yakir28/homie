@@ -14,7 +14,7 @@ const anim = (...a) => `animation:${a.join(",")};`;
 
 // Video holes (the build script overlays footage exactly here, under this graphics layer).
 const HOLES = {
-  after: { x: 470, y: 130, w: 390, h: 694, t0: P[0].start, t1: P[1].start },
+  after: { x: 470, y: 130, w: 390, h: 694, t0: 0, t1: P[1].start },
   tour: { x: 320, y: 70, w: 440, h: 782, t0: P[5].start, t1: END },
 };
 writeFileSync("work/layout.json", JSON.stringify({ holes: HOLES, full: { t0: P[1].start, t1: P[2].start } }, null, 1));
@@ -64,7 +64,7 @@ const scene = (t0, t1, bg, inner) =>
 
 // ---- P1: Before / After
 const h = HOLES.after;
-const p1 = scene(P[0].start - 0.001, P[1].start, "var(--panel)", `
+const p1 = scene(0, P[1].start, "var(--panel)", `
   <div class="hole" style="left:${h.x}px;top:${h.y}px;width:${h.w}px;height:${h.h}px"></div>
   <div class="card" style="left:200px;top:330px;width:260px;height:462px;background-image:url('${f(S6 + "02-front-facade.png")}');${anim(`pop .45s var(--ease) ${s(P[0].start)} both`)}"></div>
   <div class="lbl" style="left:255px;top:270px;${anim(`pop .4s var(--ease) ${s(P[0].start)} both`)}">Before</div>
