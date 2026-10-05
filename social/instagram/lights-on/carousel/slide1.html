@@ -2,37 +2,32 @@
 <link rel="stylesheet" href="../../week-01/src/urbanist-local.css">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-html,body{width:1080px;height:1350px;overflow:hidden;font-family:Urbanist,sans-serif;background:#20231e}
-.bg{position:absolute;inset:-60px;background:url(bg-frame.jpg) center/cover;filter:blur(38px) brightness(.55) saturate(1.1)}
-.top{position:absolute;top:70px;left:0;right:0;text-align:center;color:#f9f2e2}
-.kicker{font-weight:700;font-size:30px;letter-spacing:.14em;text-transform:uppercase;opacity:.75}
-h1{margin-top:18px;font-weight:800;font-size:84px;line-height:.98;letter-spacing:-.03em}
-h1 em{font-style:normal;color:#b9c9ab}
-.card{position:absolute;border-radius:34px;overflow:hidden;box-shadow:0 30px 70px rgba(0,0,0,.45);border:10px solid #fff}
+html,body{width:1080px;height:1350px;overflow:hidden;font-family:Urbanist,sans-serif;background:#3a3b39}
+.bg{position:absolute;inset:-80px;background:url(photos/03.jpg) center 60%/cover;filter:blur(42px) brightness(.5) saturate(.35)}
+.brand{position:absolute;top:34px;left:0;right:0;text-align:center;color:#fff;font-weight:700;font-size:40px;letter-spacing:-.01em}
+.card{position:absolute;border-radius:40px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.35)}
 .card img{width:100%;height:100%;object-fit:cover;display:block}
-.c1{left:70px;top:330px;width:400px;height:470px;transform:rotate(-3deg)}
-.c2{left:500px;top:335px;width:460px;height:580px;z-index:2;transform:rotate(2deg)}
-.c2 img{object-position:50% 40%}
-.c3{left:120px;top:740px;width:420px;height:440px;z-index:3;transform:rotate(2deg)}
-.c4{left:560px;top:820px;width:400px;height:370px;z-index:4;transform:rotate(-2deg)}
+.c1{left:99px;top:130px;width:516px;height:386px}
+.c2{left:472px;top:340px;width:519px;height:389px;z-index:2}
+.c2 img{object-position:50% 45%}
+.c3{left:99px;top:560px;width:425px;height:317px;z-index:3}
+.c4{left:273px;top:755px;width:532px;height:398px;z-index:4}
 .c4 img{object-position:50% 70%}
-.bottom{position:absolute;left:70px;right:70px;bottom:62px;display:flex;justify-content:space-between;align-items:flex-end;color:#f9f2e2}
-.sub{font-size:38px;line-height:1.15;font-weight:500}
-.sub b{font-weight:800}
-.watch{font-size:40px;font-weight:300;text-align:right;line-height:1}
-.watch svg{display:block;margin:10px 0 0 auto}
+.bottom{position:absolute;left:70px;right:70px;bottom:56px;display:flex;justify-content:space-between;align-items:flex-end;color:#fff}
+.sub{font-size:40px;line-height:1.18;font-weight:400}
+.sub b{font-weight:700}
+.sub em{font-style:normal;font-weight:700;color:#a3c98b}
+.watch{font-size:42px;font-weight:300;text-align:center;line-height:1.05}
+.watch svg{display:block;margin:8px auto 0}
 </style></head><body>
 <div class="bg"></div>
-<div class="top">
-  <div class="kicker">Lights On · new template</div>
-  <h1>These are just<br>the <em>listing photos.</em></h1>
-</div>
+<div class="brand">Homie</div>
 <div class="card c1"><img src="photos/01.jpg"></div>
 <div class="card c2"><img src="photos/02.jpg"></div>
 <div class="card c3"><img src="photos/03.jpg"></div>
 <div class="card c4"><img src="photos/04.jpg"></div>
 <div class="bottom">
-  <div class="sub"><b>Daytime photos in.</b><br>Swipe to see the video.</div>
-  <div class="watch">Watch this<svg width="150" height="30" viewBox="0 0 150 30"><path d="M2 15H144M130 3l14 12-14 12" stroke="#f9f2e2" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+  <div class="sub"><b>These are just the</b> <em>listing photos.</em><br>Swipe to watch the video.</div>
+  <div class="watch">Watch<br>this<svg width="110" height="30" viewBox="0 0 110 30"><path d="M2 15H104M90 3l14 12-14 12" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
 </div>
 </body></html>
