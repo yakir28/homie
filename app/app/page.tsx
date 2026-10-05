@@ -1195,7 +1195,31 @@ export default function Home() {
   );
 }
 
+// Tall and wide cards take two cells; widen trailing cards so the last row has no empty cells.
+function fillGridSizes(sizes: string[], columns: number) {
+  if (columns < 2) return sizes;
+  const filled = [...sizes];
+  const cells = filled.reduce((sum, size) => sum + (size === "normal" ? 1 : 2), 0);
+  let missing = (columns - (cells % columns)) % columns;
+  for (let index = filled.length - 1; index > 0 && missing > 0; index--) {
+    if (filled[index] === "normal") { filled[index] = "wide"; missing--; }
+  }
+  return filled;
+}
+
 function Templates({ items, favoriteIds, onToggleFavorite, favoritesOnly = false, onUseTemplate, search, onClearSearch, onRemoveFilter, category, setCategory, sort, formatFilter, creditsFilter }: { items: TemplateItem[]; favoriteIds: Set<number>; onToggleFavorite: (templateId: number) => Promise<void>; favoritesOnly?: boolean; onUseTemplate: (template: TemplateItem) => void; search: string; onClearSearch: () => void; onRemoveFilter: (key: string) => void; category: string; setCategory: (v: string) => void; sort: string; formatFilter: string; creditsFilter: string }) {
+  const gridRef = useRef<HTMLDivElement>(null);
+  const [gridColumns, setGridColumns] = useState(1);
+  useEffect(() => {
+    const grid = gridRef.current;
+    if (!grid) return;
+    // Below 761px the grid's tall/wide spans collapse, so only fill gaps on wider layouts.
+    const measure = () => setGridColumns(window.innerWidth > 760 ? getComputedStyle(grid).gridTemplateColumns.split(" ").filter(Boolean).length : 1);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(grid);
+    return () => observer.disconnect();
+  }, []);
 
   const q = search.trim().toLowerCase();
   const filteredTemplates = items
@@ -1210,6 +1234,7 @@ function Templates({ items, favoriteIds, onToggleFavorite, favoritesOnly = false
       return matchesCategory && matchesSearch && matchesFormat && matchesCredits;
     })
     .sort((a, b) => (sort === "Name" ? a.title.localeCompare(b.title) : sort === "Credits" ? a.credits - b.credits : 0));
+  const cardSizes = fillGridSizes(filteredTemplates.map((template) => template.size), gridColumns);
   const activeLabel = q ? `“${search.trim()}”` : category !== "All" ? `“${category}”` : formatFilter !== "All" ? `“${formatFilter}”` : `“${creditsFilter}”`;
   function openTemplate(template: TemplateItem) {
     onUseTemplate(template);
@@ -1234,11 +1259,11 @@ function Templates({ items, favoriteIds, onToggleFavorite, favoritesOnly = false
           {(category !== "All" || formatFilter !== "All" || q || creditsFilter !== "All") && <button className="clear-template-filters" onClick={onClearSearch}>Clear all</button>}
         </div>
       </div>
-      <div className="template-grid">
+      <div className="template-grid" ref={gridRef}>
         {filteredTemplates.map((template, index) => (
           <article
             data-onboarding={index === 0 ? "template-card" : undefined}
-            className={`template-card ${template.size}`}
+            className={`template-card ${cardSizes[index]}`}
             key={template.title}
             onClick={() => openTemplate(template)}
             tabIndex={0}
