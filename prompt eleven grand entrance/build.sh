@@ -6,7 +6,7 @@ set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"; cd "$HERE"
 CH1="$1"; CH2="$2"; MUSIC="$3"
 SFX=${BRAG_DIR:-/home/user/latent-spaces/brag/skills/brag}/assets/sfx
-MUSIC_VOL="${MUSIC_VOL:-0.55}"; NATIVE_VOL="${NATIVE_VOL:-1.0}"; MUSIC_OFFSET="${MUSIC_OFFSET:-12.5}"
+MUSIC_VOL="${MUSIC_VOL:-0.6}"; NATIVE_VOL="${NATIVE_VOL:-1.0}"; MUSIC_OFFSET="${MUSIC_OFFSET:-12.5}"
 D1=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$CH1")
 D2=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$CH2")
 DUR=$(python3 -c "print(round($D1+$D2,3))")
