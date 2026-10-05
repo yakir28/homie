@@ -98,3 +98,12 @@ Inputs are daylight on purpose: real agents upload daytime photos, and the templ
 | 7 | Primary bedroom with wall lights | ed81e697-c63c-4cf1-a311-7eb9175b3642 |
 | 8 | Bathroom with LED niche | f3e9f9ce-7d41-4a46-ad74-ccdc53d90b66 |
 | 9 | Backyard pool | 68f69646-c3b0-42f7-bf40-0f928ef21e5c |
+
+## Video chapters (Seedance 2.5 omni_reference, 1080p, 9:16, high bitrate, no audio, 120 credits each)
+
+Skipped the 480p draft by decision on 2026-10-05.
+
+| Chapter | Refs (in order) | Job ID |
+|---|---|---|
+| 1 (0–10 s): sconce on → facade → battens → path → living → kitchen | 1, 2, 3, 5, 4 | 818ed326-709e-4542-bed3-1bd28397f784 |
+| 2 (10–20 s): dining → pendant → bedroom → bath → pool tiles → backyard → facade end | 6, 7, 8, 9, 1 | 0a412542-c3f0-4827-bc72-9920400f2557 |
