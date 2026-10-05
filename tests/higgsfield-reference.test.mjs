@@ -87,3 +87,22 @@ test('API films always request native audio, even when the template opted out',(
   }
  }
 });
+
+test('template presenter is the first reference of the opening chapter only', async () => {
+  const { templateDirections } = await import('../lib/video-prompts/template-directions.mjs');
+  const recipe = templateDirections['grand-entrance'];
+  const config = { provider: 'higgsfield_api', generation_mode: 'reference', reference_planner_version: 2, creative_recipe: recipe, director_prompt: Object.values(recipe).join('\n\n'), higgsfield_resolution: '1080p', presenter: { r2_key: 'templates/grand-entrance/presenter-v1.jpg', description: 'a man in a charcoal suit jacket' } };
+  for (const n of [6, 7, 10]) {
+    const photos = Array.from({ length: n }, (_, i) => ({ path: `p${i}.jpg`, roomType: `view ${i}` }));
+    const plan = makeReferencePlan({ duration_seconds: 24, output_format: '9:16', template_prompt_snapshot: config }, photos, { presenterPath: 'presenter.jpg' });
+    assert.equal(plan[0].referencePaths[0], 'presenter.jpg');
+    assert.ok(plan.every((s) => s.referencePaths.length <= 7));
+    assert.ok(plan.slice(1).every((s) => !s.referencePaths.includes('presenter.jpg')));
+    assert.equal(plan.flatMap((s) => s.referencePaths).filter((p) => p !== 'presenter.jpg').length, n);
+    assert.match(plan[0].prompt, /Reference 1 is the template presenter/);
+    assert.match(plan[0].prompt, /only person in the film/);
+    assert.doesNotMatch(plan.at(-1).prompt, /PRESENTER/);
+    assert.equal(plan.reduce((t, s) => t + s.duration, 0), 24);
+  }
+  assert.throws(() => makeReferencePlan({ duration_seconds: 24, output_format: '9:16', template_prompt_snapshot: config }, [{ path: 'a.jpg' }]), /presenter reference/);
+});

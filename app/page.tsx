@@ -27,6 +27,7 @@ const templatePreviews = [
   { title: "Find Your Way Home", tag: "Home tour", video: "/api/media/template?key=templates/find-your-way-home/preview.mp4", poster: "/api/media/template?key=templates/find-your-way-home/thumbnail.jpg" },
   { title: "Warm Threshold", tag: "Cinematic", video: "/api/media/template?key=templates/warm-threshold/preview.mp4", poster: "/api/media/template?key=templates/warm-threshold/thumbnail.jpg" },
   { title: "Lights On", tag: "Cinematic", video: "/api/media/template?key=templates/lights-on/preview-v1.mp4", poster: "/api/media/template?key=templates/lights-on/thumbnail-v1.jpg" },
+  { title: "Grand Entrance", tag: "Viral Trends", video: "/api/media/template?key=templates/grand-entrance/preview-v1.mp4", poster: "/api/media/template?key=templates/grand-entrance/thumbnail-v1.jpg" },
 ];
 
 const pricingTiers = [

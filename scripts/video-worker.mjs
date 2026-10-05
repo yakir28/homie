@@ -121,6 +121,18 @@ async function materializePhoto(photo, directory, index) {
 }
 
 
+// The template's fixed presenter image lives with the template media (R2 key).
+async function materializePresenter(presenter, directory) {
+  if (!presenter) return undefined;
+  if (!presenter.r2_key) throw new Error("Template presenter is missing its image.");
+  const origin = process.env.TEMPLATE_MEDIA_ORIGIN ?? "https://site-creator-vinext-starter.homie-support.workers.dev";
+  const response = await fetch(`${origin}/api/media/template?key=${encodeURIComponent(presenter.r2_key)}`);
+  if (!response.ok) throw new Error(`Could not download the template presenter (${response.status}).`);
+  const path = join(directory, "presenter.jpg");
+  await writeFile(path, Buffer.from(await response.arrayBuffer()));
+  return path;
+}
+
 async function runHiggsfield(shot, aspectRatio) {
   const command = buildGenerationCommand(shot, aspectRatio, higgsfieldWaitTimeout);
   // Never retry a create call: a lost response may already represent a paid job.
@@ -145,8 +157,8 @@ function getKlingClient() {
   return klingClient ??= createKlingClient({ apiKey: process.env.KLING_API_KEY, baseUrl: process.env.KLING_API_BASE_URL });
 }
 
-function planProject(project, photos) {
-  if (project.template_prompt_snapshot?.provider === HIGGSFIELD_PROVIDER && project.template_prompt_snapshot?.generation_mode === "reference") return makeReferencePlan(project, photos);
+function planProject(project, photos, presenterPath) {
+  if (project.template_prompt_snapshot?.provider === HIGGSFIELD_PROVIDER && project.template_prompt_snapshot?.generation_mode === "reference") return makeReferencePlan(project, photos, { presenterPath });
   if (project.template_prompt_snapshot?.provider === HIGGSFIELD_PROVIDER) return makeKlingShotPlan(project, photos).map(shot => ({ ...shot, provider: HIGGSFIELD_PROVIDER, model: hfModel(shot.resolution), generateAudio: true }));
   if (project.template_prompt_snapshot?.provider === "kling") return makeKlingShotPlan(project, photos);
   const shots = makeShotPlan(project, photos, { higgsfieldModel, higgsfieldResolution });
@@ -247,7 +259,7 @@ async function processProject(project) {
     const photoRows = [...(project.video_project_photos ?? [])].sort((a, b) => a.sort_order - b.sort_order);
     if (!photoRows.length) throw new Error("At least 1 project photo is required.");
     const placeholderPhotos = photoRows.map((row, index) => ({ path: `photo-${index}.jpg`, roomType: row.listing_photos?.room_type }));
-    const preflightShots = planProject(project, placeholderPhotos);
+    const preflightShots = planProject(project, placeholderPhotos, "presenter.jpg");
     if (dryRun) {
       console.log(JSON.stringify({ projectId: project.id, shots: preflightShots.map(({ role, duration, editDuration, model, resolution }) => ({ role, duration, editDuration, model, resolution })), valid: true }));
       return;
@@ -257,7 +269,8 @@ async function processProject(project) {
     for (let index = 0; index < photoRows.length; index += 1) {
       photos.push(await materializePhoto(photoRows[index].listing_photos, directory, index));
     }
-    const shots = planProject(project, photos);
+    const presenterPath = await materializePresenter(project.template_prompt_snapshot?.presenter, directory);
+    const shots = planProject(project, photos, presenterPath);
 
     const clipPaths = [];
     const outputs = [];
