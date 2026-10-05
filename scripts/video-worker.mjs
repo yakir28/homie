@@ -124,10 +124,12 @@ async function materializePhoto(photo, directory, index) {
 // The template's fixed presenter image lives with the template media (R2 key).
 async function materializePresenter(presenter, directory) {
   if (!presenter) return undefined;
-  if (!presenter.r2_key) throw new Error("Template presenter is missing its image.");
+  if (!presenter.r2_key && !presenter.image_url) throw new Error("Template presenter is missing its image.");
   const origin = process.env.TEMPLATE_MEDIA_ORIGIN ?? "https://site-creator-vinext-starter.homie-support.workers.dev";
-  const response = await fetch(`${origin}/api/media/template?key=${encodeURIComponent(presenter.r2_key)}`);
-  if (!response.ok) throw new Error(`Could not download the template presenter (${response.status}).`);
+  // Template media first; the public image_url covers templates whose media is not in R2 yet.
+  let response = presenter.r2_key ? await fetch(`${origin}/api/media/template?key=${encodeURIComponent(presenter.r2_key)}`) : null;
+  if (!response?.ok && presenter.image_url) response = await fetch(presenter.image_url);
+  if (!response?.ok) throw new Error(`Could not download the template presenter (${response?.status ?? "no source"}).`);
   const path = join(directory, "presenter.jpg");
   await writeFile(path, Buffer.from(await response.arrayBuffer()));
   return path;

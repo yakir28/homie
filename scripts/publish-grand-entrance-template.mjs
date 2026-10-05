@@ -15,8 +15,8 @@ const r2 = new S3Client({ region: 'auto', endpoint: `https://${e.R2_ACCOUNT_ID}.
 const bucket = e.R2_BUCKET_NAME ?? 'homie';
 const slug = 'grand-entrance';
 const directory = new URL('../prompt eleven grand entrance/', import.meta.url);
-// Same category, route and price as the closest cinematic template.
-const { data: baseline, error: baselineError } = await db.from('video_templates').select('category_id,generation_config,credits_cost').eq('slug', 'warm-threshold').single();
+// Same route and price as GTA Drop, the closest 9:16 film template.
+const { data: baseline, error: baselineError } = await db.from('video_templates').select('category_id,generation_config,credits_cost').eq('slug', 'gta-drop').single();
 if (baselineError) throw baselineError;
 const recipe = templateDirections[slug];
 const config = {
