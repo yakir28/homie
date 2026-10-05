@@ -191,6 +191,7 @@ export default function Home() {
   const [videosError, setVideosError] = useState("");
   const [creditBalance, setCreditBalance] = useState(0);
   const [displayName, setDisplayName] = useState("Agent");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set());
   const [userId, setUserId] = useState("");
   const [workspaceId, setWorkspaceId] = useState<string | null>(null);
@@ -229,6 +230,10 @@ export default function Home() {
 
       if (!active) return;
       setUserId(session.user.id);
+      const googleProfile = session.user.identities?.find((identity) => identity.provider === "google")?.identity_data;
+      const avatar = [session.user.user_metadata.avatar_url, session.user.user_metadata.picture, googleProfile?.avatar_url, googleProfile?.picture]
+        .find((value): value is string => typeof value === "string" && value.startsWith("https://"));
+      setAvatarUrl(avatar ?? null);
       setDisplayName(session.user.user_metadata.display_name ?? session.user.email?.split("@")[0] ?? "Agent");
       setProfileDetails((current) => ({
         ...current,
@@ -889,7 +894,7 @@ export default function Home() {
         <div className="sidebar-bottom">
           <button className="profile" onClick={() => setProfileOpen((v) => !v)} aria-expanded={profileOpen} aria-haspopup="menu">
             <span className="profile-avatar">
-              <UserIcon />
+              {avatarUrl ? <img src={avatarUrl} alt="" referrerPolicy="no-referrer" onError={() => setAvatarUrl(null)} /> : <UserIcon />}
             </span>
             <span>
               <b>{displayName}</b>
