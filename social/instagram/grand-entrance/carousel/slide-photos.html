@@ -1,0 +1,33 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../week-01/src/urbanist-local.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1080px;height:1350px;overflow:hidden;font-family:Urbanist,sans-serif;background:#3a3b39}
+.bg{position:absolute;inset:-80px;background:url(photos/01.jpg) center 60%/cover;filter:blur(42px) brightness(.5) saturate(.35)}
+.brand{position:absolute;top:34px;left:0;right:0;text-align:center;color:#fff;font-weight:700;font-size:40px;letter-spacing:-.01em}
+.card{position:absolute;border-radius:40px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.35)}
+.card img{width:100%;height:100%;object-fit:cover;display:block}
+.c1{left:99px;top:130px;width:516px;height:386px}
+.c2{left:472px;top:340px;width:519px;height:389px;z-index:2}
+.c2 img{object-position:50% 45%}
+.c3{left:99px;top:560px;width:425px;height:317px;z-index:3}
+.c4{left:273px;top:755px;width:532px;height:398px;z-index:4}
+.c4 img{object-position:50% 70%}
+.bottom{position:absolute;left:70px;right:70px;bottom:56px;display:flex;justify-content:space-between;align-items:flex-end;color:#fff}
+.sub{font-size:40px;line-height:1.18;font-weight:400}
+.sub b{font-weight:700}
+.sub em{font-style:normal;font-weight:700;color:#a3c98b}
+.watch{font-size:42px;font-weight:300;text-align:center;line-height:1.05}
+.watch svg{display:block;margin:8px auto 0}
+</style></head><body>
+<div class="bg"></div>
+<div class="brand">Homie</div>
+<div class="card c1"><img src="photos/01.jpg"></div>
+<div class="card c2"><img src="photos/02.jpg"></div>
+<div class="card c3"><img src="photos/03.jpg"></div>
+<div class="card c4"><img src="photos/04.jpg"></div>
+<div class="bottom">
+  <div></div>
+  <div class="watch">Watch<br>this<svg width="110" height="30" viewBox="0 0 110 30"><path d="M2 15H104M90 3l14 12-14 12" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+</div>
+</body></html>
