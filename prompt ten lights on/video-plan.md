@@ -21,7 +21,7 @@ Why it works: the house is shown as **light and details**, not a room list. Exte
 
 ## 2. The Homie template
 
-**Name:** Lights On · **Category:** Cinematic · **Format:** 9:16 (16:9 also supported) · **Duration:** 20 s · **Photos:** 8–10.
+**Name:** Lights On · **Category:** Cinematic · **Format:** 9:16 only · **Duration:** 20 s · **Photos:** 8–10.
 
 **Promise to the agent:** "Your home at blue hour, lights switching on room by room."
 
@@ -73,8 +73,28 @@ The current `lib/video-assembly.mjs` only hard-cuts chapters. The reference's id
 5. **Code** — add `lights-on` to `template-directions.mjs` (+ `kling-shot-plan.mjs` direction), the edit layer as an opt-in step in `video-assembly.mjs`, and `scripts/publish-lights-on-template.mjs` (copy of the GTA Drop publisher).
 6. **Test** on 2 real listings from the app (with and without visible light fixtures), then publish to R2 + Supabase and the homepage gallery.
 
+## Decisions
+
+- Format: 9:16 only (decided 2026-10-05).
+
 ## Open questions
 
-- 9:16 only, or also 16:9 like the reference?
 - Allow the drone top-down shot when the agent supplies an aerial?
 - Music: which licensed track (or generate one with Higgsfield audio)?
+
+## Demo property photos (step 1, Higgsfield gpt_image_2_5, 9:16, generated 2026-10-05)
+
+Inputs are daylight on purpose: real agents upload daytime photos, and the template's job is to turn them into blue hour with the lights on. The blue-hour facade is only the identity reference for the other exterior shots.
+
+| # | View | Job ID |
+|---|---|---|
+| 0 | Facade, blue hour (identity reference only) | a6a39fb2-5c8e-4b93-a46c-9718315f246e |
+| 1 | Facade, daylight | fca439df-a818-4bc8-ad4e-3c21d05da7e0 |
+| 2 | Entry with oval wall sconces | b2f0031b-1118-4894-8134-3bcb2682afce |
+| 3 | Garden path with uplights | 664f364e-773c-432b-8805-d02ae4f6d0e6 |
+| 4 | Kitchen with pendants and cove light | 0dbef557-adb5-44a5-a4d5-c0bb17f92df5 |
+| 5 | Living room with fireplace and sconce | 48672abb-1e1c-49c9-8009-d6306bb6ebe7 |
+| 6 | Dining with drum pendant | 3c069e17-366a-4d99-9a4f-63716d8571bb |
+| 7 | Primary bedroom with wall lights | ed81e697-c63c-4cf1-a311-7eb9175b3642 |
+| 8 | Bathroom with LED niche | f3e9f9ce-7d41-4a46-ad74-ccdc53d90b66 |
+| 9 | Backyard pool | 68f69646-c3b0-42f7-bf40-0f928ef21e5c |
