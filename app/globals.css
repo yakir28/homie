@@ -73,7 +73,7 @@
 .auth-divider{display:flex;align-items:center;gap:12px;margin:22px 0;color:#a8a99f;font:9px var(--mono);text-transform:uppercase;letter-spacing:1px}
 .auth-divider:before,.auth-divider:after{content:"";flex:1;height:1px;background:#e2ded2}
 .auth-oauth{height:50px;width:100%;border:1px solid #e2ded2;background:#fff;display:flex;align-items:center;justify-content:center;gap:10px;font-size:12px;border-radius:6px;color:#161614;margin-bottom:10px}
-.auth-forgot{display:block;margin:14px auto 0;border:0;background:none;color:#8a8c81;font-size:11px;text-decoration:underline;cursor:pointer}
+.auth-forgot{display:block;text-align:center;margin:14px auto 0;border:0;background:none;color:#8a8c81;font-size:11px;text-decoration:underline;cursor:pointer}
 .auth-legal{text-align:center;margin-top:28px;font-size:10px;color:#a8a99f;line-height:1.6}
 .auth-legal a{color:#6f716a;text-decoration:underline}
 .auth-message{margin:14px 0 0;color:#748668;font-size:13px;line-height:1.5;text-align:center}

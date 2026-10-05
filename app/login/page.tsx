@@ -4,16 +4,7 @@ import { Suspense, useEffect, useState, type FormEvent } from "react";
 import { getSupabaseBrowserClient } from "../../lib/supabase/client";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import HomieLogo from "../HomieLogo";
-
-const gallery = Array.from({ length: 14 }, (_, i) => `/gallery/gallery-${String(i + 1).padStart(2, "0")}.jpg`);
-
-// Each column takes a different slice so no photo shows twice side by side, and
-// the track repeats itself once so the vertical scroll loops without a seam.
-const collageColumns = [0, 1, 2, 3].map((column) => {
-  const images = Array.from({ length: 5 }, (_, row) => gallery[(column * 5 + row * 3) % gallery.length]);
-  return { images, duration: [32, 38, 30, 36][column], reverse: column % 2 === 1 };
-});
+import AuthFrame from "../AuthFrame";
 
 export default function Login() {
   return <Suspense fallback={<main className="auth-page">Loading account options…</main>}><LoginForm /></Suspense>;
@@ -63,45 +54,8 @@ function LoginForm() {
     }
   }
 
-  async function resetPassword() {
-    if (!email) return setMessage("Enter your email address first.");
-    setLoading(true);
-    const { error } = await getSupabaseBrowserClient().auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/login`,
-    });
-    setLoading(false);
-    setMessage(error?.message ?? "Password reset email sent.");
-  }
-
   return (
-    <main className="auth-page">
-      <section className="auth-collage">
-        <div className="auth-grid">
-          {collageColumns.map((col, i) => (
-            <div className={col.reverse ? "auth-col reverse" : "auth-col"} key={i}>
-              <div className="auth-col-track" style={{ animationDuration: `${col.duration}s` }}>
-                {[...col.images, ...col.images].map((src, j) => (
-                  <img key={j} src={src} alt="" />
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="auth-scrim" />
-        <Link className="auth-brand" href="/" aria-label="Homie home page"><HomieLogo variant="mark-light" /></Link>
-        <div className="auth-collage-copy">
-          <p className="eyebrow">● {mode === "login" ? "Welcome back" : "Your first video for $1"}</p>
-          <h1>
-            Turn listing photos into
-            <br />
-            <i>home tours that move.</i>
-          </h1>
-          <p className="auth-tag">STUDIO-QUALITY VIDEOS · NO FILMING · NO PROMPTING</p>
-        </div>
-      </section>
-
-      <section className="auth-form-panel">
-        <div className="auth-form">
+    <AuthFrame eyebrow={mode === "login" ? "Welcome back" : "Your first video for $1"}>
           <p className="eyebrow">{mode === "login" ? (
             <>NO ACCOUNT? <button onClick={() => setMode("signup")}>GET STARTED</button></>
           ) : (
@@ -127,12 +81,10 @@ function LoginForm() {
           <button className="auth-oauth" onClick={() => oauth("google")} disabled={loading}><GoogleIcon />Log in with Google</button>
           <button className="auth-oauth auth-oauth-soon" disabled><AppleIcon />Log in with Apple <span className="auth-soon-badge">Soon</span></button>
 
-          {mode === "login" && <button className="auth-forgot" onClick={resetPassword} disabled={loading}>Forgot password?</button>}
+          {mode === "login" && <Link className="auth-forgot" href="/forgot-password">Forgot your password?</Link>}
 
           <p className="auth-legal">By continuing, you agree to our <Link href="/terms">Terms</Link> · <Link href="/privacy">Privacy</Link></p>
-        </div>
-      </section>
-    </main>
+    </AuthFrame>
   );
 }
 
