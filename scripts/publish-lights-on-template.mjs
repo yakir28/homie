@@ -44,7 +44,7 @@ const template = {
   credits_cost: baseline.credits_cost, min_photos: 6, max_photos: 10,
   preview_url: '/api/media/template?key=templates/lights-on/preview-v1.mp4',
   thumbnail_url: '/api/media/template?key=templates/lights-on/thumbnail-v1.jpg',
-  generation_config: config, is_featured: true, is_active: true, sort_order: 10,
+  generation_config: config, is_featured: true, is_active: true, sort_order: -1,
 };
 if (process.argv.includes('--dry-run')) {
   console.log(JSON.stringify({ valid: true, template: template.name, duration: 20, chapters: plan.length, provider: config.provider, finish: config.finish }));
