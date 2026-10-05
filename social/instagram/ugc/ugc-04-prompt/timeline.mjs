@@ -9,6 +9,10 @@ const f = (p) => "file://" + resolve(ROOT, p).replace(/ /g, "%20");
 const T = JSON.parse(readFileSync("work/timing.json", "utf8"));
 const P = T.phrases;
 const END = T.duration;
+const BEATS = JSON.parse(readFileSync("work/beats.json", "utf8"));
+const s0 = (x) => x.toFixed(3) + "s";
+// "PROMPT" pulses on the music's beats after it lands (non-text accent, beat-grid)
+const p7pulse = BEATS.filter((b) => b > P[6].start + 0.9 && b < END - 0.2).map((b) => `pulse .3s ease-out ${s0(b)} 1`);
 const s = (x) => x.toFixed(3) + "s";
 const anim = (...a) => `animation:${a.join(",")};`;
 
@@ -56,6 +60,9 @@ html,body{width:1080px;height:1920px;overflow:hidden;background:transparent;font
 @keyframes press{50%{transform:scale(.86)}}
 @keyframes ring{from{outline-color:transparent}to{outline-color:var(--sage-d)}}
 @keyframes lift{to{transform:translateY(-18px) scale(1.04)}}
+@keyframes wpop{from{transform:scale(.8);opacity:.4}to{transform:none;opacity:1}}
+@keyframes draw{from{stroke-dashoffset:var(--len)}to{stroke-dashoffset:0}}
+@keyframes pulse{50%{transform:scale(1.07)}}
 `;
 
 // a scene = panel visible only within [t0, t1)
@@ -68,7 +75,8 @@ const p1 = scene(0, P[1].start, "var(--panel)", `
   <div class="hole" style="left:${h.x}px;top:${h.y}px;width:${h.w}px;height:${h.h}px"></div>
   <div class="card" style="left:200px;top:330px;width:260px;height:462px;background-image:url('${f(S6 + "02-front-facade.png")}');${anim(`pop .45s var(--ease) ${s(P[0].start)} both`)}"></div>
   <div class="lbl" style="left:255px;top:270px;${anim(`pop .4s var(--ease) ${s(P[0].start)} both`)}">Before</div>
-  <div class="lbl" style="left:610px;top:62px;${anim(`pop .4s var(--ease) ${s(P[0].start + 0.15)} both`)}">After</div>`);
+  <div class="lbl" style="left:610px;top:62px;${anim(`pop .4s var(--ease) ${s(P[0].start + 0.15)} both`)}">After</div>
+  <svg class="abs" width="120" height="80" viewBox="0 0 120 80" style="left:360px;top:845px"><path d="M8 20 C 40 70, 80 70, 108 30 M108 30 l-4 22 M108 30 l-21 6" fill="none" stroke="var(--sage-d)" stroke-width="7" stroke-linecap="round" style="--len:200;stroke-dasharray:200;${anim(`draw .5s var(--ease) ${s(P[0].start + 0.5)} both`)}"/></svg>`);
 
 // ---- P3: listing photos fan
 const photos = [S6 + "04-living-room.png", S6 + "05-kitchen.png", S6 + "02-front-facade.png", S6 + "07-primary-bedroom.png"];
@@ -121,11 +129,22 @@ const p2words = P[1].words;
 const p2 = big(P[1].start, P[2].start, 560, 170, [[["no"]], [["camera"]], [["crew.", true]]]);
 
 // ---- P7 CTA big text over the tour card area
-const p7 = big(P[6].start, END + 1, 600, 100, [[["comment"]], [["“PROMPT”", true]]]);
+const p7 = big(P[6].start, END + 1, 600, 100, [[["comment"]], [["“PROMPT”", true]]]).replace('<span class="mk">', `<span class="mk" style="display:inline-block;${anim(...(p7pulse.length ? p7pulse : ["none"]))}">`);
 
 // ---- seam caption pill: one word at a time (hidden during the full-frame P2 beat)
 const pill = P.flatMap((ph, i) => (i === 1 ? [] : ph.words)).map((w) =>
-  `<div class="pill" style="visibility:hidden;${anim(`show 0s linear ${s(w.start)} forwards`, `hide 0s linear ${s(w.end)} forwards`)}"><span>${w.w.replace(/[.,]$/, "")}</span></div>`).join("");
+  `<div class="pill" style="visibility:hidden;${anim(`show 0s linear ${s(w.start)} forwards`, `hide 0s linear ${s(w.end)} forwards`)}"><span style="${anim(`wpop .14s var(--ease) ${s(w.start)} both`)}">${w.w.replace(/[.,]$/, "")}</span></div>`).join("");
 
+// ---- SFX cue list (brag: sound lands with the motion, soft and under the music)
+const sfx = [
+  { t: P[0].start, f: "interface/bong_001.ogg", v: 0.35 },
+  { t: P[1].start, f: "impact/impactSoft_medium_001.ogg", v: 0.6 },
+  ...[0, 1, 2, 3].map((i) => ({ t: P[2].start + i * 0.12 + 0.05, f: "ui/click2.ogg", v: 0.3 })),
+  ...[...url].map((_, i) => ({ t: P[3].start + 0.35 + (0.9 / url.length) * i, f: `keyboard/keypress-00${(i % 9) + 1}.wav`, v: 0.25 })),
+  { t: tClick, f: "ui/click2.ogg", v: 0.6 },
+  { t: P[5].start, f: "interface/bong_001.ogg", v: 0.35 },
+  { t: P[6].start, f: "impact/impactSoft_heavy_002.ogg", v: 0.55 },
+];
+writeFileSync("work/sfx.json", JSON.stringify(sfx.map((x) => ({ ...x, t: +x.t.toFixed(3) })), null, 1));
 writeFileSync("work/timeline.html", `<!doctype html><meta charset="utf-8"><style>${css}</style>${p1}${p3}${p4}${p5}${p67}${p2}${p7}${pill}`);
 console.log("timeline written; scenes:", P.map((p) => `${p.start}-${p.end}`).join(" | "));
