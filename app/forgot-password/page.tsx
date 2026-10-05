@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
-import Link from "next/link";
 import { ArrowLeft, EnvelopeSimple, Key } from "@phosphor-icons/react";
 import AuthFrame from "../AuthFrame";
 import { getSupabaseBrowserClient } from "../../lib/supabase/client";
@@ -53,6 +52,6 @@ export default function ForgotPassword() {
       <button className="auth-submit" disabled={busy || cooldown > 0}>{busy ? "Sending…" : cooldown ? `Resend in ${cooldown}s` : sentTo ? "Resend reset link" : "Send reset link"}</button>
     </form>
     {sentTo && <button className="recovery-text-button" onClick={() => { setSentTo(""); setError(""); }} disabled={busy}>Use a different email</button>}
-    <Link className="recovery-back" href="/login"><ArrowLeft size={15} aria-hidden="true" />Back to log in</Link>
+    <a className="recovery-back" href="/login"><ArrowLeft size={15} aria-hidden="true" />Back to log in</a>
   </AuthFrame>;
 }

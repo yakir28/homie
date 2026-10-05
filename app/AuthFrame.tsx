@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import Link from "next/link";
 import HomieLogo from "./HomieLogo";
 
 const gallery = Array.from({ length: 14 }, (_, i) => `/gallery/gallery-${String(i + 1).padStart(2, "0")}.jpg`);
@@ -26,7 +25,7 @@ export default function AuthFrame({ children, eyebrow = "Welcome back" }: { chil
           ))}
         </div>
         <div className="auth-scrim" />
-        <Link className="auth-brand" href="/" aria-label="Homie home page"><HomieLogo variant="mark-light" /></Link>
+        <a className="auth-brand" href="/" aria-label="Homie home page"><HomieLogo variant="mark-light" /></a>
         <div className="auth-collage-copy">
           <p className="eyebrow">● {eyebrow}</p>
           <h1>

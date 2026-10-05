@@ -81,7 +81,7 @@ function LoginForm() {
           <button className="auth-oauth" onClick={() => oauth("google")} disabled={loading}><GoogleIcon />Log in with Google</button>
           <button className="auth-oauth auth-oauth-soon" disabled><AppleIcon />Log in with Apple <span className="auth-soon-badge">Soon</span></button>
 
-          {mode === "login" && <Link className="auth-forgot" href="/forgot-password">Forgot your password?</Link>}
+          {mode === "login" && <a className="auth-forgot" href="/forgot-password">Forgot your password?</a>}
 
           <p className="auth-legal">By continuing, you agree to our <Link href="/terms">Terms</Link> · <Link href="/privacy">Privacy</Link></p>
     </AuthFrame>

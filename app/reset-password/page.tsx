@@ -2,7 +2,6 @@
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import Link from "next/link";
 import { ArrowLeft, ArrowCounterClockwise, CheckCircle, LockKey } from "@phosphor-icons/react";
 import AuthFrame from "../AuthFrame";
 import { readRecoveryTokens, validateNewPassword } from "../../lib/password-recovery";
@@ -71,8 +70,8 @@ export default function ResetPassword() {
     <p className="eyebrow">ACCOUNT RECOVERY</p>
     <div className="recovery-symbol" aria-hidden="true">{stage === "success" ? <CheckCircle size={28} weight="regular" /> : stage === "invalid" ? <ArrowCounterClockwise size={28} weight="regular" /> : <LockKey size={28} weight="regular" />}</div>
     {stage === "checking" ? <><h2>Checking your <i>link</i></h2><p className="recovery-description" role="status">Just a moment while we verify your reset link.</p></> :
-      stage === "invalid" ? <><h2>Let’s try <i>again</i></h2><p className="recovery-description" role="alert">This reset link is invalid or has expired. Request a new link and open the latest email to continue.</p><Link className="auth-submit recovery-action" href="/forgot-password">Get a new reset link</Link><Link className="recovery-back" href="/login"><ArrowLeft size={15} aria-hidden="true" />Back to log in</Link></> :
-      stage === "success" ? <><h2>Password <i>updated</i></h2><p className="recovery-description" role="status">You’re all set. Log in with your new password to get back to your workspace.</p><Link className="auth-submit recovery-action" href="/login">Back to log in</Link></> : <>
+      stage === "invalid" ? <><h2>Let’s try <i>again</i></h2><p className="recovery-description" role="alert">This reset link is invalid or has expired. Request a new link and open the latest email to continue.</p><a className="auth-submit recovery-action" href="/forgot-password">Get a new reset link</a><a className="recovery-back" href="/login"><ArrowLeft size={15} aria-hidden="true" />Back to log in</a></> :
+      stage === "success" ? <><h2>Password <i>updated</i></h2><p className="recovery-description" role="status">You’re all set. Log in with your new password to get back to your workspace.</p><a className="auth-submit recovery-action" href="/login">Back to log in</a></> : <>
         <h2>Set a new <i>password</i></h2>
         <p className="recovery-description">Choose a new password for your Homie account.</p>
         <form className="auth-fields" onSubmit={save} aria-busy={busy}>
@@ -85,7 +84,7 @@ export default function ResetPassword() {
           {error && <p className="recovery-error" role="alert">{error}</p>}
           <button className="auth-submit" disabled={busy}>{busy ? "Updating password…" : "Update password"}</button>
         </form>
-        <Link className="recovery-back" href="/login"><ArrowLeft size={15} aria-hidden="true" />Back to log in</Link>
+        <a className="recovery-back" href="/login"><ArrowLeft size={15} aria-hidden="true" />Back to log in</a>
       </>}
   </AuthFrame>;
 }
