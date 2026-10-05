@@ -50,7 +50,7 @@ function LoginForm() {
     window.location.assign("/app");
   }
 
-  async function oauth(provider: "google" | "apple") {
+  async function oauth(provider: "google") {
     setLoading(true);
     setMessage("");
     const { error } = await getSupabaseBrowserClient().auth.signInWithOAuth({
@@ -125,7 +125,7 @@ function LoginForm() {
           <div className="auth-divider"><span>or</span></div>
 
           <button className="auth-oauth" onClick={() => oauth("google")} disabled={loading}><GoogleIcon />Log in with Google</button>
-          <button className="auth-oauth" onClick={() => oauth("apple")} disabled={loading}><AppleIcon />Log in with Apple</button>
+          <button className="auth-oauth auth-oauth-soon" disabled><AppleIcon />Log in with Apple <span className="auth-soon-badge">Soon</span></button>
 
           {mode === "login" && <button className="auth-forgot" onClick={resetPassword} disabled={loading}>Forgot password?</button>}
 
