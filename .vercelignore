@@ -28,3 +28,6 @@ ugc-edit-*/
 .agents/
 .claude/
 .mcp.json
+
+# Landing-page showcase video required in production
+!public/promo/homie-launch-v4.mp4
