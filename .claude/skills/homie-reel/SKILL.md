@@ -35,6 +35,8 @@ Write `plan.md`: hook, message beats, storyboard with exact in/out times summing
 
 ## 3. Typography and graphics system (the part that makes or breaks it)
 
+App URL: **try-homie.com** (not homie-app.com). Instagram: @homie.app.ai.
+
 Brand tokens: Urbanist (load locally from `social/instagram/week-01/src/urbanist-local.css`); charcoal `#20231e`; cream `#f9f2e2`; sage `#9cac90`; deep sage `#71845f`. The official wordmark (`public/brand/official/homie-wordmark-dark-on-cream.png`, background `rgb(249,241,226)`) is the only logo — never retype it in a font and never place a logo PNG on a background that doesn't match its own.
 
 **Type scale (1080 wide):**

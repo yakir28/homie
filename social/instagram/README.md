@@ -1,5 +1,7 @@
 # Homie — Instagram plan (@homie.app.ai)
 
+> **App URL: try-homie.com** — use this in all new captions, graphics, scripts and DMs. (Older assets and UGC 04's voiceover say "homie-app.com"; kept as is by decision on 2026-10-05.)
+
 ## Where the account stands (Oct 4, 2026)
 
 - 3 posts, 4 followers, 59 views in the last 30 days.
