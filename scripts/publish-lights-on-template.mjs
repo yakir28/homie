@@ -51,8 +51,8 @@ if (process.argv.includes('--dry-run')) {
   process.exit(0);
 }
 for (const [file, key, contentType] of [
-  ['preview.mp4', 'templates/lights-on/preview-v1.mp4', 'video/mp4'],
-  ['thumbnail.jpg', 'templates/lights-on/thumbnail-v1.jpg', 'image/jpeg'],
+  ['preview-web.mp4', 'templates/lights-on/preview-v1.mp4', 'video/mp4'],
+  ['thumbnail-web.jpg', 'templates/lights-on/thumbnail-v1.jpg', 'image/jpeg'],
 ]) {
   const body = await readFile(new URL(file, directory));
   await r2.send(new PutObjectCommand({ Bucket: bucket, Key: key, Body: body, ContentType: contentType, CacheControl: 'public, max-age=31536000, immutable' }));

@@ -52,8 +52,8 @@ if (process.argv.includes('--dry-run')) {
 }
 for (const [file, key, contentType] of [
   // preview-site.mp4 has the site-safe music; preview.mp4 is the social cut with a commercial song.
-  ['preview-site.mp4', 'templates/grand-entrance/preview-v1.mp4', 'video/mp4'],
-  ['thumbnail.jpg', 'templates/grand-entrance/thumbnail-v1.jpg', 'image/jpeg'],
+  ['preview-web.mp4', 'templates/grand-entrance/preview-v1.mp4', 'video/mp4'],
+  ['thumbnail-web.jpg', 'templates/grand-entrance/thumbnail-v1.jpg', 'image/jpeg'],
   ['presenter.jpg', 'templates/grand-entrance/presenter-v1.jpg', 'image/jpeg'],
 ]) {
   const body = await readFile(new URL(file, directory));
