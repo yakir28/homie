@@ -9,6 +9,7 @@ import { createClient } from "@supabase/supabase-js";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { makeShotPlan, validateShotPlan, buildGenerationCommand } from "../lib/video-shot-plan.mjs";
 import { assembleVideo, outputDimensions } from "../lib/video-assembly.mjs";
+import { applyTemplateFinish } from "../lib/template-finish.mjs";
 import { makeKlingShotPlan, klingRequest } from "../lib/kling-shot-plan.mjs";
 import { createHiggsfieldClient, higgsfieldModel as hfModel, higgsfieldInput, HIGGSFIELD_PROVIDER } from "../lib/higgsfield-api.mjs";
 import { createKlingClient } from "../lib/kling-client.mjs";
@@ -318,6 +319,7 @@ async function processProject(project) {
     await event(project.id, "editing", "Assembling and normalizing the final tour", 82);
     const finalPath = join(directory, `homie-${project.id}.mp4`);
     await assembleVideo(clipPaths, shots, finalPath, { duration: project.duration_seconds, aspectRatio: project.output_format, resolution: shots[0].resolution });
+    await applyTemplateFinish(finalPath, project.template_prompt_snapshot?.finish);
     const storagePath = `videos/${project.workspace_id}/${project.id}/version-1.mp4`;
     await event(project.id, "uploading", "Uploading the finished video to Cloudflare R2", 92);
     await uploadFinalVideo(project, finalPath, storagePath);

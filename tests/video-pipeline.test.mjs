@@ -65,3 +65,22 @@ test("assembly preserves the closing scene and exact output format with mixed au
     await assert.rejects(()=>assembleVideo([clips[0]],[{duration:5}],join(dir,"bad.mp4"),{duration:5,aspectRatio:"16:9",resolution:"480p"}),/shorter/);
   } finally {await rm(dir,{recursive:true,force:true});}
 });
+
+test("template finish: grid reveal on the hook cut and flash on the interior cut keep the film length", async () => {
+  const { applyTemplateFinish } = await import("../lib/template-finish.mjs");
+  const dir = await mkdtemp(join(tmpdir(), "homie-finish-"));
+  try {
+    const film = join(dir, "film.mp4");
+    // red 0–1 s (hook), blue 1–3 s (facade), green 3–6 s (first room)
+    await exec("ffmpeg", ["-v","error","-y","-f","lavfi","-i","color=c=red:s=180x320:r=30:d=1","-f","lavfi","-i","color=c=blue:s=180x320:r=30:d=2","-f","lavfi","-i","color=c=green:s=180x320:r=30:d=3","-filter_complex","[0:v][1:v][2:v]concat=n=3:v=1[v]","-map","[v]","-c:v","libx264","-pix_fmt","yuv420p",film]);
+    const result = await applyTemplateFinish(film, { grid_reveal: true, flash_cut: true });
+    assert.ok(Math.abs(result.gridAt - 1) < 0.05 && Math.abs(result.flashAt - 3) < 0.05);
+    assert.ok(Math.abs(Number((await probeVideo(film)).format.duration) - 6) < 0.1);
+    const pixel = async (t, x, y) => [...(await exec("ffmpeg",["-v","error","-ss",String(t),"-i",film,"-frames:v","1","-vf",`crop=4:4:${x}:${y},scale=1:1`,"-f","rawvideo","-pix_fmt","rgb24","pipe:1"],{encoding:"buffer"})).stdout];
+    const [r1, , b1] = await pixel(1.05, 88, 158); // centre tile lands first
+    const [r2, , b2] = await pixel(1.05, 10, 10);   // corner still holds the hook frame
+    assert.ok(b1 > r1 && r2 > b2);
+    assert.ok((await pixel(3.0, 88, 158)).every((c) => c > 180)); // white flash
+    assert.equal(await applyTemplateFinish(film, undefined), null);
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
