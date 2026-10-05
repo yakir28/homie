@@ -35,3 +35,14 @@ Avatar options (2k, high): 322b96b8-20ed-4e0a-9d8a-27e6d004bc86, ed090a93-7a70-4
 
 - `generation_config.presenter_reference`: R2 key of the avatar image; the reference planner adds it to the opening chapter only (it counts toward the per-request reference limit).
 - Template direction: the presenter is the only person allowed; property locks stay unchanged.
+
+## Chosen avatar
+
+Option 1: `322b96b8-20ed-4e0a-9d8a-27e6d004bc86` (chosen 2026-10-05).
+
+## Video chapters (Seedance 2.5 omni_reference, 1080p, 9:16, high bitrate)
+
+| Chapter | Refs | Job ID |
+|---|---|---|
+| 1 (10 s) helicopter → jump → dust landing → walk → crash zoom; native wind/rotor/dust audio | avatar, aerial, facade | 2ade7092-a3a5-4f2c-9495-526cd0e2cf0a |
+| 2 (14 s) FPV: exterior orbit → living → kitchen → stairs → bedroom → bathroom | facade, living, kitchen, hall, bedroom, bath | d5e1140c-b36d-4f27-abe6-907913171c44 |
