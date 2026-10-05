@@ -18,8 +18,8 @@ import sys
 cuts = [float(c) for c in sys.argv[1:]]
 # grid reveal replaces the first cut (sconce -> facade, planned at 1.5 s)
 tg = min(cuts, key=lambda c: abs(c - 1.5)) if cuts else 1.5
-# flash sits on the cut into the living room (planned at 5.5 s)
-tf = min(cuts, key=lambda c: abs(c - 5.5)) if cuts else 5.5
+# flash sits on the cut from the last exterior shot into the first room (planned at 5.5-6.5 s)
+tf = min(cuts, key=lambda c: abs(c - 6.2)) if cuts else 6.2
 print(round(tg, 3), round(tf, 3))
 EOF
 )
@@ -91,7 +91,7 @@ $GRID;\
 $FLASH;\
 [cat][flash]overlay=0:0:format=auto,$GRADE,trim=0:$DUR,format=yuv420p[v];\
 $AUDIO_F" \
-  -map "[v]" -map "[a]" -t "$DUR" -c:v libx264 -crf 17 -preset slow -pix_fmt yuv420p -c:a aac -b:a 192k -movflags +faststart preview.mp4
+  -map "[v]" -map "[a]" -t "$DUR" -c:v libx264 -crf 18 -maxrate 14M -bufsize 28M -preset slow -pix_fmt yuv420p -c:a aac -b:a 192k -movflags +faststart preview.mp4
 
 # thumbnail: the blue-hour facade once the grid has resolved
 ffmpeg -v error -y -ss "$(python3 -c "print($TG+1.0)")" -i preview.mp4 -frames:v 1 -q:v 2 thumbnail.jpg
