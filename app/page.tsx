@@ -20,9 +20,10 @@ const navLinks = [
   { label: "FAQ", href: "#faq" },
 ];
 
-// Lights On and Grand Entrance load from jsDelivr (pinned commit) until their media is in R2.
+// Spin Tour, Grand Entrance and Lights On load from jsDelivr (pinned commit) until their media is in R2.
 const templatePreviews = [
   { title: "Reflection Reveal", tag: "Cinematic", video: "/api/media/template?key=templates/reflection-reveal/preview.mp4", poster: "/api/media/template?key=templates/reflection-reveal/thumbnail.jpg" },
+  { title: "Spin Tour", tag: "Viral Trends", video: "https://cdn.jsdelivr.net/gh/yakir28/homie@c2dd2d197e4c5670dc139eb77984f5b4e596ccd2/prompt%20twelve%20spin%20tour/preview-web.mp4", poster: "https://cdn.jsdelivr.net/gh/yakir28/homie@c2dd2d197e4c5670dc139eb77984f5b4e596ccd2/prompt%20twelve%20spin%20tour/thumbnail-web.jpg" },
   { title: "Grand Entrance", tag: "Viral Trends", video: "https://cdn.jsdelivr.net/gh/yakir28/homie@f08ef612a17b5c1b950a8ca7b050c86e216ab2e4/prompt%20eleven%20grand%20entrance/preview-web.mp4", poster: "https://cdn.jsdelivr.net/gh/yakir28/homie@f08ef612a17b5c1b950a8ca7b050c86e216ab2e4/prompt%20eleven%20grand%20entrance/thumbnail-web.jpg" },
   { title: "Lights On", tag: "Cinematic", video: "https://cdn.jsdelivr.net/gh/yakir28/homie@f08ef612a17b5c1b950a8ca7b050c86e216ab2e4/prompt%20ten%20lights%20on/preview-web.mp4", poster: "https://cdn.jsdelivr.net/gh/yakir28/homie@f08ef612a17b5c1b950a8ca7b050c86e216ab2e4/prompt%20ten%20lights%20on/thumbnail-web.jpg" },
   { title: "Pulse Tour", tag: "Fast-paced", video: "/api/media/template?key=templates/pulse-tour/preview.mp4", poster: "/api/media/template?key=templates/pulse-tour/thumbnail.jpg" },
