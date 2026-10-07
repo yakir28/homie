@@ -127,11 +127,13 @@ function ShowcaseFilm({ video, poster, label }: { video: string; poster: string;
   const userPaused = useRef(false);
   const [time, setTime] = useState(0);
   const [playing, setPlaying] = useState(false);
+  const [muted, setMuted] = useState(true);
   const assets = (previewAssets as Record<string, { preview: string; image: string }>)[video];
   useEffect(() => {
     const player = playerRef.current;
     if (!player) return;
     player.muted = true;
+    setMuted(true);
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reduced) userPaused.current = true;
     let visible = false;
@@ -151,6 +153,16 @@ function ShowcaseFilm({ video, poster, label }: { video: string; poster: string;
     if (player.paused) void player.play().catch(() => undefined);
     else player.pause();
   };
+  const toggleSound = () => {
+    const player = playerRef.current;
+    if (!player) return;
+    player.muted = !player.muted;
+    setMuted(player.muted);
+    if (!player.muted && player.paused) {
+      userPaused.current = false;
+      void player.play().catch(() => undefined);
+    }
+  };
   const seek = (start: number) => {
     const player = playerRef.current;
     if (!player) return;
@@ -168,6 +180,11 @@ function ShowcaseFilm({ video, poster, label }: { video: string; poster: string;
           onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)}>
           <source src={assets?.preview ?? resolveMediaUrl(video)} type="video/mp4" />
         </video>
+        <button type="button" className="showcase-film-toggle showcase-film-sound" onClick={toggleSound} aria-label={muted ? "Turn sound on" : "Turn sound off"} aria-pressed={!muted}>
+          {muted
+            ? <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Z" fill="currentColor" /><path d="m22 9-6 6M16 9l6 6" /></svg>
+            : <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Z" fill="currentColor" /><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14" /></svg>}
+        </button>
         <button type="button" className="showcase-film-toggle" onClick={toggle} aria-label={playing ? "Pause video" : "Play video"}>
           {playing
             ? <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" /></svg>

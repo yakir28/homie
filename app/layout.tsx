@@ -17,10 +17,6 @@ export const metadata: Metadata = {
     description: "Listing photos in. Home tours out.",
     images: ["/og.png"],
   },
-  icons: {
-    icon: "/favicon.svg",
-    shortcut: "/favicon.svg",
-  },
 };
 
 export default function RootLayout({

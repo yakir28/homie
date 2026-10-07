@@ -11,6 +11,8 @@ type Price = { resolution: string; multiplier: number; credits_cost: number };
 type QueuedVideoProject = { id: number; title: string; output_format: string; duration_seconds: number; credits_cost: number; created_at: string };
 const formats = ["9:16", "16:9", "1:1", "4:3", "3:4", "21:9"];
 
+const RICH_PHOTO_COUNT = 7;
+
 export default function CreateVideoWizard({ template, initialListings, workspaceId, walletBalance, onCreated }: {
   template: TemplateItem; initialListings: WizardListing[]; workspaceId: string; walletBalance: number;
   onCreated: (project: VideoItem) => void;
@@ -32,7 +34,9 @@ export default function CreateVideoWizard({ template, initialListings, workspace
   const visibleListings = initialListings.filter((listing) => (listing.address + " " + listing.city).toLowerCase().includes(search.trim().toLowerCase()));
   const cost = prices.find((price) => price.resolution === resolution)?.credits_cost;
   const insufficientCredits = cost !== undefined && walletBalance < cost;
-  const needsPhotos = !!selected && selected.photos < template.minPhotos;
+  // Any home with a photo can be filmed; fewer than RICH_PHOTO_COUNT only earns a tip.
+  const needsPhotos = !!selected && selected.photos < 1;
+  const fewPhotos = !!selected && selected.photos >= 1 && selected.photos < RICH_PHOTO_COUNT;
   const missingPrompt = template.generationConfig !== undefined && Object.keys(template.generationConfig).length === 0;
 
   useEffect(() => {
@@ -69,7 +73,7 @@ export default function CreateVideoWizard({ template, initialListings, workspace
     try {
       const supabase = getSupabaseBrowserClient();
       const { data: photoRows, error: photosError } = await supabase.from("listing_photos").select("id").eq("listing_id", selected.id).order("sort_order").limit(template.maxPhotos);
-      if (photosError || !photoRows || photoRows.length < template.minPhotos) throw new Error(photosError?.message ?? `This listing needs at least ${template.minPhotos} photos.`);
+      if (photosError || !photoRows || photoRows.length < 1) throw new Error(photosError?.message ?? "Add at least one photo of this home first.");
       const key = [workspaceId, template.id, selected.id, aspectRatio, resolution].join(":");
       if (!requestIds.current.has(key)) requestIds.current.set(key, crypto.randomUUID());
       const { data: project, error } = await supabase.rpc("queue_priced_video_project", {
@@ -104,7 +108,8 @@ export default function CreateVideoWizard({ template, initialListings, workspace
       <button disabled={creating} onClick={() => setPicker("format")}><small>Format</small><strong>{aspectRatio}</strong><span aria-hidden="true">⌄</span></button>
       <button disabled={creating} onClick={() => setPicker("resolution")}><small>Resolution</small><strong>{resolution === "4k" ? "4K" : resolution}</strong><span aria-hidden="true">⌄</span></button>
     </div>
-    {needsPhotos && <p className="creation-warning">This listing needs {template.minPhotos - selected!.photos} more photos.</p>}
+    {needsPhotos && <p className="creation-warning">Add at least one photo of this home to create a video.</p>}
+    {fewPhotos && <p className="creation-tip">This home has {selected!.photos} {selected!.photos === 1 ? "photo" : "photos"}. Adding more makes a richer, smoother video.</p>}
     {missingPrompt && <p className="creation-warning">This template is not ready for creation yet.</p>}
     {insufficientCredits && <p className="creation-warning">You need {cost! - walletBalance} more credits. Choose a lower resolution or top up your balance.</p>}
     {priceError && <p className="creation-warning">Could not load pricing. <button onClick={() => setReloadPrice((value) => value + 1)}>Retry</button></p>}
@@ -119,7 +124,7 @@ export default function CreateVideoWizard({ template, initialListings, workspace
         <label className="chooser-search"><input aria-label="Search listings" placeholder="Search by address or city…" value={search} onChange={(event) => setSearch(event.target.value)} /></label>
         <div className="creation-listings">
           {visibleListings.map((listing) => <button key={listing.id} aria-pressed={selectedId === listing.id} className={selectedId === listing.id ? "selected" : ""} onClick={() => choose(() => setSelectedId(listing.id))}>
-            <img src={listing.image} alt="" loading="lazy" /><strong>{listing.address}</strong><small>{listing.photos < template.minPhotos ? `Needs ${template.minPhotos - listing.photos} more photos` : `${listing.photos} photos ready`}</small>
+            <img src={listing.image} alt="" loading="lazy" /><strong>{listing.address}</strong><small>{listing.photos < 1 ? "Add a photo to start" : `${listing.photos} ${listing.photos === 1 ? "photo" : "photos"}`}</small>{listing.photos >= 1 && listing.photos < RICH_PHOTO_COUNT && <small className="creation-photo-tip">More photos make a better video</small>}
           </button>)}
         </div>
         {!visibleListings.length && <p className="creation-empty">{initialListings.length ? "No matching listings. Try another search." : "No listings yet. Add a property from My listings first."}</p>}

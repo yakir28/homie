@@ -7,6 +7,8 @@
 .creation-choices button:hover{border-color:var(--sage);background:var(--sage-soft)}
 .creation-balance{font-size:12px;line-height:1.5;color:var(--muted);text-align:center;margin:10px 0 0}
 .creation-warning{font-size:13px;line-height:1.5;color:var(--ink);margin:0 0 12px}
+.creation-tip{font-size:13px;line-height:1.5;color:var(--muted);margin:0 0 12px;padding:10px 12px;border-radius:10px;background:var(--sage-soft)}
+.creation-listings small.creation-photo-tip{margin-top:4px;color:var(--sage-dark,var(--sage))}
 .creation-warning button{background:none;border:0;text-decoration:underline;color:var(--sage-dark)}
 .video-creation-controls .template-detail-create{font-size:15px;gap:8px}
 .video-creation-controls .template-detail-create:disabled{opacity:.5;cursor:not-allowed}

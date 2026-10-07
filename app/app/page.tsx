@@ -1,5 +1,6 @@
 "use client";
 
+import { MAX_LISTING_PHOTOS, listingPhotoLimitError } from "../../lib/listing-photo-limit";
 import { usePreviewSource } from "../../lib/use-preview-source";
 import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from "react";
 import { getSupabaseBrowserClient } from "../../lib/supabase/client";
@@ -740,6 +741,8 @@ export default function Home() {
   }
 
   async function createListing(values: { title: string; photos: MappedListingPhoto[]; fromDirector?: boolean }) {
+    const limitError = listingPhotoLimitError(0, values.photos.length);
+    if (limitError) throw new Error(limitError);
     if (!workspaceId) throw new Error("Your workspace is still loading. Please try again.");
     const supabase = getSupabaseBrowserClient();
     const { data: listing, error } = await supabase
@@ -1441,7 +1444,7 @@ function TemplatePreviewModal({ template, onClose, creationControls }: { templat
           />
           <span>{formatVideoTime(duration)}</span>
           <button onClick={toggleMute} aria-label={muted ? "Unmute video" : "Mute video"}>
-            {muted ? "⌁" : "◖"}
+            <VideoVolumeIcon muted={muted} />
           </button>
           <button onClick={() => void toggleFullscreen()} aria-label="Toggle fullscreen">
             ⛶
@@ -1644,6 +1647,7 @@ function Listings({ items, search, sourceFilter, photoFilter, sort, onClear, onO
             <div className="listing-copy">
               <p className="eyebrow">{listing.source}</p>
               <h2>{listing.address}</h2>
+              {listing.photos < 7 && <p className="listing-photo-tip">{listing.photos} {listing.photos === 1 ? "photo" : "photos"} · Add more for a better video</p>}
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -1739,6 +1743,10 @@ function ListingDetail({ listing, photos, workspaceId, onBack, flash }: { listin
     setPhotoBusy(true);
     try {
       const supabase = getSupabaseBrowserClient();
+      const { count, error: countError } = await supabase.from("listing_photos").select("id", { count: "exact", head: true }).eq("listing_id", listing.id);
+      if (countError) throw new Error(countError.message);
+      const limitError = listingPhotoLimitError(count ?? 0, files.length);
+      if (limitError) throw new Error(limitError);
       const added: ListingPhotoItem[] = [];
       const { data: lastPhoto, error: orderError } = await supabase.from("listing_photos").select("sort_order").eq("listing_id", listing.id).order("sort_order", { ascending: false }).limit(1).maybeSingle();
       if (orderError) {
@@ -1898,9 +1906,11 @@ function CreateListingModal({ onClose, onCreate }: { onClose: () => void; onCrea
 
   function addPhotos(files: FileList | null) {
     if (!files) return;
-    const next = Array.from(files)
-      .filter((file) => ["image/jpeg", "image/png", "image/webp"].includes(file.type))
-      .slice(0, Math.max(0, 50 - photos.length))
+    const accepted = Array.from(files).filter((file) => ["image/jpeg", "image/png", "image/webp"].includes(file.type));
+    const limitError = listingPhotoLimitError(photos.length, accepted.length);
+    if (limitError) { setError(limitError); return; }
+    setError("");
+    const next = accepted
       .map((file) => ({
         file,
         preview: URL.createObjectURL(file),
@@ -1956,7 +1966,7 @@ function CreateListingModal({ onClose, onCreate }: { onClose: () => void; onCrea
           />
           <span>＋</span>
           <b>Add property photos</b>
-          <small>JPG, PNG or WebP · up to 50 photos</small>
+          <small>JPG, PNG or WebP · up to {MAX_LISTING_PHOTOS} photos</small>
         </label>
         {photos.length > 0 && (
           <>
@@ -2055,9 +2065,14 @@ function MyVideos({ items, search, statusFilter, formatFilter, loading, error, o
           filteredItems.map((video) => (
             <article className={`myvideo-card ${video.status === "Generating" ? "is-generating" : ""}`} key={video.id} onClick={() => onOpenVideo(video)} tabIndex={0} onMouseEnter={(event) => startCardPreview(event.currentTarget)} onMouseLeave={(event) => stopCardPreview(event.currentTarget)} onFocus={(event) => startCardPreview(event.currentTarget)} onBlur={(event) => stopCardPreview(event.currentTarget)} onKeyDown={(e) => e.key === "Enter" && onOpenVideo(video)}>
               {video.status === "Generating" ? (
-                <div className="video-card-loading" aria-label={`${video.title} is generating`}>
+                <div className="video-card-loading" aria-label={`${video.title} is generating, ${video.progress}%`}>
                   {video.image && <img className="video-queue-photo" src={video.image} alt="" loading="lazy" />}
-                  <span className="video-card-loader" aria-hidden="true" />
+                  <span className="video-queue-pill"><i aria-hidden="true" />{queueSteps[queueStep(video.progress)]}</span>
+                  <div className="video-queue-copy">
+                    <h3>{video.title}</h3>
+                    <p>{video.template} · {video.format} · {video.duration}</p>
+                    <span className="video-queue-bar" aria-hidden="true"><i style={{ width: `${Math.max(4, video.progress)}%` }} /></span>
+                  </div>
                 </div>
               ) : video.videoUrl ? (
                 <video src={video.videoUrl} poster={video.image} muted loop playsInline preload="none" aria-label={`${video.title} video preview`} />
@@ -2149,10 +2164,26 @@ function MyVideos({ items, search, statusFilter, formatFilter, loading, error, o
   );
 }
 
+const queueSteps = ["Queued", "Filming the rooms", "Final edit and sound"];
+const queueStep = (progress: number) => (progress <= 0 ? 0 : progress < 90 ? 1 : 2);
+
+function VideoVolumeIcon({ muted }: { muted: boolean }) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+      {muted ? <>
+        <path d="M11 5 6 9H3v6h3l5 4V5Z" />
+        <path d="m16 9 5 6m0-6-5 6" />
+      </> : <>
+        <path d="M11 5 6 9H3v6h3l5 4V5Z" />
+        <path d="M15 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14" />
+      </>}
+    </svg>
+  );
+}
+
 function VideoModal({ video, onClose, flash }: { video: VideoItem; onClose: () => void; flash: (m: string) => void }) {
   const playbackUrl = usePreviewSource(video.videoUrl);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const generating = video.status === "Generating";
   const failed = video.status === "Failed";
   const [playing, setPlaying] = useState(Boolean(playbackUrl));
   const [muted, setMuted] = useState(true);
@@ -2220,10 +2251,27 @@ function VideoModal({ video, onClose, flash }: { video: VideoItem; onClose: () =
           {playbackUrl ? (
             <video ref={videoRef} src={playbackUrl} poster={video.image} autoPlay muted playsInline preload="auto" aria-label={`${video.title} video`} onClick={togglePlayback} onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onEnded={() => setPlaying(false)} onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)} onLoadedMetadata={(event) => setDuration(event.currentTarget.duration)} />
           ) : (
-            <div className="my-video-preview-state">
-              {generating && <span className="spinner" />}
-              <b>{failed ? "Generation failed" : "Creating your video"}</b>
-              <small>{failed ? video.error : `${video.stage ?? "Waiting for generation"} · ${video.progress}%`}</small>
+            <div className={`my-video-preview-state ${failed ? "is-failed" : ""}`}>
+              {video.image && <img className="my-video-preview-backdrop" src={video.image} alt="" />}
+              <div className="my-video-preview-panel">
+                <p className="my-video-preview-eyebrow">{failed ? "Something went wrong" : "In production"}</p>
+                <h2>{video.title}</h2>
+                <p className="my-video-preview-meta">{video.template} · {video.format} · {video.duration}</p>
+                {failed ? <p className="my-video-preview-error">{video.error}</p> : <>
+                  <div className="my-video-preview-progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={video.progress} aria-label="Generation progress">
+                    <span><i style={{ width: `${Math.max(3, video.progress)}%` }} /></span>
+                    <b>{video.progress}%</b>
+                  </div>
+                  <ol className="my-video-preview-steps">
+                    {queueSteps.map((step, index) => {
+                      const current = queueStep(video.progress);
+                      return <li key={step} className={index < current ? "done" : index === current ? "active" : ""}>{step}</li>;
+                    })}
+                  </ol>
+                  {video.stage && <p className="my-video-preview-stage">{video.stage}</p>}
+                  <p className="my-video-preview-note">You can close this. We’ll keep working, and the video will appear in My videos when it’s ready.</p>
+                </>}
+              </div>
             </div>
           )}
           {playbackUrl && <div className="template-video-controls" aria-label="Video controls">
@@ -2231,7 +2279,7 @@ function VideoModal({ video, onClose, flash }: { video: VideoItem; onClose: () =
             <span>{formatVideoTime(currentTime)}</span>
             <input type="range" min="0" max={duration || 0} step="0.05" value={Math.min(currentTime, duration || 0)} onChange={(event) => seek(Number(event.target.value))} aria-label="Video progress" style={{ "--video-progress": `${duration ? (currentTime / duration) * 100 : 0}%` } as CSSProperties} />
             <span>{formatVideoTime(duration)}</span>
-            <button onClick={toggleMute} aria-label={muted ? "Unmute video" : "Mute video"}>{muted ? "⌁" : "◖"}</button>
+            <button onClick={toggleMute} aria-label={muted ? "Unmute video" : "Mute video"}><VideoVolumeIcon muted={muted} /></button>
             <button onClick={() => void toggleFullscreen()} aria-label="Toggle fullscreen">⛶</button>
           </div>}
         </div>

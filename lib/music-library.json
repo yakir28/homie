@@ -1,0 +1,14 @@
+{
+  "tracks": [
+    {"id": "calm-01", "file": "calm-01.m4a", "title": "Calm 01", "artist": "Higgsfield Sonilo Music", "license": "AI-generated via Higgsfield (Sonilo Music), 2026-10-07", "moods": ["calm"], "duration": 40},
+    {"id": "calm-02", "file": "calm-02.m4a", "title": "Calm 02", "artist": "Higgsfield Sonilo Music", "license": "AI-generated via Higgsfield (Sonilo Music), 2026-10-07", "moods": ["calm"], "duration": 40},
+    {"id": "cinematic-01", "file": "cinematic-01.m4a", "title": "Cinematic 01", "artist": "Higgsfield Sonilo Music", "license": "AI-generated via Higgsfield (Sonilo Music), 2026-10-07", "moods": ["cinematic"], "duration": 40},
+    {"id": "cinematic-02", "file": "cinematic-02.m4a", "title": "Cinematic 02", "artist": "Higgsfield Sonilo Music", "license": "AI-generated via Higgsfield (Sonilo Music), 2026-10-07", "moods": ["cinematic"], "duration": 40},
+    {"id": "energetic-01", "file": "energetic-01.m4a", "title": "Energetic 01", "artist": "Higgsfield Sonilo Music", "license": "AI-generated via Higgsfield (Sonilo Music), 2026-10-07", "moods": ["energetic"], "duration": 40},
+    {"id": "energetic-02", "file": "energetic-02.m4a", "title": "Energetic 02", "artist": "Higgsfield Sonilo Music", "license": "AI-generated via Higgsfield (Sonilo Music), 2026-10-07", "moods": ["energetic"], "duration": 40},
+    {"id": "modern-01", "file": "modern-01.m4a", "title": "Modern 01", "artist": "Higgsfield Sonilo Music", "license": "AI-generated via Higgsfield (Sonilo Music), 2026-10-07", "moods": ["modern"], "duration": 40},
+    {"id": "modern-02", "file": "modern-02.m4a", "title": "Modern 02", "artist": "Higgsfield Sonilo Music", "license": "AI-generated via Higgsfield (Sonilo Music), 2026-10-07", "moods": ["modern"], "duration": 40},
+    {"id": "warm-01", "file": "warm-01.m4a", "title": "Warm 01", "artist": "Higgsfield Sonilo Music", "license": "AI-generated via Higgsfield (Sonilo Music), 2026-10-07", "moods": ["warm"], "duration": 39},
+    {"id": "warm-02", "file": "warm-02.m4a", "title": "Warm 02", "artist": "Higgsfield Sonilo Music", "license": "AI-generated via Higgsfield (Sonilo Music), 2026-10-07", "moods": ["warm"], "duration": 40}
+  ]
+}

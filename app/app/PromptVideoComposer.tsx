@@ -45,7 +45,7 @@ export default function PromptVideoComposer({ onUploadFiles, onSend, busy = fals
       const type = file.type || ({ jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp" }[file.name.split(".").pop()?.toLowerCase() ?? ""]);
       return !file.type && type ? new File([file], file.name, { type, lastModified: file.lastModified }) : file;
     });
-    if (files.length + normalized.length > 30) { setError("Attach up to 30 photos per video."); return; }
+    if (files.length + normalized.length > 20) { setError("Each home can have up to 20 photos."); return; }
     if (normalized.some(file => !["image/jpeg", "image/png", "image/webp"].includes(file.type))) { setError("Choose JPG, PNG, or WebP photos. Other file types are not supported yet."); return; }
     if (normalized.some(file => !file.size || file.size > 20 * 1024 * 1024)) { setError("Each photo must be between 1 byte and 20 MB."); return; }
     setFiles(current => [...current, ...normalized]);

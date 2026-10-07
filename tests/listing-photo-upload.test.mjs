@@ -21,7 +21,7 @@ test('selected files survive resetting the picker and populate the slider after 
   const client = {
     storage: { from: () => storage },
     from: () => ({
-      select: () => ({ eq: () => ({ order: () => ({ limit: () => ({ maybeSingle: async () => {
+      select: (_fields, options) => options?.count ? {eq: async () => ({count: 3})} : ({ eq: () => ({ order: () => ({ limit: () => ({ maybeSingle: async () => {
         await new Promise(resolve => setTimeout(resolve, 1));
         return { data: { sort_order: 2 } };
       } }) }) }) }),
@@ -29,6 +29,7 @@ test('selected files survive resetting the picker and populate the slider after 
     }),
   };
   const context = vm.createContext({ listing: { id: 1 }, workspaceId: 'workspace', photoBusy: false,
+    listingPhotoLimitError: (existing, incoming) => existing + incoming > 20 ? "Photo limit reached" : null,
     setPhotoBusy: value => busy.push(value), getSupabaseBrowserClient: () => client,
     setLocalPhotos: update => { photos = update(photos); }, setActivePhotoId: value => { active = value; },
     flash: value => notices.push(value), crypto: { randomUUID: () => 'test-id' },
@@ -62,4 +63,17 @@ test('unexpected upload errors release the loading state and show an error', asy
   await context.addPhotos([{ name: 'photo.jpg' }]);
   assert.deepEqual(busy, [true, false]);
   assert.equal(notices.length, 1);
+});
+
+test('full homes reject uploads before creating storage objects', async () => {
+  const busy=[],notices=[];
+  const context=vm.createContext({listing:{id:1},photoBusy:false,
+    setPhotoBusy:v=>busy.push(v),flash:v=>notices.push(v),
+    listingPhotoLimitError:(existing,incoming)=>existing+incoming>20?'Each home can have up to 20 photos.':null,
+    getSupabaseBrowserClient:()=>({from:()=>({select:()=>({eq:async()=>({count:20})})}),storage:{from:()=>{throw new Error('Storage must not be accessed');}}})
+  });
+  vm.runInContext(uploadCode,context);
+  await context.addPhotos([{name:'extra.jpg'}]);
+  assert.equal(notices[0],'Each home can have up to 20 photos.');
+  assert.deepEqual(busy,[true,false]);
 });

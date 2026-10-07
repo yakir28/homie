@@ -1,3 +1,4 @@
+import { MAX_LISTING_PHOTOS } from "../../../../lib/listing-photo-limit";
 import { createClient } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
@@ -229,7 +230,7 @@ export async function POST(request: Request) {
         const { error: deleteError } = await supabase.from("listing_photos").delete().eq("listing_id", listing.id);
         if (deleteError) throw deleteError;
         if (photos.length) {
-          const { error: photosError } = await supabase.from("listing_photos").insert(photos.slice(0, 50).map((url, index) => ({ listing_id: listing.id, source_url: url, thumbnail_url: url, sort_order: index, metadata: { imported_from: propertyUrl } })));
+          const { error: photosError } = await supabase.from("listing_photos").insert(photos.slice(0, MAX_LISTING_PHOTOS).map((url, index) => ({ listing_id: listing.id, source_url: url, thumbnail_url: url, sort_order: index, metadata: { imported_from: propertyUrl } })));
           if (photosError) throw photosError;
         }
         imported += 1;

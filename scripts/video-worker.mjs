@@ -1,14 +1,17 @@
 import { makeReferencePlan, referenceInput, REFERENCE_MODELS } from "../lib/higgsfield-reference.mjs";
 import { createHash } from "node:crypto";
 import { execFile } from "node:child_process";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { access, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { createClient } from "@supabase/supabase-js";
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { makeShotPlan, validateShotPlan, buildGenerationCommand } from "../lib/video-shot-plan.mjs";
 import { assembleVideo, outputDimensions } from "../lib/video-assembly.mjs";
+import { loadMusicLibrary, musicMoodFor, pickMusicTrack } from "../lib/music.mjs";
+import { castPhotos, createPhotoAnalyzer, photoLabel, validAnalysis } from "../lib/photo-analysis.mjs";
+import { createDirector } from "../lib/director.mjs";
 import { makeKlingShotPlan, klingRequest } from "../lib/kling-shot-plan.mjs";
 import { createHiggsfieldClient, higgsfieldModel as hfModel, higgsfieldInput, HIGGSFIELD_PROVIDER } from "../lib/higgsfield-api.mjs";
 import { createKlingClient } from "../lib/kling-client.mjs";
@@ -32,6 +35,7 @@ const r2AccountId = process.env.R2_ACCOUNT_ID;
 const r2AccessKeyId = process.env.R2_ACCESS_KEY_ID;
 const r2SecretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
 const r2Bucket = process.env.R2_BUCKET_NAME ?? "homie";
+const musicLibraryDir = process.env.MUSIC_LIBRARY_DIR ?? new URL("../assets/music/", import.meta.url).pathname;
 const isConfiguredSecret = (value) => Boolean(value && !/^(your-|replace-|example)/i.test(value));
 const hasR2Credentials = [r2AccountId, r2AccessKeyId, r2SecretAccessKey].every(isConfiguredSecret);
 
@@ -117,6 +121,61 @@ async function materializePhoto(photo, directory, index) {
   }
   await writeFile(path, bytes);
   return { path, roomType: photo.room_type ?? null, metadata: photo.metadata ?? {} };
+}
+
+const analyzePhoto = createPhotoAnalyzer();
+const director = createDirector();
+
+// The director picks photos per shot and rewrites each shot prompt for this home.
+// Its plan is saved on the project so a resumed render reuses the exact same prompts.
+async function directProject(project, photos) {
+  const config = project.template_prompt_snapshot ?? {};
+  const plannerSupportsShots = [HIGGSFIELD_PROVIDER, "kling"].includes(config.provider) && config.generation_mode !== "reference";
+  if (!director || !plannerSupportsShots || config.workflow === "prompt_property_film" || config.director === false) return null;
+  // A saved plan is reused even from an older director version: its shots may already be paid for.
+  const saved = config.director_plan;
+  if (Array.isArray(saved?.shots) && saved.photo_count === photos.length && saved.duration === project.duration_seconds) return saved;
+  // Shots already submitted under the template's own plan must keep their prompts.
+  if ((project.video_project_shots ?? []).some((shot) => shot.provider_job_id || shot.provider_metadata?.submission_attempted)) return null;
+  await event(project.id, "planning", "Directing the shots for this home", 9);
+  let plan;
+  try {
+    plan = await director({ config, slug: config.template_slug ?? project.video_templates?.slug, photos, duration: project.duration_seconds, aspectRatio: project.output_format });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`Director failed for project ${project.id}:`, message);
+    await event(project.id, "planning", "Director unavailable; using the template's own shot plan", 9, { error: message.slice(0, 300) });
+    return null;
+  }
+  project.template_prompt_snapshot = { ...config, director_plan: plan };
+  await checked(db.from("video_projects").update({ template_prompt_snapshot: project.template_prompt_snapshot }).eq("id", project.id));
+  await event(project.id, "planning", plan.notes || "Shot list ready", 10, { shots: plan.shots.map(({ role, duration, start_photo_index, end_photo_index }) => ({ role, duration, start_photo_index, end_photo_index })), skipped_photos: plan.skipped_photos });
+  return plan;
+}
+
+// Classifies each photo once (cached on the listing photo), then labels it for the planners.
+async function analyzePhotos(project, photoRows, photos) {
+  const missing = photos.map((photo, index) => ({ photo, row: photoRows[index].listing_photos })).filter(({ photo }) => !validAnalysis(photo.metadata.photo_analysis));
+  if (missing.length && !analyzePhoto) {
+    await event(project.id, "planning", "Photo analysis is not configured; using the saved photo order", 6);
+  } else if (missing.length) {
+    await event(project.id, "planning", `Analyzing ${missing.length} property photos`, 6);
+    for (let i = 0; i < missing.length; i += 4) {
+      await Promise.all(missing.slice(i, i + 4).map(async ({ photo, row }) => {
+        try {
+          const analysis = await analyzePhoto(photo.path);
+          photo.metadata = { ...photo.metadata, photo_analysis: analysis };
+          await checked(db.from("listing_photos").update({ metadata: photo.metadata }).eq("id", row.id));
+        } catch (error) {
+          console.error(`Photo ${row.id} analysis failed:`, error instanceof Error ? error.message : error);
+        }
+      }));
+    }
+  }
+  return photos.map((photo) => {
+    const analysis = validAnalysis(photo.metadata.photo_analysis) ? photo.metadata.photo_analysis : null;
+    return { ...photo, analysis, roomType: photoLabel(photo.roomType, analysis) };
+  });
 }
 
 
@@ -214,6 +273,24 @@ async function download(url, path) {
 }
 
 
+// Tracks are read from MUSIC_LIBRARY_DIR when present locally, otherwise from R2 under music/
+// (S3 API when credentials are configured, Wrangler otherwise, matching uploadFinalVideo).
+async function materializeMusic(track, directory) {
+  const localPath = join(musicLibraryDir, track.file);
+  try {
+    await access(localPath);
+    return { ...track, path: localPath };
+  } catch {}
+  const path = join(directory, `music-${track.file.replaceAll("/", "_")}`);
+  if (r2) {
+    const object = await r2.send(new GetObjectCommand({ Bucket: r2Bucket, Key: `music/${track.file}` }));
+    await writeFile(path, Buffer.from(await object.Body.transformToByteArray()));
+  } else {
+    await execFileAsync("npx", ["wrangler", "r2", "object", "get", `${r2Bucket}/music/${track.file}`, "--file", path, "--remote"], { maxBuffer: 10 * 1024 * 1024 });
+  }
+  return { ...track, path };
+}
+
 async function uploadFinalVideo(project, finalPath, storagePath) {
   if (r2) {
     await r2.send(new PutObjectCommand({
@@ -256,7 +333,23 @@ async function processProject(project) {
     for (let index = 0; index < photoRows.length; index += 1) {
       photos.push(await materializePhoto(photoRows[index].listing_photos, directory, index));
     }
-    const shots = planProject(project, photos);
+    const analyzed = await analyzePhotos(project, photoRows, photos);
+    const directorPlan = await directProject(project, analyzed);
+    const config = project.template_prompt_snapshot ?? {};
+    let shots;
+    let photoOrder;
+    if (directorPlan) {
+      shots = planProject({ ...project, template_prompt_snapshot: { ...config, shots: directorPlan.shots, director_plan_applied: true } }, analyzed);
+      photoOrder = directorPlan.shots.map((shot) => ({ index: shot.start_photo_index, end_index: shot.end_photo_index ?? null, label: analyzed[shot.start_photo_index].roomType }));
+    } else {
+      // A user-written brief promises the saved photo order; templates get casted photos.
+      const cast = config.workflow === "prompt_property_film" || config.photo_casting === false
+        ? analyzed
+        : castPhotos(analyzed, config.template_slug ?? project.video_templates?.slug);
+      photoOrder = cast.map((photo) => ({ index: analyzed.indexOf(photo), label: photo.roomType }));
+      if (cast.some((photo, index) => photo !== analyzed[index])) await event(project.id, "planning", "Matched photos to the template's shots", 8, { photo_order: photoOrder });
+      shots = planProject(project, cast);
+    }
 
     const clipPaths = [];
     const outputs = [];
@@ -316,8 +409,15 @@ async function processProject(project) {
     }
 
     await event(project.id, "editing", "Assembling and normalizing the final tour", 82);
+    // The director decides whether this film needs music and its mood; otherwise the template's mood applies.
+    const musicChoice = directorPlan?.music;
+    const musicProject = musicChoice ? { ...project, template_prompt_snapshot: { ...project.template_prompt_snapshot, music: project.template_prompt_snapshot?.music !== false && musicChoice.use_music, music_mood: musicChoice.mood } } : project;
+    const track = pickMusicTrack(musicProject, await loadMusicLibrary());
+    if (musicChoice && !musicChoice.use_music) await event(project.id, "editing", "Director chose no background music", 84, { reason: musicChoice.reason });
+    else if (!track && musicMoodFor(musicProject)) await event(project.id, "editing", "No soundtrack in the music library yet; finishing without music", 84, { music_mood: musicMoodFor(musicProject) });
+    const music = track ? await materializeMusic(track, directory) : null;
     const finalPath = join(directory, `homie-${project.id}.mp4`);
-    await assembleVideo(clipPaths, shots, finalPath, { duration: project.duration_seconds, aspectRatio: project.output_format, resolution: shots[0].resolution });
+    await assembleVideo(clipPaths, shots, finalPath, { duration: project.duration_seconds, aspectRatio: project.output_format, resolution: shots[0].resolution, music });
     const storagePath = `videos/${project.workspace_id}/${project.id}/version-1.mp4`;
     await event(project.id, "uploading", "Uploading the finished video to Cloudflare R2", 92);
     await uploadFinalVideo(project, finalPath, storagePath);
@@ -328,7 +428,7 @@ async function processProject(project) {
       status: "ready",
       video_url: null,
       duration_seconds: project.duration_seconds,
-      provider_metadata: { provider: shots[0]?.provider, storage_provider: "cloudflare-r2", bucket: r2Bucket, r2_key: storagePath, model: shots[0]?.model, shot_outputs: outputs, generated_seconds: shots.reduce((sum, shot) => sum + shot.duration, 0), shot_plan: shots.map((shot) => ({ order: shot.order, duration: shot.duration, model: shot.model, provider: shot.provider })), prompt_recipe: project.template_prompt_snapshot },
+      provider_metadata: { provider: shots[0]?.provider, storage_provider: "cloudflare-r2", bucket: r2Bucket, r2_key: storagePath, model: shots[0]?.model, shot_outputs: outputs, generated_seconds: shots.reduce((sum, shot) => sum + shot.duration, 0), shot_plan: shots.map((shot) => ({ order: shot.order, duration: shot.duration, model: shot.model, provider: shot.provider })), photo_order: photoOrder, director: directorPlan ? { version: directorPlan.version, model: directorPlan.model, notes: directorPlan.notes } : null, music: track ? { id: track.id, title: track.title ?? null, artist: track.artist ?? null, license: track.license, mood: musicMoodFor(musicProject), chosen_by: musicChoice ? "director" : "template" } : null, prompt_recipe: project.template_prompt_snapshot },
       completed_at: new Date().toISOString(),
     }, { onConflict: "video_project_id,version_number" }));
     await event(project.id, "ready", "Video ready for review", 100);

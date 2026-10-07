@@ -16,6 +16,7 @@
     "video:worker:once": "node --env-file-if-exists=video-worker.env scripts/video-worker.mjs --once --higgsfield-api-only",
     "video:worker:dry-run": "node --env-file-if-exists=video-worker.env scripts/video-worker.mjs --once --dry-run --higgsfield-api-only",
     "r2:sync-templates": "node scripts/sync-templates-to-r2.mjs",
+    "r2:sync-music": "node --env-file-if-exists=video-worker.env scripts/sync-music-to-r2.mjs",
     "video:audit": "node --env-file-if-exists=video-worker.env scripts/audit-video-templates.mjs",
     "test:video": "node --test tests/video-pipeline.test.mjs tests/prompt-video.test.mjs tests/director-chat.test.mjs tests/kling.test.mjs tests/higgsfield-api.test.mjs tests/higgsfield-reference.test.mjs",
     "video:kling:check": "node --env-file-if-exists=video-worker.env scripts/check-kling.mjs",
@@ -26,6 +27,7 @@
     "video:worker:higgsfield": "node --env-file-if-exists=video-worker.env scripts/video-worker.mjs --higgsfield-api-only"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.131.0",
     "@aws-sdk/client-s3": "^3.1106.0",
     "@phosphor-icons/react": "^2.1.10",
     "@supabase/supabase-js": "2.112.2",
