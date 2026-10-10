@@ -3,9 +3,9 @@
 import React from "react";
 import { Easing, interpolate, useCurrentFrame } from "reelkit/frame";
 
-export const KeywordLine: React.FC<{ text: string; keyword?: string; color: string; accent: string; size: number; font: string; top: number; delay?: number; animate?: boolean; weight?: number }> = ({ text, keyword, color, accent, size, font, top, delay = 0, animate = true, weight = 700 }) => {
+export const KeywordLine: React.FC<{ text: string; keyword?: string; color: string; accent: string; size: number; font: string; top: number; delay?: number; animate?: boolean; weight?: number; frames?: number }> = ({ text, keyword, color, accent, size, font, top, delay = 0, animate = true, weight = 700, frames = 14 }) => {
   const f = useCurrentFrame();
-  const t = animate ? interpolate(f, [delay, delay + 14], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: Easing.out(Easing.cubic) }) : 1;
+  const t = animate ? interpolate(f, [delay, delay + frames], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: Easing.out(Easing.cubic) }) : 1;
   const parts = keyword ? text.split(keyword) : [text];
   return (
     <div style={{ position: "absolute", left: 0, right: 0, top, textAlign: "center", fontFamily: font, fontWeight: weight, fontSize: size, letterSpacing: -size * 0.02, lineHeight: 1.1, color,
