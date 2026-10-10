@@ -1,5 +1,5 @@
 {
-  "title": "Homie ad: listing to reel",
+  "title": "Homie: listing to reel in four clicks",
   "aspect": "9:16",
   "mode": "motion",
   "voice": "none",
@@ -7,33 +7,61 @@
   "reference": {
     "id": "r-1fe97ccd",
     "take": [
-      "tilted, zoomed shots of the real interface instead of full screens",
+      "pixel burst into logo and glowing wordmark write-on to open",
+      "zoomed, tilted shots of the real interface instead of full screens",
       "a cartoon hand cursor clicks each step",
-      "hard cuts with the motion inside each shot",
-      "glitch accents",
-      "paced as an ad: a hook in the first frame and one click per shot, much faster than the reference's 6.5 s shots"
+      "mostly hard cuts with the motion inside each shot",
+      "short how-to steps, one action per shot",
+      "shorter steps than the reference's 6.5 s shots, paced for a Reel; drums enter on the first app shot"
     ]
   },
   "scenes": [
     {
-      "id": "hook",
-      "seconds": 1.875,
+      "id": "logo",
+      "seconds": 2.5,
       "narration": "",
       "treatment": "motion-graphic",
       "onScreenText": [
-        "Turn your listing",
-        "into a reel"
+        "Homie."
       ],
       "imagePrompt": null,
       "clipPrompt": null,
       "shareable": false,
       "imageTags": [],
       "userAssetIds": [],
-      "notes": "Ad cut. Look: near-black ground #0d0f0c, cream type, one sage accent #a3c98b, kit display face. About 12.7 s, 9:16, no voice, original 128 BPM music, Kenney punch/click sounds from brag. Hook in the first frame: the finished Spin Tour film full-bleed, punched in, with two big lines. Then the real app at speed: one click per shot, a camera punch after each click, hard cuts on the beat. Logo only on the end card."
+      "notes": "Look: near-black ground #0d0f0c with a soft sage (#a3c98b) glow, one accent sage, kit display face. 24 s, 9:16, no voice, original 120 BPM music plus Kenney UI sounds from brag. Visual thread: the real Homie app, seen through a tilted camera that pushes into the next control, with one hand cursor carried through every step. Open: pixel squares burst and gather into the H mark, wordmark writes on with a glow."
+    },
+    {
+      "id": "glitch",
+      "seconds": 0.5,
+      "narration": "",
+      "treatment": "motion-graphic",
+      "onScreenText": [],
+      "imagePrompt": null,
+      "clipPrompt": null,
+      "shareable": false,
+      "imageTags": [],
+      "userAssetIds": [],
+      "notes": "A half-second pixel glitch: the logo breaks into squares that resolve into the app screen, as the reference's glitch frames do."
+    },
+    {
+      "id": "sidebar",
+      "seconds": 3,
+      "narration": "",
+      "treatment": "motion-graphic",
+      "onScreenText": [
+        "All your listings"
+      ],
+      "imagePrompt": null,
+      "clipPrompt": null,
+      "shareable": false,
+      "imageTags": [],
+      "userAssetIds": [],
+      "notes": "Real sidebar, tilted and zoomed. The hand clicks My listings, then My videos, then Explore; the active pill follows each click."
     },
     {
       "id": "explore",
-      "seconds": 1.875,
+      "seconds": 3.5,
       "narration": "",
       "treatment": "motion-graphic",
       "onScreenText": [
@@ -48,7 +76,7 @@
     },
     {
       "id": "template",
-      "seconds": 1.406,
+      "seconds": 3,
       "narration": "",
       "treatment": "motion-graphic",
       "onScreenText": [
@@ -63,7 +91,7 @@
     },
     {
       "id": "picker",
-      "seconds": 1.406,
+      "seconds": 2.5,
       "narration": "",
       "treatment": "motion-graphic",
       "onScreenText": [
@@ -78,7 +106,7 @@
     },
     {
       "id": "create",
-      "seconds": 0.938,
+      "seconds": 2,
       "narration": "",
       "treatment": "motion-graphic",
       "onScreenText": [
@@ -93,7 +121,7 @@
     },
     {
       "id": "result",
-      "seconds": 2.813,
+      "seconds": 4.5,
       "narration": "",
       "treatment": "motion-graphic",
       "onScreenText": [
@@ -108,7 +136,7 @@
     },
     {
       "id": "end",
-      "seconds": 2.344,
+      "seconds": 2.5,
       "narration": "",
       "treatment": "motion-graphic",
       "onScreenText": [
