@@ -1,0 +1,154 @@
+{
+  "title": "Homie: listing to reel in four clicks",
+  "aspect": "9:16",
+  "mode": "motion",
+  "voice": "none",
+  "captions": "none",
+  "reference": {
+    "id": "r-1fe97ccd",
+    "take": [
+      "pixel burst into logo and glowing wordmark write-on to open",
+      "zoomed, tilted shots of the real interface instead of full screens",
+      "a cartoon hand cursor clicks each step",
+      "mostly hard cuts with the motion inside each shot",
+      "short how-to steps, one action per shot",
+      "shorter steps than the reference's 6.5 s shots, paced for a Reel; drums enter on the first app shot"
+    ]
+  },
+  "scenes": [
+    {
+      "id": "logo",
+      "seconds": 2.5,
+      "narration": "",
+      "treatment": "motion-graphic",
+      "onScreenText": [
+        "Homie."
+      ],
+      "imagePrompt": null,
+      "clipPrompt": null,
+      "shareable": false,
+      "imageTags": [],
+      "userAssetIds": [],
+      "notes": "Look: near-black ground #0d0f0c with a soft sage (#a3c98b) glow, one accent sage, kit display face. 24 s, 9:16, no voice, original 120 BPM music plus Kenney UI sounds from brag. Visual thread: the real Homie app, seen through a tilted camera that pushes into the next control, with one hand cursor carried through every step. Open: pixel squares burst and gather into the H mark, wordmark writes on with a glow."
+    },
+    {
+      "id": "glitch",
+      "seconds": 0.5,
+      "narration": "",
+      "treatment": "motion-graphic",
+      "onScreenText": [],
+      "imagePrompt": null,
+      "clipPrompt": null,
+      "shareable": false,
+      "imageTags": [],
+      "userAssetIds": [],
+      "notes": "A half-second pixel glitch: the logo breaks into squares that resolve into the app screen, as the reference's glitch frames do."
+    },
+    {
+      "id": "sidebar",
+      "seconds": 3,
+      "narration": "",
+      "treatment": "motion-graphic",
+      "onScreenText": [
+        "All your listings"
+      ],
+      "imagePrompt": null,
+      "clipPrompt": null,
+      "shareable": false,
+      "imageTags": [],
+      "userAssetIds": [],
+      "notes": "Real sidebar, tilted and zoomed. The hand clicks My listings, then My videos, then Explore; the active pill follows each click."
+    },
+    {
+      "id": "explore",
+      "seconds": 3.5,
+      "narration": "",
+      "treatment": "motion-graphic",
+      "onScreenText": [
+        "Pick a template"
+      ],
+      "imagePrompt": null,
+      "clipPrompt": null,
+      "shareable": false,
+      "imageTags": [],
+      "userAssetIds": [],
+      "notes": "Real Explore grid; camera pushes in while the hand travels to the Spin Tour card and clicks."
+    },
+    {
+      "id": "template",
+      "seconds": 3,
+      "narration": "",
+      "treatment": "motion-graphic",
+      "onScreenText": [
+        "Choose a listing"
+      ],
+      "imagePrompt": null,
+      "clipPrompt": null,
+      "shareable": false,
+      "imageTags": [],
+      "userAssetIds": [],
+      "notes": "Real Spin Tour detail; camera slides down to the controls, the hand clicks Choose listing."
+    },
+    {
+      "id": "picker",
+      "seconds": 2.5,
+      "narration": "",
+      "treatment": "motion-graphic",
+      "onScreenText": [
+        "Choose a listing"
+      ],
+      "imagePrompt": null,
+      "clipPrompt": null,
+      "shareable": false,
+      "imageTags": [],
+      "userAssetIds": [],
+      "notes": "Real listing picker; the hand clicks 1428 Maple Crest Dr."
+    },
+    {
+      "id": "create",
+      "seconds": 2,
+      "narration": "",
+      "treatment": "motion-graphic",
+      "onScreenText": [
+        "Hit create"
+      ],
+      "imagePrompt": null,
+      "clipPrompt": null,
+      "shareable": false,
+      "imageTags": [],
+      "userAssetIds": [],
+      "notes": "Real Create button, close up; the hand presses it. A short rest in the music before the result."
+    },
+    {
+      "id": "result",
+      "seconds": 4.5,
+      "narration": "",
+      "treatment": "motion-graphic",
+      "onScreenText": [
+        "Your reel is ready"
+      ],
+      "imagePrompt": null,
+      "clipPrompt": null,
+      "shareable": false,
+      "imageTags": [],
+      "userAssetIds": [],
+      "notes": "The real Spin Tour film plays in a rounded phone card that lands on a low hit."
+    },
+    {
+      "id": "end",
+      "seconds": 2.5,
+      "narration": "",
+      "treatment": "motion-graphic",
+      "onScreenText": [
+        "Your first video for $1",
+        "try-homie.com"
+      ],
+      "imagePrompt": null,
+      "clipPrompt": null,
+      "shareable": false,
+      "imageTags": [],
+      "userAssetIds": [],
+      "notes": "End card: the mark and wordmark, one line, the address in sage."
+    }
+  ]
+}
