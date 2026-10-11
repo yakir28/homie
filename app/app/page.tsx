@@ -1,5 +1,7 @@
 "use client";
 
+import { CREDIT_PACKS, POST_INTRO_PACK } from "../../lib/credit-packs";
+
 import { MAX_LISTING_PHOTOS, listingPhotoLimitError } from "../../lib/listing-photo-limit";
 import { usePreviewSource } from "../../lib/use-preview-source";
 import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from "react";
@@ -14,6 +16,8 @@ import TemplateMedia from "./TemplateMedia";
 import ListingMapBoard from "./ListingMapBoard";
 import TemplateFilters from "./TemplateFilters";
 import OnboardingTour from "./OnboardingTour";
+import SettingsModal from "./SettingsModal";
+import BillingConfirmation from "./BillingConfirmation";
 import "./template-detail.css";
 import "./responsive.css";
 import { PUBLIC_ANNUAL_PRICES, PUBLIC_PRICES } from "../../lib/public-pricing";
@@ -148,6 +152,7 @@ type WorkspaceSubscription = {
   billingInterval: "monthly" | "yearly";
   trialEndsAt: string | null;
   currentPeriodEndsAt: string | null;
+  cancelAtPeriodEnd?: boolean;
 };
 
 export default function Home() {
@@ -193,6 +198,10 @@ export default function Home() {
   const [creditBalance, setCreditBalance] = useState(0);
   const [displayName, setDisplayName] = useState("Agent");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  // Uploaded photo path in the brand-assets bucket; null means fall back to the sign-in provider photo.
+  const [avatarPath, setAvatarPath] = useState<string | null>(null);
+  const providerAvatar = useRef<string | null>(null);
+  const [authProviders, setAuthProviders] = useState<string[]>([]);
   const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set());
   const [userId, setUserId] = useState("");
   const [workspaceId, setWorkspaceId] = useState<string | null>(null);
@@ -234,7 +243,9 @@ export default function Home() {
       const googleProfile = session.user.identities?.find((identity) => identity.provider === "google")?.identity_data;
       const avatar = [session.user.user_metadata.avatar_url, session.user.user_metadata.picture, googleProfile?.avatar_url, googleProfile?.picture]
         .find((value): value is string => typeof value === "string" && value.startsWith("https://"));
+      providerAvatar.current = avatar ?? null;
       setAvatarUrl(avatar ?? null);
+      setAuthProviders([...new Set((session.user.identities ?? []).map((identity) => identity.provider))]);
       setDisplayName(session.user.user_metadata.display_name ?? session.user.email?.split("@")[0] ?? "Agent");
       setProfileDetails((current) => ({
         ...current,
@@ -269,12 +280,19 @@ export default function Home() {
       if (workspaceError) flash(workspaceError.message);
       if (workspaceId) setWorkspaceId(workspaceId);
 
-      const [{ data: wallet }, { data: homes }, { data: savedFavorites }, { data: profile, error: profileError }, { data: zillow }, { data: airbnb }, { data: plans }, { data: currentSubscription }] = await Promise.all([workspaceId ? supabase.from("credit_wallets").select("balance").eq("workspace_id", workspaceId).maybeSingle() : Promise.resolve({ data: null }), workspaceId ? supabase.from("listings").select("id, address_line1, city, region, price, cover_photo_url, status, source, listing_photos(count), video_projects(count)").eq("workspace_id", workspaceId).order("created_at", { ascending: false }) : Promise.resolve({ data: null }), supabase.from("template_favorites").select("template_id").eq("user_id", session.user.id), supabase.from("profiles").select("display_name, bio, phone, job_title, company_name, theme").eq("id", session.user.id).maybeSingle(), workspaceId ? supabase.from("integrations").select("id, status, external_account_name, last_synced_at, last_error").eq("workspace_id", workspaceId).eq("provider", "zillow").maybeSingle() : Promise.resolve({ data: null }), workspaceId ? supabase.from("integrations").select("id, status, external_account_name, last_synced_at, last_error").eq("workspace_id", workspaceId).eq("provider", "airbnb").maybeSingle() : Promise.resolve({ data: null }), supabase.from("plans").select("id,name,slug,audience,monthly_price,yearly_price,monthly_credits,seat_limit,features").eq("is_active", true).order("sort_order"), workspaceId ? supabase.from("subscriptions").select("plan_id,status,billing_interval,trial_ends_at,current_period_ends_at").eq("workspace_id", workspaceId).maybeSingle() : Promise.resolve({ data: null })]);
+      const [{ data: wallet }, { data: homes }, { data: savedFavorites }, { data: profile, error: profileError }, { data: zillow }, { data: airbnb }, { data: plans }, { data: currentSubscription }] = await Promise.all([workspaceId ? supabase.from("credit_wallets").select("balance").eq("workspace_id", workspaceId).maybeSingle() : Promise.resolve({ data: null }), workspaceId ? supabase.from("listings").select("id, address_line1, city, region, price, cover_photo_url, status, source, listing_photos(count), video_projects(count)").eq("workspace_id", workspaceId).order("created_at", { ascending: false }) : Promise.resolve({ data: null }), supabase.from("template_favorites").select("template_id").eq("user_id", session.user.id), supabase.from("profiles").select("display_name, avatar_url, bio, phone, job_title, company_name, theme").eq("id", session.user.id).maybeSingle(), workspaceId ? supabase.from("integrations").select("id, status, external_account_name, last_synced_at, last_error").eq("workspace_id", workspaceId).eq("provider", "zillow").maybeSingle() : Promise.resolve({ data: null }), workspaceId ? supabase.from("integrations").select("id, status, external_account_name, last_synced_at, last_error").eq("workspace_id", workspaceId).eq("provider", "airbnb").maybeSingle() : Promise.resolve({ data: null }), supabase.from("plans").select("id,name,slug,audience,monthly_price,yearly_price,monthly_credits,seat_limit,features").eq("is_active", true).order("sort_order"), workspaceId ? supabase.from("subscriptions").select("plan_id,status,billing_interval,trial_ends_at,current_period_ends_at,cancel_at_period_end").eq("workspace_id", workspaceId).maybeSingle() : Promise.resolve({ data: null })]);
 
       if (!active) return;
       if (profileError) throw profileError;
       setTheme(profile?.theme === "light" ? "light" : "dark");
       setFavoriteIds(new Set(savedFavorites?.map((favorite) => favorite.template_id) ?? []));
+      if (profile?.avatar_url) {
+        if (/^https:\/\//.test(profile.avatar_url)) setAvatarUrl(profile.avatar_url);
+        else {
+          const { data: signedAvatar } = await supabase.storage.from("brand-assets").createSignedUrl(profile.avatar_url, 60 * 60 * 24 * 7);
+          if (signedAvatar?.signedUrl) { setAvatarPath(profile.avatar_url); setAvatarUrl(signedAvatar.signedUrl); }
+        }
+      }
       if (profile) {
         const nextName = profile.display_name ?? session.user.email?.split("@")[0] ?? "Agent";
         setDisplayName(nextName);
@@ -309,6 +327,7 @@ export default function Home() {
           billingInterval: currentSubscription.billing_interval as "monthly" | "yearly",
           trialEndsAt: currentSubscription.trial_ends_at,
           currentPeriodEndsAt: currentSubscription.current_period_ends_at,
+          cancelAtPeriodEnd: currentSubscription.cancel_at_period_end,
         });
       setListingItems(
         (homes ?? []).map((home) => ({
@@ -457,24 +476,13 @@ export default function Home() {
     action?.();
   }
 
-  useEffect(() => {
-    const url = new URL(window.location.href);
-    if (url.searchParams.get("checkout") !== "success") return;
-    url.searchParams.delete("checkout");
-    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
-    const timeout = window.setTimeout(() => {
-      setView("subscribe");
-      flash("Payment received — your plan will be active in a moment");
-    }, 0);
-    return () => window.clearTimeout(timeout);
-  }, []);
 
   function flash(message: string) {
     setToast(message);
     window.setTimeout(() => setToast(""), 2600);
   }
 
-  async function openPolarBilling(path: "checkout" | "portal", planSlug?: string, billingInterval: "monthly" | "yearly" = "monthly") {
+  async function openPolarBilling(path: "checkout" | "portal" | "credits" | "first-video", planSlug?: string, billingInterval: "monthly" | "yearly" = "monthly") {
     if (!workspaceId) return flash("Your workspace is still loading");
     const supabase = getSupabaseBrowserClient();
     const { data: { session } } = await supabase.auth.getSession();
@@ -483,7 +491,7 @@ export default function Home() {
       const response = await fetch(`/api/billing/${path}`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ workspaceId, ...(planSlug ? { planSlug, billingInterval } : {}) }),
+        body: JSON.stringify({ workspaceId, ...(path === "credits" ? { credits: Number(planSlug) } : planSlug ? { planSlug, billingInterval } : {}) }),
       });
       const result = await response.json() as { url?: string; error?: string };
       if (!response.ok || !result.url) throw new Error(result.error ?? "Billing is unavailable");
@@ -598,7 +606,7 @@ export default function Home() {
   }
 
   async function saveProfile() {
-    if (!userId) return;
+    if (!userId) return false;
     setSavingProfile(true);
     const { error } = await getSupabaseBrowserClient()
       .from("profiles")
@@ -611,17 +619,57 @@ export default function Home() {
       })
       .eq("id", userId);
     setSavingProfile(false);
-    if (error) return flash(error.message);
+    if (error) {
+      flash(error.message);
+      return false;
+    }
     setDisplayName(profileDetails.displayName.trim() || "Agent");
     flash("Profile saved");
+    return true;
   }
 
   async function changePassword(password: string) {
     const { error } = await getSupabaseBrowserClient().auth.updateUser({
       password,
     });
-    if (error) return flash(error.message);
+    if (error) {
+      flash(error.message);
+      return false;
+    }
     flash("Password updated");
+    return true;
+  }
+
+  async function uploadAvatar(file: File) {
+    if (!userId || !workspaceId) throw new Error("Your workspace is still loading. Please try again.");
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) throw new Error("Use a JPG, PNG or WebP image.");
+    if (file.size > 5 * 1024 * 1024) throw new Error("The photo must be 5 MB or smaller.");
+    const supabase = getSupabaseBrowserClient();
+    const extension = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
+    const path = `${workspaceId}/avatars/${userId}-${Date.now()}.${extension}`;
+    const { error: uploadError } = await supabase.storage.from("brand-assets").upload(path, file, { contentType: file.type, upsert: false });
+    if (uploadError) throw new Error(uploadError.message);
+    const { error: profileError } = await supabase.from("profiles").update({ avatar_url: path }).eq("id", userId);
+    if (profileError) {
+      await supabase.storage.from("brand-assets").remove([path]);
+      throw new Error(profileError.message);
+    }
+    const { data: signed } = await supabase.storage.from("brand-assets").createSignedUrl(path, 60 * 60 * 24 * 7);
+    if (avatarPath) void supabase.storage.from("brand-assets").remove([avatarPath]);
+    setAvatarPath(path);
+    setAvatarUrl(signed?.signedUrl ?? null);
+    flash("Profile photo updated");
+  }
+
+  async function removeAvatar() {
+    if (!userId || !avatarPath) return;
+    const supabase = getSupabaseBrowserClient();
+    const { error } = await supabase.from("profiles").update({ avatar_url: null }).eq("id", userId);
+    if (error) throw new Error(error.message);
+    void supabase.storage.from("brand-assets").remove([avatarPath]);
+    setAvatarPath(null);
+    setAvatarUrl(providerAvatar.current);
+    flash("Profile photo removed");
   }
 
   async function runZillowAction(action: "connect" | "sync" | "disconnect") {
@@ -822,6 +870,16 @@ export default function Home() {
   const activeFilterCount = view === "templates" ? [category !== "All", sort !== "Recent", formatFilter !== "All", creditsFilter !== "All"].filter(Boolean).length : view === "listings" ? [listingSourceFilter !== "All", listingPhotoFilter !== "All", listingSort !== "Recent"].filter(Boolean).length : view === "videos" ? [videoStatusFilter !== "All", videoFormatFilter !== "All"].filter(Boolean).length : view === "integrations" ? Number(integrationFilter !== "All") : 0;
 
 
+  const settingsPlanRecord = billingPlans.find((plan) => plan.id === subscription?.planId) ?? billingPlans.find((plan) => plan.slug === "free-trial") ?? null;
+  const settingsPlanIsFree = !settingsPlanRecord || settingsPlanRecord.slug === "free-trial" || settingsPlanRecord.slug === "first-video";
+  const settingsPlanEnds = subscription?.status === "trialing" ? subscription.trialEndsAt : subscription?.currentPeriodEndsAt;
+  const settingsPlanDate = settingsPlanEnds ? new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", year: "numeric" }).format(new Date(settingsPlanEnds)) : null;
+  const settingsPlan = {
+    name: settingsPlanIsFree ? "First Video" : settingsPlanRecord.name,
+    statusLabel: settingsPlanIsFree ? "Pay as you go" : ({ active: "Active", trialing: "Trial", past_due: "Payment past due", canceled: "Canceled", unpaid: "Unpaid" } as Record<string, string>)[subscription?.status ?? ""] ?? "Active",
+    renewalLabel: settingsPlanIsFree || !settingsPlanDate ? null : subscription?.status === "trialing" ? `Your trial ends on ${settingsPlanDate}.` : (subscription?.status === "canceled" || subscription?.cancelAtPeriodEnd) ? `Your plan ends on ${settingsPlanDate}.` : `Renews on ${settingsPlanDate} · billed ${subscription?.billingInterval === "yearly" ? "yearly" : "monthly"}.`,
+    isPaid: !settingsPlanIsFree && ["active", "trialing", "past_due", "canceled", "unpaid"].includes(subscription?.status ?? ""),
+  };
   return (
     <>
     {!appLoading && !appLoadError && <main className="app-shell" data-theme={theme}>
@@ -901,7 +959,7 @@ export default function Home() {
             </span>
             <span>
               <b>{displayName}</b>
-              <small>{creditBalance} videos left</small>
+              <small>{creditBalance} {creditBalance === 1 ? "credit" : "credits"} left</small>
             </span>
             <i className={profileOpen ? "chevron up" : "chevron"}>⌃</i>
           </button>
@@ -1102,7 +1160,7 @@ export default function Home() {
         {view === "videos" && <MyVideos items={videoItems} search={search} statusFilter={videoStatusFilter} formatFilter={videoFormatFilter} loading={videosLoading} error={videosError} onBrowseTemplates={() => changeView("templates")} onOpenVideo={setSelectedVideo} onDelete={deleteVideoProject} flash={flash} />}
         {view === "integrations" && <Integrations search={search} availability={integrationFilter} />}
         {view === "profile" && <ProfilePage details={profileDetails} onChange={setProfileDetails} onSave={saveProfile} saving={savingProfile} favoriteCount={favoriteIds.size} videoCount={videoItems.length} />}
-        {view === "subscribe" && <SubscribePage plans={billingPlans} subscription={subscription} creditBalance={creditBalance} onChoose={(plan, billingInterval) => openPolarBilling("checkout", plan.slug, billingInterval)} onManage={() => openPolarBilling("portal")} />}
+        {view === "subscribe" && <SubscribePage workspaceId={workspaceId} onCreate={() => changeView("templates")} onBuyPack={() => openPolarBilling("credits", "90")} plans={billingPlans} subscription={subscription} creditBalance={creditBalance} onChoose={(plan, billingInterval) => openPolarBilling(plan.slug === "free-trial" || plan.slug === "first-video" ? "first-video" : "checkout", plan.slug, billingInterval)} onManage={() => openPolarBilling("portal")} />}
 
         <nav className="mobile-nav" aria-label="Mobile navigation">
           {nav.map((item) => (
@@ -1140,7 +1198,12 @@ export default function Home() {
       )}
       {selectedListingId && workspaceId && <ListingDetail listing={listingItems.find((item) => item.id === selectedListingId) ?? null} photos={selectedListingPhotos} workspaceId={workspaceId} onBack={() => setSelectedListingId(null)} flash={flash} />}
       {selectedVideo && <VideoModal key={selectedVideo.id} video={videoItems.find((video) => video.id === selectedVideo.id) ?? selectedVideo} onClose={() => setSelectedVideo(null)} flash={flash} />}
-      {settingsOpen && <SettingsModal details={profileDetails} onChange={setProfileDetails} onSave={saveProfile} saving={savingProfile} theme={theme} onThemeChange={saveTheme} savingTheme={savingTheme} credits={creditBalance} onPasswordChange={changePassword} onClose={() => setSettingsOpen(false)} flash={flash} />}
+      {settingsOpen && <SettingsModal details={profileDetails} onChange={setProfileDetails} onSave={saveProfile} saving={savingProfile}
+        avatarUrl={avatarUrl} hasUploadedAvatar={Boolean(avatarPath)} onAvatarUpload={uploadAvatar} onAvatarRemove={removeAvatar}
+        theme={theme} onThemeChange={saveTheme} savingTheme={savingTheme} credits={creditBalance} plan={settingsPlan}
+        onOpenPlans={() => { setSettingsOpen(false); setView("subscribe"); }} onManageBilling={() => openPolarBilling("portal")}
+        workspaceId={workspaceId} authProviders={authProviders} onPasswordChange={changePassword} onClose={() => setSettingsOpen(false)} flash={flash} />}
+      <BillingConfirmation workspaceId={workspaceId} />
       {topUpOpen && (
         <TopUpCreditsModal
           currentCredits={creditBalance}
@@ -1149,7 +1212,7 @@ export default function Home() {
             setTopUpOpen(false);
             changeView("subscribe");
           }}
-          onPurchase={(credits) => flash(`Checkout for ${credits} credits is coming next`)}
+          onPurchase={(credits) => openPolarBilling("credits", String(credits))}
         />
       )}
       {wizardTemplate && workspaceId && (
@@ -1159,6 +1222,8 @@ export default function Home() {
           initialListings={listingItems}
           workspaceId={workspaceId}
           walletBalance={creditBalance}
+          canUseHd={settingsPlanRecord?.slug === "pro" || settingsPlanRecord?.slug === "business"}
+          onUpgrade={() => { setWizardTemplate(null); setView("subscribe"); }}
           onCreated={(project) => {
             setVideoItems((current) => [project, ...current]);
             setCreditBalance((current) => Math.max(0, current - project.credits));
@@ -1238,7 +1303,7 @@ function Templates({ items, favoriteIds, onToggleFavorite, favoritesOnly = false
       const matchesCategory = category === "All" || templateCategories.has(category);
       const matchesSearch = !q || t.title.toLowerCase().includes(q) || t.tag.toLowerCase().includes(q) || [...templateCategories].some((name) => name.toLowerCase().includes(q));
       const matchesFormat = formatFilter === "All" || t.format === formatFilter;
-      const matchesCredits = creditsFilter === "All" || (creditsFilter === "Under 15" ? t.credits < 15 : t.credits >= 15);
+      const matchesCredits = creditsFilter === "All" || (creditsFilter === "Under 20" ? t.credits < 20 : t.credits >= 20);
       return matchesCategory && matchesSearch && matchesFormat && matchesCredits;
     })
     .sort((a, b) => (sort === "Name" ? a.title.localeCompare(b.title) : sort === "Credits" ? a.credits - b.credits : 0));
@@ -1322,7 +1387,7 @@ function Templates({ items, favoriteIds, onToggleFavorite, favoritesOnly = false
               <div>
                 <span>{template.time}</span>
                 <span>{template.format}</span>
-                <span>1 generation</span>
+                <span>{template.credits} credits</span>
               </div>
             </div>
           </article>
@@ -2288,7 +2353,30 @@ function VideoModal({ video, onClose, flash }: { video: VideoItem; onClose: () =
   );
 }
 
-function SubscribePage({ plans, subscription, creditBalance, onChoose, onManage }: { plans: BillingPlan[]; subscription: WorkspaceSubscription | null; creditBalance: number; onChoose: (plan: BillingPlan, billingInterval: "monthly" | "yearly") => Promise<void>; onManage: () => Promise<void> }) {
+function SubscribePage({ workspaceId, onCreate, onBuyPack, plans, subscription, creditBalance, onChoose, onManage }: { workspaceId: string | number | null; onCreate: () => void; onBuyPack: () => Promise<void>; plans: BillingPlan[]; subscription: WorkspaceSubscription | null; creditBalance: number; onChoose: (plan: BillingPlan, billingInterval: "monthly" | "yearly") => Promise<void>; onManage: () => Promise<void> }) {
+  const [offer, setOffer] = useState<{ purchased: boolean; eligible: boolean } | null>(null);
+  useEffect(() => {
+    let stopped = false;
+    let timer: ReturnType<typeof setTimeout>;
+    setOffer(null);
+    async function refresh() {
+      if (!workspaceId) return;
+      try {
+        const { data: { session } } = await getSupabaseBrowserClient().auth.getSession();
+        if (!session) return;
+        const response = await fetch("/api/billing/first-video-state", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({ workspaceId }) });
+        if (response.ok) {
+          const state = await response.json() as { purchased: boolean; eligible: boolean };
+          if (stopped) return;
+          setOffer(state);
+          if (state.eligible) return;
+        }
+      } catch { /* Keep eligibility server-controlled when verification is unavailable. */ }
+      if (!stopped) timer = setTimeout(refresh, 8000);
+    }
+    void refresh();
+    return () => { stopped = true; clearTimeout(timer); };
+  }, [workspaceId]);
   const [planGroup, setPlanGroup] = useState<"individual" | "business">("individual");
   const [billingInterval, setBillingInterval] = useState<"monthly" | "yearly">("monthly");
   const [busyPlan, setBusyPlan] = useState<string | null>(null);
@@ -2307,26 +2395,27 @@ function SubscribePage({ plans, subscription, creditBalance, onChoose, onManage 
         plans={visiblePlans.map((plan) => {
           const isCurrent = plan.id === currentPlan?.id;
           const firstVideo = plan.slug === "free-trial" || plan.slug === "first-video";
+          const followupPack = firstVideo && offer?.eligible === true;
           const yearlyPrice = PUBLIC_ANNUAL_PRICES[plan.slug] ?? plan.yearlyPrice;
           const annual = billingInterval === "yearly" && !firstVideo && yearlyPrice != null;
-          const includedVideos = annual ? plan.monthlyCredits * 12 : plan.monthlyCredits;
-          const displayName = firstVideo ? "First Video" : plan.name;
+          const includedCredits = annual ? plan.monthlyCredits * 12 : plan.monthlyCredits;
+          const displayName = followupPack ? "Credit Pack" : firstVideo ? "Starter Credits" : plan.name;
           return {
-            id: String(plan.id), name: displayName, popular: plan.slug === "pro", current: isCurrent,
-            price: firstVideo ? PUBLIC_PRICES["first-video"] : annual ? Math.round(yearlyPrice / 12) : PUBLIC_PRICES[plan.slug] ?? plan.monthlyPrice,
-            period: firstVideo ? "first video" : "/ month",
-            billing: firstVideo ? "One-time introductory offer" : annual ? `$${yearlyPrice.toLocaleString("en-US")} billed annually` : plan.monthlyPrice === null ? "Tailored to your team" : "Billed monthly",
+            id: String(plan.id), name: displayName, popular: plan.slug === "pro", current: isCurrent && !firstVideo,
+            price: followupPack ? POST_INTRO_PACK.price : firstVideo ? PUBLIC_PRICES["first-video"] : annual ? Math.round(yearlyPrice / 12) : PUBLIC_PRICES[plan.slug] ?? plan.monthlyPrice,
+            period: firstVideo ? "one-time" : "/ month",
+            billing: followupPack ? "90 credits · no subscription" : firstVideo ? "One-time introductory offer" : annual ? `$${yearlyPrice.toLocaleString("en-US")} billed annually` : plan.monthlyPrice === null ? "Tailored to your team" : "Billed monthly",
             features: [
-              ...(firstVideo ? ["1 watermarked video", "All video templates", "Use your own property photos", "First-video introductory offer"] : plan.features.map((feature, index) => annual && index === 0 ? `${includedVideos.toLocaleString()} video generations per year` : feature)),
+              ...(followupPack ? ["90 credits", "All video templates", "One-time payment · no auto-renewal"] : firstVideo ? ["30 credits", "Exports include the Homie watermark", "Use your own property photos", "One-time introductory offer"] : [`${includedCredits.toLocaleString()} credits ${annual ? "per year" : "each month"}`, ...plan.features.slice(1).filter((feature) => !/per video|\/\s*video|(?:about|up to|approximately|≈)\s*\d.*videos|\d+\s+(?:thirty-second\s+|30-second\s+)?videos/i.test(feature))]),
               ...(plan.seatLimit ? [`${plan.seatLimit} ${plan.seatLimit === 1 ? "seat" : "seats"} included`] : []),
               "Preview every tour before publishing", "Vertical 9:16 social-ready export",
             ],
-            description: firstVideo ? "First video only · not a subscription" : plan.audience === "team" ? "A shared creative workflow for the whole office." : "For agents publishing listing videos consistently.",
-            note: isCurrent ? `${statusLabel} · ${creditBalance} video generations available${renewalDate ? ` · ${subscription?.status === "trialing" ? "Trial ends" : "Renews"} ${new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(new Date(renewalDate))}` : ""}` : undefined,
-            action: <button disabled={busyPlan !== null || firstVideo} onClick={async () => {
+            description: followupPack ? "Create more whenever you need — no subscription." : firstVideo ? "One-time introductory credits · not a subscription" : plan.audience === "team" ? "A shared creative workflow for the whole office." : "For agents publishing listing videos consistently.",
+            note: firstVideo ? `${creditBalance.toLocaleString()} credits available` : isCurrent ? `${statusLabel} · ${creditBalance.toLocaleString()} credits available${renewalDate ? ` · ${subscription?.status === "trialing" ? "Trial ends" : subscription?.cancelAtPeriodEnd ? "Ends" : "Renews"} ${new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(new Date(renewalDate))}` : ""}` : undefined,
+            action: <button disabled={busyPlan !== null || (firstVideo && !offer)} onClick={async () => {
               setBusyPlan(plan.slug);
-              try { if (isCurrent) await onManage(); else await onChoose(plan, billingInterval); } finally { setBusyPlan(null); }
-            }}>{firstVideo ? "$1 checkout coming soon" : busyPlan === plan.slug ? "Opening secure billing…" : isCurrent ? "Manage billing" : `Choose ${displayName}`}</button>,
+              try { if (followupPack) await onBuyPack(); else if (firstVideo && offer?.purchased) onCreate(); else if (isCurrent && !firstVideo) await onManage(); else await onChoose(plan, billingInterval); } finally { setBusyPlan(null); }
+            }}>{busyPlan === plan.slug ? "Opening secure billing…" : followupPack ? "Get 90 credits for $20" : firstVideo && !offer ? "Checking offer…" : firstVideo && offer?.purchased ? "Create your first video" : firstVideo ? "Get 30 credits for $1" : isCurrent ? "Manage / cancel subscription" : `Choose ${displayName}`}</button>,
           };
         })} />
       {!visiblePlans.length && <p role="status">Plans are loading. If they do not appear, refresh to try again.</p>}
@@ -2334,15 +2423,11 @@ function SubscribePage({ plans, subscription, creditBalance, onChoose, onManage 
   );
 }
 
-const creditBundles = [
-  { credits: 600, videos: 10, price: 80, label: "Best value" },
-  { credits: 300, videos: 5, price: 45, label: "Most popular" },
-  { credits: 180, videos: 3, price: 30, label: "" },
-  { credits: 60, videos: 1, price: 12, label: "" },
-];
+const creditBundles = CREDIT_PACKS;
 
-function TopUpCreditsModal({ currentCredits, onClose, onUpgrade, onPurchase }: { currentCredits: number; onClose: () => void; onUpgrade: () => void; onPurchase: (credits: number) => void }) {
+function TopUpCreditsModal({ currentCredits, onClose, onUpgrade, onPurchase }: { currentCredits: number; onClose: () => void; onUpgrade: () => void; onPurchase: (credits: number) => Promise<void> }) {
   const [selectedCredits, setSelectedCredits] = useState(300);
+  const [purchasing, setPurchasing] = useState(false);
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent) => event.key === "Escape" && onClose();
     window.addEventListener("keydown", closeOnEscape);
@@ -2383,24 +2468,22 @@ function TopUpCreditsModal({ currentCredits, onClose, onUpgrade, onPurchase }: {
                     <h3>{bundle.credits.toLocaleString()} credits</h3>
                     {bundle.label && <span>{bundle.label}</span>}
                   </div>
-                  <p>
-                    Up to {bundle.videos} complete {bundle.videos === 1 ? "listing video" : "listing videos"}
-                  </p>
                   <small>Credits never replace your monthly allowance</small>
                 </div>
                 <div className="topup-bundle-price">
                   <strong>${bundle.price}</strong>
-                  <small>${(bundle.price / bundle.videos).toFixed(0)} per video</small>
                 </div>
                 <button
                   className="topup-purchase"
-                  onClick={(event) => {
+                  disabled={purchasing}
+                  onClick={async (event) => {
                     event.stopPropagation();
                     setSelectedCredits(bundle.credits);
-                    onPurchase(bundle.credits);
+                    setPurchasing(true);
+                    try { await onPurchase(bundle.credits); } finally { setPurchasing(false); }
                   }}
                 >
-                  Purchase <span>→</span>
+                  {purchasing && selected ? "Opening checkout…" : "Purchase"} <span>→</span>
                 </button>
               </article>
             );
@@ -2408,7 +2491,7 @@ function TopUpCreditsModal({ currentCredits, onClose, onUpgrade, onPurchase }: {
         </div>
         <footer>
           <span>Secure one-time purchase</span>
-          <p>Credits are added to your workspace immediately after payment.</p>
+          <p>Credits are added after payment confirmation.</p>
         </footer>
       </section>
     </div>
@@ -2423,260 +2506,8 @@ type ProfileDetails = {
   jobTitle: string;
   companyName: string;
 };
-type SettingsSection = "profile" | "preferences" | "billing" | "security" | "storage";
 
-function SettingsSectionIcon({ section }: { section: SettingsSection }) {
-  const paths: Record<SettingsSection, ReactNode> = {
-    profile: (
-      <>
-        <circle cx="12" cy="8" r="3" />
-        <path d="M6 19c.6-3 2.6-5 6-5s5.4 2 6 5" />
-      </>
-    ),
-    preferences: (
-      <>
-        <circle cx="12" cy="12" r="3" />
-        <path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M19 5l-1.5 1.5m-11 11L5 19" />
-      </>
-    ),
-    billing: (
-      <>
-        <rect x="3" y="5" width="18" height="14" rx="2" />
-        <path d="M3 9h18M7 15h4" />
-      </>
-    ),
-    security: (
-      <>
-        <path d="M6 10V7a6 6 0 0 1 12 0v3" />
-        <rect x="4" y="10" width="16" height="11" rx="2" />
-        <path d="M12 14v3" />
-      </>
-    ),
-    storage: (
-      <>
-        <ellipse cx="12" cy="5" rx="8" ry="3" />
-        <path d="M4 5v7c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12v7c0 1.7 3.6 3 8 3s8-1.3 8-3v-7" />
-      </>
-    ),
-  };
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      {paths[section]}
-    </svg>
-  );
-}
-
-function SettingsModal({ details, onChange, onSave, saving, theme, onThemeChange, savingTheme, credits, onPasswordChange, onClose, flash }: { details: ProfileDetails; onChange: (details: ProfileDetails) => void; onSave: () => Promise<void>; saving: boolean; theme: "dark" | "light"; onThemeChange: (theme: "dark" | "light") => void; savingTheme: boolean; credits: number; onPasswordChange: (password: string) => Promise<void>; onClose: () => void; flash: (message: string) => void }) {
-  const [section, setSection] = useState<SettingsSection>("profile");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [changingPassword, setChangingPassword] = useState(false);
-  const names = details.displayName.trim().split(/\s+/);
-  const firstName = names[0] ?? "";
-  const lastName = names.slice(1).join(" ");
-  const initials =
-    details.displayName
-      .trim()
-      .split(/\s+/)
-      .map((part) => part[0])
-      .join("")
-      .slice(0, 2)
-      .toUpperCase() || "H";
-
-  useEffect(() => {
-    const closeOnEscape = (event: KeyboardEvent) => event.key === "Escape" && onClose();
-    window.addEventListener("keydown", closeOnEscape);
-    return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [onClose]);
-
-  function updateName(first: string, last: string) {
-    onChange({ ...details, displayName: `${first} ${last}`.trim() });
-  }
-
-  async function submitPassword() {
-    if (password.length < 6) return flash("Password must contain at least 6 characters");
-    if (password !== confirmPassword) return flash("Passwords do not match");
-    setChangingPassword(true);
-    await onPasswordChange(password);
-    setChangingPassword(false);
-    setPassword("");
-    setConfirmPassword("");
-  }
-
-  const sections: { id: SettingsSection; label: string }[] = [
-    { id: "profile", label: "Profile" },
-    { id: "preferences", label: "Preferences" },
-    { id: "billing", label: "Billing" },
-    { id: "security", label: "Security" },
-    { id: "storage", label: "Storage" },
-  ];
-
-  return (
-    <div className="settings-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
-      <section className="settings-modal" role="dialog" aria-modal="true" aria-label="Settings">
-        <aside className="settings-nav">
-          <div className="settings-nav-head">
-            <p className="eyebrow">Workspace</p>
-            <b>Settings</b>
-          </div>
-          {sections.map((item) => (
-            <button key={item.id} className={section === item.id ? "active" : ""} onClick={() => setSection(item.id)}>
-              <span>
-                <SettingsSectionIcon section={item.id} />
-              </span>
-              {item.label}
-            </button>
-          ))}
-        </aside>
-        <div className="settings-content">
-          <button className="settings-close" aria-label="Close settings" onClick={onClose}>
-            ×
-          </button>
-
-          {section === "profile" && (
-            <div className="settings-section">
-              <h2>Profile</h2>
-              <p className="settings-lead">Your name, photo and identity across Homie.</p>
-              <div className="settings-avatar-row">
-                <div className="settings-avatar">{initials}</div>
-                <div>
-                  <b>Profile Photo</b>
-                  <small>Click to upload (max 5MB)</small>
-                </div>
-                <button onClick={() => flash("Profile photo upload is coming next")}>Upload →</button>
-              </div>
-              <div className="settings-field">
-                <label>Display name</label>
-                <input value={details.displayName} onChange={(event) => onChange({ ...details, displayName: event.target.value })} placeholder="Your name" />
-              </div>
-              <div className="settings-field-row">
-                <div className="settings-field">
-                  <label>First name</label>
-                  <input value={firstName} onChange={(event) => updateName(event.target.value, lastName)} />
-                </div>
-                <div className="settings-field">
-                  <label>Last name</label>
-                  <input value={lastName} onChange={(event) => updateName(firstName, event.target.value)} />
-                </div>
-              </div>
-              <div className="settings-field">
-                <label>Email</label>
-                <input value={details.email} readOnly />
-                <small>Email cannot be changed</small>
-              </div>
-              <div className="settings-field">
-                <label>Bio</label>
-                <textarea value={details.bio} onChange={(event) => onChange({ ...details, bio: event.target.value })} maxLength={280} rows={3} />
-              </div>
-              <div className="settings-actions">
-                <button onClick={() => void onSave()} disabled={saving}>
-                  {saving ? "Saving…" : "Save changes"}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {section === "preferences" && (
-            <div className="settings-section">
-              <h2>Preferences</h2>
-              <p className="settings-lead">Appearance and language — how Homie feels for you.</p>
-              <div className="settings-option">
-                <div>
-                  <b>Appearance</b>
-                  <small>{savingTheme ? "Saving appearance…" : "Saved to your account"}</small>
-                </div>
-                <div className="theme-choice">
-                  <button disabled={savingTheme} className={theme === "light" ? "active" : ""} onClick={() => onThemeChange("light")} aria-label="Light mode">
-                    ☼
-                  </button>
-                  <button disabled={savingTheme} className={theme === "dark" ? "active" : ""} onClick={() => onThemeChange("dark")} aria-label="Dark mode">
-                    ◐
-                  </button>
-                </div>
-              </div>
-              <div className="settings-option">
-                <div>
-                  <b>Language</b>
-                  <small>Choose your interface language</small>
-                </div>
-                <div className="language-choice">
-                  <button className="active">EN</button>
-                  <button onClick={() => flash("More languages are coming soon")}>HE</button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {section === "billing" && (
-            <div className="settings-section">
-              <h2>Billing</h2>
-              <p className="settings-lead">Your subscription and what is left this cycle.</p>
-              <div className="billing-card">
-                <div>
-                  <p className="eyebrow">Current plan</p>
-                  <h3>
-                    Free Trial<span>.</span>
-                  </h3>
-                  <small>
-                    {credits} video {credits === 1 ? "generation" : "generations"} remaining
-                  </small>
-                </div>
-                <button onClick={() => flash("Plans opened")}>Upgrade →</button>
-              </div>
-            </div>
-          )}
-
-          {section === "security" && (
-            <div className="settings-section">
-              <h2>Security</h2>
-              <p className="settings-lead">Password and connected accounts.</p>
-              <div className="security-block">
-                <div>
-                  <b>Change password</b>
-                  <small>Use at least 6 characters</small>
-                </div>
-                <div className="password-fields">
-                  <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="New password" />
-                  <input type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} placeholder="Confirm password" />
-                  <button onClick={() => void submitPassword()} disabled={changingPassword}>
-                    {changingPassword ? "Saving…" : "Update →"}
-                  </button>
-                </div>
-              </div>
-              <div className="settings-option">
-                <div>
-                  <b>Email</b>
-                  <small>{details.email}</small>
-                </div>
-                <span className="connected-label">✓ Connected</span>
-              </div>
-            </div>
-          )}
-
-          {section === "storage" && (
-            <div className="settings-section">
-              <h2>Storage</h2>
-              <p className="settings-lead">Used and remaining space for your listing media.</p>
-              <div className="storage-heading">
-                <div>
-                  <b>0</b>
-                  <span>GB of 5 GB</span>
-                </div>
-                <small>0%</small>
-              </div>
-              <div className="storage-bar">
-                <i />
-              </div>
-              <p className="storage-note">Free plan · Uploaded listing photos and generated videos will appear here.</p>
-            </div>
-          )}
-        </div>
-      </section>
-    </div>
-  );
-}
-
-function ProfilePage({ details, onChange, onSave, saving, favoriteCount, videoCount }: { details: ProfileDetails; onChange: (details: ProfileDetails) => void; onSave: () => Promise<void>; saving: boolean; favoriteCount: number; videoCount: number }) {
+function ProfilePage({ details, onChange, onSave, saving, favoriteCount, videoCount }: { details: ProfileDetails; onChange: (details: ProfileDetails) => void; onSave: () => Promise<boolean>; saving: boolean; favoriteCount: number; videoCount: number }) {
   const initials =
     details.displayName
       .trim()

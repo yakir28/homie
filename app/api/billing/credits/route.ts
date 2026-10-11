@@ -1,13 +1,15 @@
-import { isPolarBillingInterval, isPolarPlanSlug, appOrigin, polarApi, polarProductId, workspaceExternalCustomerId } from "../../../../lib/polar";
-import { authenticatedSupabase } from "../../../../lib/supabase/server-auth";
+import { creditPack } from "../../../../lib/credit-packs";
+import { appOrigin, polarApi, polarSetting, workspaceExternalCustomerId } from "../../../../lib/polar";
+import { authenticatedSupabase, supabaseAdmin } from "../../../../lib/supabase/server-auth";
 
 export async function POST(request: Request) {
   try {
+    if (process.env.POLAR_CREDIT_PURCHASES_ENABLED !== "true") return Response.json({ error: "Credit purchases are not available yet" }, { status: 503 });
     const auth = await authenticatedSupabase(request);
     if (!auth) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
-    const body = await request.json() as { planSlug?: unknown; billingInterval?: unknown; workspaceId?: unknown };
-    if (!isPolarPlanSlug(body.planSlug) || !isPolarBillingInterval(body.billingInterval) || (typeof body.workspaceId !== "string" && typeof body.workspaceId !== "number")) {
+    const body = await request.json() as { credits?: unknown; workspaceId?: unknown };
+    if (!creditPack(body.credits) || (typeof body.workspaceId !== "string" && typeof body.workspaceId !== "number")) {
       return Response.json({ error: "Invalid billing request" }, { status: 400 });
     }
     const workspaceId = String(body.workspaceId);
@@ -21,8 +23,13 @@ export async function POST(request: Request) {
       .maybeSingle();
     if (!membership) return Response.json({ error: "Workspace access denied" }, { status: 403 });
 
-    const productId = polarProductId(body.planSlug, body.billingInterval);
-    if (!productId) return Response.json({ error: `Polar ${body.billingInterval} product for ${body.planSlug} is not configured` }, { status: 503 });
+    if (body.credits === 90) {
+      const { data, error } = await supabaseAdmin().rpc("first_video_offer_state", { target_user_id: auth.user.id, target_workspace_id: workspaceId });
+      if (error) throw error;
+      if (!data?.eligible) return Response.json({ error: "Complete your paid first video to unlock this pack" }, { status: 403 });
+    }
+    const productId = polarSetting(`PRODUCT_CREDITS_${body.credits}`);
+    if (!productId) return Response.json({ error: "This credit pack is not configured" }, { status: 503 });
 
     const origin = appOrigin(request);
     const checkout = await polarApi<{ url: string }>("checkouts/", {
@@ -30,8 +37,8 @@ export async function POST(request: Request) {
       external_customer_id: workspaceExternalCustomerId(workspaceId),
       customer_email: auth.user.email,
       customer_ip_address: request.headers.get("cf-connecting-ip") ?? request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? undefined,
-      metadata: { workspace_id: Number(workspaceId), plan_slug: body.planSlug, billing_interval: body.billingInterval },
-      allow_discount_codes: true,
+      metadata: { workspace_id: workspaceId, purchase_type: "credits" },
+      allow_discount_codes: false,
       success_url: `${origin}/app?checkout=success&checkout_id={CHECKOUT_ID}`,
       return_url: `${origin}/app`,
     });

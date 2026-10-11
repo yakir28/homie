@@ -1,80 +1,70 @@
-import { Webhook, WebhookVerificationError } from "standardwebhooks";
-import { polarPlanSlugFromProduct, workspaceIdFromExternalCustomerId } from "../../../../lib/polar";
+import { ALL_CREDIT_PACKS } from "../../../../lib/credit-packs";
+import { parsePolarCreditOrder } from "../../../../lib/polar-credit-order";
+import { verifyPolarWebhook } from "../../../../lib/polar-webhook";
+import { WebhookVerificationError } from "standardwebhooks";
+import { polarSetting, polarPlanSlugFromProduct, workspaceIdFromExternalCustomerId } from "../../../../lib/polar";
 import { supabaseAdmin } from "../../../../lib/supabase/server-auth";
 
-const subscriptionEventTypes = [
-  "subscription.created",
-  "subscription.active",
-  "subscription.updated",
-  "subscription.canceled",
-  "subscription.uncanceled",
-  "subscription.cycled",
-  "subscription.past_due",
-  "subscription.paused",
-  "subscription.resumed",
-  "subscription.revoked",
-] as const;
-
-type PolarSubscription = {
-  id: string;
-  product_id: string;
-  customer_id: string;
-  status: string;
-  recurring_interval: string;
-  current_period_start: string;
-  current_period_end: string;
-  cancel_at_period_end: boolean;
-  customer: { external_id?: string | null };
-};
-type PolarEvent = { type: string; timestamp: string; data: unknown };
-type SubscriptionEvent = PolarEvent & { type: (typeof subscriptionEventTypes)[number]; data: PolarSubscription };
-
-function isSubscriptionEvent(event: PolarEvent): event is SubscriptionEvent {
-  return subscriptionEventTypes.includes(event.type as SubscriptionEvent["type"])
-    && typeof event.data === "object" && event.data !== null
-    && "id" in event.data && "product_id" in event.data && "customer" in event.data;
-}
-
-function homieStatus(type: string) {
-  if (type === "subscription.past_due") return "past_due";
-  if (type === "subscription.paused") return "paused";
-  if (type === "subscription.revoked") return "expired";
-  return "active";
-}
+import { parsePolarSubscriptionEvent } from "../../../../lib/polar-subscription-event";
 
 export async function POST(request: Request) {
-  const webhookSecret = process.env.POLAR_WEBHOOK_SECRET;
+  const webhookSecret = polarSetting("WEBHOOK_SECRET");
   if (!webhookSecret) return Response.json({ error: "Webhook is not configured" }, { status: 503 });
 
   try {
     const rawBody = await request.text();
-    const verifier = new Webhook(Buffer.from(webhookSecret, "utf8").toString("base64"));
-    const event = verifier.verify(rawBody, Object.fromEntries(request.headers.entries())) as PolarEvent;
-    if (!isSubscriptionEvent(event)) return new Response(null, { status: 202 });
-
-    const subscription = event.data;
-    if (typeof subscription.product_id !== "string") return new Response(null, { status: 202 });
-    const planSlug = polarPlanSlugFromProduct(subscription.product_id);
-    const workspaceId = workspaceIdFromExternalCustomerId(subscription.customer.external_id);
+    const verified = verifyPolarWebhook(rawBody, Object.fromEntries(request.headers.entries()), webhookSecret);
+    const order = parsePolarCreditOrder(verified);
+    if (order) {
+      if (order.productId === polarSetting("PRODUCT_FIRST_VIDEO")) {
+        if (process.env.POLAR_FIRST_VIDEO_ENABLED !== "true") return new Response(null, { status: 503 });
+        const workspaceId = workspaceIdFromExternalCustomerId(order.externalId);
+        if (!workspaceId || !order.checkoutId || order.netAmount !== 100) throw new Error("Invalid first-video order");
+        const { error } = await supabaseAdmin().rpc("fulfill_polar_first_video", {
+          order_id: order.id, target_workspace_id: workspaceId, product_id: order.productId,
+          checkout_id: order.checkoutId, refunded_amount: order.refundedAmount, is_paid: order.paid,
+        });
+        if (error) throw error;
+        return new Response(null, { status: 202 });
+      }
+      const pack = ALL_CREDIT_PACKS.find(p => polarSetting(`PRODUCT_CREDITS_${p.credits}`) === order.productId);
+      if (!pack) return new Response(null, { status: 202 });
+      if (process.env.POLAR_CREDIT_PURCHASES_ENABLED !== "true") return Response.json({ error: "Credit purchases are not enabled" }, { status: 503 });
+      const workspaceId = workspaceIdFromExternalCustomerId(order.externalId);
+      if (!workspaceId) throw new Error("Order has no workspace mapping");
+      if (order.netAmount !== pack.price * 100) throw new Error("Order price differs from catalog");
+      const { error } = await supabaseAdmin().rpc("fulfill_polar_credit_order", {
+        order_id: order.id, target_workspace_id: workspaceId, product_id: order.productId,
+        credits: pack.credits, net_amount: order.netAmount, refunded_amount: order.refundedAmount,
+        is_paid: order.paid,
+      });
+      if (error) throw error;
+      return new Response(null, { status: 202 });
+    }
+    const event = parsePolarSubscriptionEvent(verified);
+    if (!event) return new Response(null, { status: 202 });
+    const planSlug = polarPlanSlugFromProduct(event.productId);
+    const workspaceId = workspaceIdFromExternalCustomerId(event.externalId);
     if (!planSlug || !workspaceId) {
-      console.warn("Ignoring Polar subscription without a Homie mapping", { type: event.type, productId: subscription.product_id });
+      console.warn("Ignoring Polar subscription without a Homie mapping", { type: event.type, productId: event.productId });
       return new Response(null, { status: 202 });
     }
 
-    const eventId = request.headers.get("webhook-id") ?? `${event.type}:${subscription.id}:${event.timestamp}`;
+    const eventId = request.headers.get("webhook-id") ?? `${event.type}:${event.id}:${event.timestamp}`;
     const { error } = await supabaseAdmin().rpc("sync_polar_subscription", {
       event_id: eventId,
       event_type: event.type,
-      target_workspace_id: Number(workspaceId),
+      event_occurred_at: event.timestamp,
+      target_workspace_id: workspaceId,
       target_plan_slug: planSlug,
-      polar_customer_id: subscription.customer_id,
-      polar_subscription_id: subscription.id,
-      subscription_status: homieStatus(event.type),
-      billing_interval: subscription.recurring_interval === "year" ? "yearly" : "monthly",
-      period_starts_at: subscription.current_period_start,
-      period_ends_at: subscription.current_period_end,
-      cancel_at_period_end: subscription.cancel_at_period_end,
-      grant_allowance: ["subscription.active", "subscription.cycled", "subscription.resumed"].includes(event.type),
+      polar_customer_id: event.customerId,
+      polar_subscription_id: event.id,
+      subscription_status: event.status,
+      billing_interval: event.interval,
+      period_starts_at: event.periodStart,
+      period_ends_at: event.periodEnd,
+      cancel_at_period_end: event.cancelAtPeriodEnd,
+      grant_allowance: event.grantAllowance,
     });
     if (error) throw error;
     return new Response(null, { status: 202 });
