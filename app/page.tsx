@@ -29,10 +29,10 @@ const templatePreviews = [
 ];
 
 const pricingTiers = [
-  { slug: "first-video", name: "First Video", monthlyPrice: PUBLIC_PRICES["first-video"], yearlyPrice: null, monthlyVideos: 1, tagline: "Create your first property video for just $1.", features: ["1 watermarked video", "All video templates", "Use your own property photos", "First-video introductory offer"] },
-  { slug: "starter", name: "Starter", monthlyPrice: PUBLIC_PRICES.starter, yearlyPrice: PUBLIC_ANNUAL_PRICES.starter, monthlyVideos: 3, tagline: "For agents starting to publish listing videos.", features: ["3 video generations each month", "Property photo uploads", "All video templates", "Social-ready exports"] },
-  { slug: "pro", name: "Pro", monthlyPrice: PUBLIC_PRICES.pro, yearlyPrice: PUBLIC_ANNUAL_PRICES.pro, monthlyVideos: 10, tagline: "For solo agents publishing consistently.", features: ["10 video generations each month", "Everything in Starter", "Priority generation", "Commercial usage"], highlighted: true },
-  { slug: "business", name: "Business", monthlyPrice: PUBLIC_PRICES.business, yearlyPrice: PUBLIC_ANNUAL_PRICES.business, monthlyVideos: 30, tagline: "For offices that need a shared, consistent workflow.", features: ["30 video generations each month", "10 agent seats", "Shared team workspace", "Priority support"] },
+  { slug: "first-video", name: "First Video", monthlyPrice: PUBLIC_PRICES["first-video"], yearlyPrice: null, monthlyCredits: 30, tagline: "Create your first property video for just $1.", features: ["1 video with the Homie watermark", "Any template, up to 30 seconds", "Use your own property photos", "First-video introductory offer"] },
+  { slug: "starter", name: "Starter", monthlyPrice: PUBLIC_PRICES.starter, yearlyPrice: PUBLIC_ANNUAL_PRICES.starter, monthlyCredits: 150, tagline: "For agents starting to publish property videos.", features: ["150 credits each month", "All video templates", "Property photo uploads", "720p social-ready exports"] },
+  { slug: "pro", name: "Pro", monthlyPrice: PUBLIC_PRICES.pro, yearlyPrice: PUBLIC_ANNUAL_PRICES.pro, monthlyCredits: 400, tagline: "For solo agents publishing consistently.", features: ["400 credits each month", "Everything in Starter", "1080p exports", "Priority generation"], highlighted: true },
+  { slug: "business", name: "Business", monthlyPrice: PUBLIC_PRICES.business, yearlyPrice: PUBLIC_ANNUAL_PRICES.business, monthlyCredits: 1000, tagline: "For offices that need a shared, consistent workflow.", features: ["1,000 credits each month", "10 agent seats", "Shared team workspace", "1080p exports"] },
 ];
 
 
@@ -44,7 +44,7 @@ const faqs = [
   { q: "Can I use photos I already have?", a: "Yes. Upload the listing photos from your phone or computer, arrange them if needed, and reuse them with any available template." },
   { q: "Will the video invent rooms or features the property doesn't have?", a: "Every shot is built from the photos you select, and Homie is built to preserve the real architecture, layout, materials, and lighting rather than imagine new ones. AI video is still probabilistic, which is exactly why no tour is ever final until you watch it and approve it." },
   { q: "Can I use the videos in my listings, ads, and social?", a: "Yes. You keep full ownership of your photos and of the tours you generate, and you can publish them to Reels, TikTok, Stories, listing pages, and paid campaigns. You stay responsible for confirming a tour represents the property accurately and meets your brokerage or MLS rules." },
-  { q: "What if I don't like the result?", a: "Generate another version. You can rerun the same template or switch to a different one; each new version uses one video generation. Only the version you approve becomes the final tour." },
+  { q: "What if I don't like the result?", a: "Generate another version. You can rerun the same template or switch to a different one; each new version uses credits like any other video: one credit per second at 720p. Only the version you approve becomes the final tour." },
   { q: "Will anything publish without my approval?", a: "Never. Every generated video goes into an awaiting-approval state. Nothing is published, downloaded, or shared until you explicitly approve it." },
   { q: "How long does one tour take?", a: "Usually a few minutes, because each shot is generated on its own and then assembled into the final cut. You don't have to keep the page open — Homie keeps working and the tour is waiting for review when it's ready." },
   { q: "Can my whole office work in one account?", a: "Yes. Office plans add a shared workspace with seats for your agents, shared listings and templates, and a record of who created and who approved every tour." },
@@ -451,7 +451,7 @@ export default function Marketing() {
               price: annual ? Math.round(tier.yearlyPrice! / 12) : tier.monthlyPrice,
               period: intro ? "first video" : "/ month",
               billing: intro ? "One-time introductory offer" : annual ? `$${tier.yearlyPrice!.toLocaleString("en-US")} billed annually` : "Billed monthly",
-              features: tier.features.map((feature, index) => annual && index === 0 ? `${tier.monthlyVideos * 12} video generations per year` : feature),
+              features: tier.features.map((feature, index) => annual && index === 0 ? `${(tier.monthlyCredits * 12).toLocaleString("en-US")} credits per year` : feature),
               description: tier.tagline,
               action: <a href="/login">{intro ? "Create for $1" : "Get started"}</a>,
             };

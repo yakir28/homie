@@ -209,7 +209,7 @@ export default function DirectorPage({ userId, workspaceId, listings, videos, wa
           <div className="director-document-scroll">
             {error && <p className="director-error" role="alert">{error}</p>}
             <article className="director-document-sheet" aria-label="Video plan document">
-              <header><p>{chat.title}</p><h2>Video plan</h2><div className="director-document-specs"><span>{selectedPlan.context?.duration ?? 30} seconds</span><span>{selectedPlan.context?.aspectRatio ?? "16:9"}</span><span>1080p</span></div></header>
+              <header><p>{chat.title}</p><h2>Video plan</h2><div className="director-document-specs"><span>{selectedPlan.context?.duration ?? 30} seconds</span><span>{selectedPlan.context?.aspectRatio ?? "16:9"}</span><span>720p</span></div></header>
               <textarea ref={planInput} id="director-plan-direction" aria-label="Edit video plan" placeholder="Start writing your video plan…" value={planDraft} maxLength={1900} disabled={busy || generating} spellCheck onKeyDown={event => { if ((event.metaKey || event.ctrlKey) && event.key === "s") { event.preventDefault(); savePlan(); } }} onChange={event => { setPlanDrafts(current => ({ ...current, [selectedPlan.id]: event.target.value })); setPlanNotice(""); }} />
               <footer><span>HOMIE DIRECTOR</span><span>{planDraft.trim() ? planDraft.trim().split(/\s+/).length : 0} words · {planDraft.length} / 1900</span></footer>
             </article>
@@ -224,7 +224,7 @@ export default function DirectorPage({ userId, workspaceId, listings, videos, wa
                 {(video?.image || listing?.image) && <img src={video?.image || listing?.image} alt="" className="director-render-cover" />}
                 <div className="director-render-state">{video?.status === "Generating" ? <><span className="prompt-video-spinner" /><strong>Your film is in the making</strong><p>{video.stage ?? "Waiting for generation"}</p><progress aria-label={`Video version ${index + 1} progress`} max={100} value={video.progress} /></> : <><span aria-hidden="true">{video?.status === "Failed" ? "!" : "▷"}</span><strong>{video?.status === "Failed" ? "This version couldn’t finish" : "Preview is not available yet"}</strong><p>{video?.error ?? "Your video will appear here when it is ready."}</p><button onClick={onOpenVideos}>Open My videos →</button></>}</div>
               </>}
-            </div><footer><span>{message.context?.duration} sec · {message.context?.aspectRatio} · 1080p</span><span>Version {index + 1}</span></footer>
+            </div><footer><span>{message.context?.duration} sec · {message.context?.aspectRatio} · 720p</span><span>Version {index + 1}</span></footer>
           </article>;
         }) : <div className="director-screen-empty"><span aria-hidden="true">▷</span><h3>A space for your vision.</h3><p>Shape the direction in chat. Your generated films<br />and every new version will appear here.</p><div className="director-empty-frame"><span aria-hidden="true">✦</span><span>Your first film</span></div></div>}</div>}
       </section>

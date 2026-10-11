@@ -1,9 +1,10 @@
 import { makeReferencePlan, referenceInput, REFERENCE_MODELS } from "../lib/higgsfield-reference.mjs";
 import { createHash } from "node:crypto";
 import { execFile } from "node:child_process";
-import { access, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { access, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { createClient } from "@supabase/supabase-js";
 import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
@@ -291,6 +292,18 @@ async function materializeMusic(track, directory) {
   return { ...track, path };
 }
 
+const WATERMARK_PATH = join(dirname(fileURLToPath(import.meta.url)), "..", "assets", "watermark", "homie-watermark.png");
+const WATERMARKED_PLANS = new Set(["free-trial", "first-video"]);
+
+// First-video ($1) exports carry the Homie watermark; paid plans never do.
+// A workspace without a subscription row is treated as a trial.
+async function needsWatermark(project) {
+  const { data, error } = await db.from("subscriptions").select("plans(slug)").eq("workspace_id", project.workspace_id).maybeSingle();
+  if (error) throw error;
+  const slug = data?.plans?.slug;
+  return !slug || WATERMARKED_PLANS.has(slug);
+}
+
 async function uploadFinalVideo(project, finalPath, storagePath) {
   if (r2) {
     await r2.send(new PutObjectCommand({
@@ -417,10 +430,14 @@ async function processProject(project) {
     else if (!track && musicMoodFor(musicProject)) await event(project.id, "editing", "No soundtrack in the music library yet; finishing without music", 84, { music_mood: musicMoodFor(musicProject) });
     const music = track ? await materializeMusic(track, directory) : null;
     const finalPath = join(directory, `homie-${project.id}.mp4`);
-    await assembleVideo(clipPaths, shots, finalPath, { duration: project.duration_seconds, aspectRatio: project.output_format, resolution: shots[0].resolution, music });
+    const watermarked = await needsWatermark(project);
+    if (watermarked) await access(WATERMARK_PATH);
+    await assembleVideo(clipPaths, shots, finalPath, { duration: project.duration_seconds, aspectRatio: project.output_format, resolution: shots[0].resolution, music, watermark: watermarked ? WATERMARK_PATH : null });
     const storagePath = `videos/${project.workspace_id}/${project.id}/version-1.mp4`;
     await event(project.id, "uploading", "Uploading the finished video to Cloudflare R2", 92);
     await uploadFinalVideo(project, finalPath, storagePath);
+    // Recorded so Settings → Storage can report real usage without listing the bucket.
+    const sizeBytes = (await stat(finalPath)).size;
 
     await checked(db.from("video_versions").upsert({
       video_project_id: project.id,
@@ -428,7 +445,7 @@ async function processProject(project) {
       status: "ready",
       video_url: null,
       duration_seconds: project.duration_seconds,
-      provider_metadata: { provider: shots[0]?.provider, storage_provider: "cloudflare-r2", bucket: r2Bucket, r2_key: storagePath, model: shots[0]?.model, shot_outputs: outputs, generated_seconds: shots.reduce((sum, shot) => sum + shot.duration, 0), shot_plan: shots.map((shot) => ({ order: shot.order, duration: shot.duration, model: shot.model, provider: shot.provider })), photo_order: photoOrder, director: directorPlan ? { version: directorPlan.version, model: directorPlan.model, notes: directorPlan.notes } : null, music: track ? { id: track.id, title: track.title ?? null, artist: track.artist ?? null, license: track.license, mood: musicMoodFor(musicProject), chosen_by: musicChoice ? "director" : "template" } : null, prompt_recipe: project.template_prompt_snapshot },
+      provider_metadata: { provider: shots[0]?.provider, storage_provider: "cloudflare-r2", bucket: r2Bucket, r2_key: storagePath, size_bytes: sizeBytes, watermarked, model: shots[0]?.model, shot_outputs: outputs, generated_seconds: shots.reduce((sum, shot) => sum + shot.duration, 0), shot_plan: shots.map((shot) => ({ order: shot.order, duration: shot.duration, model: shot.model, provider: shot.provider })), photo_order: photoOrder, director: directorPlan ? { version: directorPlan.version, model: directorPlan.model, notes: directorPlan.notes } : null, music: track ? { id: track.id, title: track.title ?? null, artist: track.artist ?? null, license: track.license, mood: musicMoodFor(musicProject), chosen_by: musicChoice ? "director" : "template" } : null, prompt_recipe: project.template_prompt_snapshot },
       completed_at: new Date().toISOString(),
     }, { onConflict: "video_project_id,version_number" }));
     await event(project.id, "ready", "Video ready for review", 100);
