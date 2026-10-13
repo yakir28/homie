@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   description: "How Homie collects, uses, and protects your information.",
 };
 
-const EFFECTIVE_DATE = "August 9, 2026";
+const EFFECTIVE_DATE = "October 12, 2026";
 const SUPPORT_EMAIL = "supportbyhomie@gmail.com";
 
 const toc = [
@@ -66,10 +66,14 @@ export default function PrivacyPage() {
             directly or import from Zillow or other third-party sources.</p>
           <p><strong>Generated content.</strong> The videos, thumbnails, and generation settings (such as the
             template and prompts used) produced through the Service.</p>
-          <p><strong>Brand assets.</strong> Logos, colors, and contact details you save to apply your brand to
-            generated videos.</p>
-          <p><strong>Payment information.</strong> If you subscribe to a paid plan, our payment processor
-            collects your billing details directly; we do not store full card numbers on our servers.</p>
+          <p><strong>Profile information.</strong> Your name and, if you upload one, your profile photo.</p>
+          <p><strong>Payment information.</strong> When you buy a plan, the $1 first video or a credit pack, our
+            payment processor, Polar, collects your billing details directly. We receive your order and subscription
+            status, but never your full card number.</p>
+          <p><strong>Marketing attribution (only with your consent).</strong> If you accept analytics &amp; marketing
+            cookies, we record which ad, campaign or website brought you to Homie (UTM tags, ad click identifiers and
+            the referring page) and link it to your account when you sign up. See our{" "}
+            <a href="/cookies">Cookie Policy</a>.</p>
           <p><strong>Usage & device data.</strong> Log data, device and browser type, pages viewed, and
             actions taken in the product, collected automatically as you use the Service.</p>
         </section>
@@ -82,7 +86,8 @@ export default function PrivacyPage() {
             <li>Authenticate your account and keep it secure;</li>
             <li>Process payments and manage subscriptions and video allowances;</li>
             <li>Communicate with you about your account, generations, and support requests;</li>
-            <li>Monitor, debug, and improve the reliability and quality of the Service; and</li>
+            <li>Monitor, debug, and improve the reliability and quality of the Service;</li>
+            <li>With your consent, measure which of our own marketing campaigns lead to sign-ups and purchases; and</li>
             <li>Comply with legal obligations and enforce our Terms of Service.</li>
           </ul>
         </section>
@@ -94,13 +99,16 @@ export default function PrivacyPage() {
             template to third-party AI generation providers. Those providers process this content solely
             to return the generated video, thumbnail, and related output to Homie.
           </p>
-          <p>We also rely on the following categories of service providers to operate Homie:</p>
+          <p>We rely on the following service providers to operate Homie:</p>
           <ul>
-            <li><strong>Database & authentication</strong> — to store your account, listings, and app data, and to manage sign-in;</li>
-            <li><strong>Cloud storage</strong> — to store and serve your uploaded photos and generated videos;</li>
-            <li><strong>AI generation providers</strong> — to turn your photos and prompts into videos and images;</li>
-            <li><strong>Listing data providers</strong> — to import property details and photos when you connect a listing from Zillow or a similar source; and</li>
-            <li><strong>Payment processing</strong> — to handle subscription billing.</li>
+            <li><strong>Supabase</strong> — database, sign-in and photo storage;</li>
+            <li><strong>Cloudflare</strong> — website hosting, security and storage of finished videos;</li>
+            <li><strong>Higgsfield</strong> and the video models it provides — to turn your photos into videos and music;</li>
+            <li><strong>Anthropic</strong> — to analyse your property photos (for example, which room each shows) so videos follow a sensible route;</li>
+            <li><strong>OpenAI</strong> — to power the Director conversation, if you use it;</li>
+            <li><strong>HasData</strong> — to import property details and photos when you connect a home from Zillow or Airbnb;</li>
+            <li><strong>Polar</strong> — payment processing for plans, the $1 first video and credit packs; and</li>
+            <li><strong>Google</strong> — sign-in with Google (if you choose it) and web fonts.</li>
           </ul>
           <p>
             These providers are only permitted to use your information to perform services on our behalf
@@ -111,21 +119,23 @@ export default function PrivacyPage() {
         <section id="cookies">
           <h2>5. Cookies & similar technologies</h2>
           <p>
-            We use cookies for two purposes: <strong>essential cookies</strong> that keep you signed in and
-            keep the Service functioning, and <strong>analytics cookies</strong> that help us understand how
-            the Service is used so we can improve it. Essential cookies cannot be turned off, since the
-            Service cannot function without them.
+            We use <strong>essential</strong> storage to keep you signed in, secure payments and remember your
+            choices; <strong>functional</strong> storage to remember settings such as a finished onboarding tour; and,
+            only if you agree, <strong>analytics &amp; marketing</strong> storage that remembers which campaign brought
+            you to Homie. We do not use advertising pixels or third-party analytics trackers.
           </p>
           <p>
-            When you first visit our marketing site, a cookie banner lets you accept or dismiss
-            non-essential cookies; your choice is remembered on that device so we don&apos;t ask again. You
-            can clear this preference at any time by clearing your browser&apos;s site data.
+            On your first visit, a banner lets you accept all, keep essential only, or customise your choice. You can
+            change it at any time from <strong>Cookie settings</strong> in the site footer. We honour the Global
+            Privacy Control signal. The full list of cookies and storage keys is in our{" "}
+            <a href="/cookies">Cookie Policy</a>.
           </p>
         </section>
 
         <section id="sharing">
           <h2>6. How we share information</h2>
-          <p>We do not sell your personal information. We share information only:</p>
+          <p>We do not sell your personal information, and we do not share it with advertisers for cross-context
+            behavioural advertising. We share information only:</p>
           <ul>
             <li>With the service providers described in Section 4, to operate the Service;</li>
             <li>With other members of your workspace or team, if you use a shared team workspace;</li>
@@ -161,7 +171,8 @@ export default function PrivacyPage() {
           <ul>
             <li>Access, correct, or delete the personal information we hold about you;</li>
             <li>Export a copy of your data;</li>
-            <li>Object to or restrict certain processing, including analytics cookies; and</li>
+            <li>Object to or restrict certain processing, including analytics &amp; marketing cookies (use Cookie settings in the footer);</li>
+            <li>Opt out of the sale or sharing of personal information (we do neither) — we also honour Global Privacy Control; and</li>
             <li>Withdraw consent where processing is based on consent.</li>
           </ul>
           <p>

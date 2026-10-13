@@ -22,6 +22,8 @@ import "./template-detail.css";
 import "./responsive.css";
 import { PUBLIC_ANNUAL_PRICES, PUBLIC_PRICES } from "../../lib/public-pricing";
 import { resolveMediaUrl, responsiveImageProps } from "../../lib/media-url";
+import { clearTouches, storedTouches } from "../../lib/attribution";
+import { analyticsAllowed } from "../../lib/consent";
 
 type View = "templates" | "director" | "listings" | "videos" | "integrations" | "profile" | "subscribe";
 
@@ -279,6 +281,11 @@ export default function Home() {
       const { data: workspaceId, error: workspaceError } = await supabase.rpc("bootstrap_workspace", { workspace_name: "My Homie Workspace" });
       if (workspaceError) flash(workspaceError.message);
       if (workspaceId) setWorkspaceId(workspaceId);
+      // Attribute new signups to the campaign that brought them; older accounts are never re-attributed.
+      const touches = storedTouches();
+      if (touches && analyticsAllowed() && Date.now() - new Date(currentUser.created_at).getTime() < 48 * 60 * 60 * 1000) {
+        void supabase.rpc("record_signup_attribution", { first_touch: touches.first, last_touch: touches.last }).then(({ error }) => { if (!error) clearTouches(); });
+      }
 
       const [{ data: wallet }, { data: homes }, { data: savedFavorites }, { data: profile, error: profileError }, { data: zillow }, { data: airbnb }, { data: plans }, { data: currentSubscription }] = await Promise.all([workspaceId ? supabase.from("credit_wallets").select("balance").eq("workspace_id", workspaceId).maybeSingle() : Promise.resolve({ data: null }), workspaceId ? supabase.from("listings").select("id, address_line1, city, region, price, cover_photo_url, status, source, listing_photos(count), video_projects(count)").eq("workspace_id", workspaceId).order("created_at", { ascending: false }) : Promise.resolve({ data: null }), supabase.from("template_favorites").select("template_id").eq("user_id", session.user.id), supabase.from("profiles").select("display_name, avatar_url, bio, phone, job_title, company_name, theme").eq("id", session.user.id).maybeSingle(), workspaceId ? supabase.from("integrations").select("id, status, external_account_name, last_synced_at, last_error").eq("workspace_id", workspaceId).eq("provider", "zillow").maybeSingle() : Promise.resolve({ data: null }), workspaceId ? supabase.from("integrations").select("id, status, external_account_name, last_synced_at, last_error").eq("workspace_id", workspaceId).eq("provider", "airbnb").maybeSingle() : Promise.resolve({ data: null }), supabase.from("plans").select("id,name,slug,audience,monthly_price,yearly_price,monthly_credits,seat_limit,features").eq("is_active", true).order("sort_order"), workspaceId ? supabase.from("subscriptions").select("plan_id,status,billing_interval,trial_ends_at,current_period_ends_at,cancel_at_period_end").eq("workspace_id", workspaceId).maybeSingle() : Promise.resolve({ data: null })]);
 

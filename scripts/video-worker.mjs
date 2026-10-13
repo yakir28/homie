@@ -466,8 +466,22 @@ async function main() {
   if (!dryRun) await execFileAsync("ffmpeg", ["-version"]);
   console.log("Video worker: routing by each project’s saved provider (Higgsfield API / Kling / legacy Higgsfield CLI)");
   let keepRunning = true;
+  let failedPolls = 0;
   while (keepRunning) {
-    const project = await claimNextProject();
+    let project;
+    try {
+      project = await claimNextProject();
+      failedPolls = 0;
+    } catch (error) {
+      // Network drops (sleep, Wi-Fi changes) must not stop a long-running worker:
+      // back off and keep polling. One-shot runs still fail loudly.
+      if (once || dryRun || resumeProjectId) throw error;
+      failedPolls += 1;
+      const delay = Math.min(pollMs * 2 ** Math.min(failedPolls, 5), 5 * 60 * 1000);
+      console.error(`Queue poll failed (${failedPolls} in a row), retrying in ${Math.round(delay / 1000)}s: ${error?.message ?? error}`);
+      await sleep(delay);
+      continue;
+    }
     if (project) {
       console.log(`Processing video project ${project.id}${dryRun ? " (dry run)" : ""}`);
       try { await processProject(project); } catch (error) { console.error(error); if (once || dryRun || resumeProjectId) process.exitCode = 1; }

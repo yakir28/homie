@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   description: "The terms that govern your use of Homie's AI home tour video platform.",
 };
 
-const EFFECTIVE_DATE = "August 9, 2026";
+const EFFECTIVE_DATE = "October 12, 2026";
 const SUPPORT_EMAIL = "supportbyhomie@gmail.com";
 
 const toc = [
@@ -17,7 +17,7 @@ const toc = [
   ["listing-data", "4. Zillow & third-party listing data"],
   ["your-content", "5. Your content & license to Homie"],
   ["ai-content", "6. AI-generated videos"],
-  ["credits-billing", "7. Video allowances, billing & subscriptions"],
+  ["credits-billing", "7. Credits, billing & subscriptions"],
   ["acceptable-use", "8. Acceptable use"],
   ["fair-housing", "9. Fair housing & advertising compliance"],
   ["ip", "10. Homie's intellectual property"],
@@ -139,11 +139,22 @@ export default function TermsPage() {
         </section>
 
         <section id="credits-billing">
-          <h2>7. Video allowances, billing & subscriptions</h2>
+          <h2>7. Credits, billing & subscriptions</h2>
           <p>
-            Access to generation features is metered using video generations included with a free trial
-            or paid subscription plan. One generation is consumed whenever you create or regenerate a
-            video and is non-refundable once used, except where required by law.
+            Video generation is metered in credits. A video uses one credit per second of runtime at 720p and two
+            credits per second at 1080p (available on Pro and Business plans). The exact cost is shown before you
+            confirm. Credits are consumed when a video is created or regenerated and are non-refundable once used,
+            except where required by law.
+          </p>
+          <p>
+            Credits come from your plan&apos;s monthly allowance, from the one-time $1 first-video offer (one video,
+            exported with a Homie watermark, limited to one purchase per person) and from one-time credit packs.
+            Unused monthly allowance does not roll over to the next billing period; purchased credit packs remain
+            available while your account is active. Refunded purchases remove the corresponding credits.
+          </p>
+          <p>
+            Payments are processed by our payment provider, Polar, which may appear on your card statement and
+            whose terms also apply to your purchase. Prices are shown in US dollars and may exclude applicable taxes.
           </p>
           <p>
             Paid subscriptions renew automatically for successive billing periods until cancelled. You
