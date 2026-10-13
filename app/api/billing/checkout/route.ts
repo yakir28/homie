@@ -32,7 +32,7 @@ export async function POST(request: Request) {
       customer_ip_address: request.headers.get("cf-connecting-ip") ?? request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? undefined,
       metadata: { workspace_id: Number(workspaceId), plan_slug: body.planSlug, billing_interval: body.billingInterval },
       allow_discount_codes: true,
-      success_url: `${origin}/app?checkout=success`,
+      success_url: `${origin}/app?checkout=success&checkout_id={CHECKOUT_ID}`,
       return_url: `${origin}/app`,
     });
 

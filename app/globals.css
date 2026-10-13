@@ -80,7 +80,8 @@
 .auth-submit:disabled,.auth-oauth:disabled,.auth-forgot:disabled{cursor:wait;opacity:.65}
 .auth-oauth.auth-oauth-soon:disabled{cursor:not-allowed;opacity:.6}
 .auth-soon-badge{border:1px solid currentColor;border-radius:999px;padding:2px 6px;font-size:9px;line-height:1.2;letter-spacing:.08em;text-transform:uppercase}
-@media(max-width:860px){.auth-collage{display:none}.auth-form-panel{width:100%}}
+.auth-mobile-brand{display:none}
+@media(max-width:860px){.auth-collage{display:none}.auth-form-panel{width:100%;flex-direction:column}.auth-mobile-brand{display:block;width:120px;margin:0 auto 28px;line-height:0}.auth-mobile-brand img{width:100%;height:auto}}
 
 /* My videos */
 .video-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:280px;gap:8px}

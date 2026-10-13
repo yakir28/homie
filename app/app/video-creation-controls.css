@@ -34,3 +34,6 @@
 .creation-empty{padding:28px 0;font-size:14px;line-height:1.6;color:var(--muted)}
 .creation-picker button:focus-visible,.creation-choices button:focus-visible{outline:2px solid var(--sage);outline-offset:3px}
 @media(max-width:640px){.creation-picker{padding:20px;max-height:90dvh}.creation-listings{grid-template-columns:repeat(2,minmax(0,1fr))}.creation-options{grid-template-columns:repeat(2,minmax(0,1fr))}.creation-choices{gap:6px}.creation-choices>button{padding-left:9px}.creation-choices small{font-size:10px}.creation-choices strong{font-size:12px}}
+
+.creation-options>button.locked{opacity:.75}
+.creation-options>button.locked small.creation-plan-lock{color:var(--sage-dark,var(--sage));font-weight:500}

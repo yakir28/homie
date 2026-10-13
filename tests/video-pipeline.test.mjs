@@ -65,6 +65,18 @@ test("assembly preserves the closing scene and exact output format with mixed au
     await assert.rejects(()=>assembleVideo([clips[0]],[{duration:5}],join(dir,"bad.mp4"),{duration:5,aspectRatio:"16:9",resolution:"480p"}),/shorter/);
   } finally {await rm(dir,{recursive:true,force:true});}
 });
+test("trial watermark is burned into the top-right corner and leaves the rest of the frame untouched",{timeout:60000},async()=>{
+  const dir=await mkdtemp(join(tmpdir(),"homie-watermark-test-"));
+  try {
+    const clip=join(dir,"black.mp4");
+    await exec("ffmpeg",["-v","error","-y","-f","lavfi","-i","color=c=black:s=360x640:r=24:d=1","-c:v","libx264","-pix_fmt","yuv420p",clip]);
+    const output=join(dir,"final.mp4");
+    await assembleVideo([clip],[{duration:1,editDuration:1}],output,{duration:1,aspectRatio:"9:16",resolution:"480p",watermark:join(process.cwd(),"assets","watermark","homie-watermark.png")});
+    const brightness=async(crop)=>{const {stdout}=await exec("ffmpeg",["-v","error","-ss","0.5","-i",output,"-frames:v","1","-vf",`${crop},scale=1:1:flags=area`,"-f","rawvideo","-pix_fmt","gray","pipe:1"],{encoding:"buffer"});return stdout[0];};
+    assert.ok(await brightness("crop=iw*0.32:ih*0.08:iw*0.66:ih*0.01")>20,"logo must be visible in the top-right corner");
+    assert.ok(await brightness("crop=iw*0.3:ih*0.1:0:ih*0.85")<8,"the rest of the frame stays clean");
+  } finally {await rm(dir,{recursive:true,force:true});}
+});
 test("soundtrack choice follows template mood and stays stable per project",async()=>{
   const {pickMusicTrack,musicMoodFor,loadMusicLibrary}=await import("../lib/music.mjs");
   await loadMusicLibrary();

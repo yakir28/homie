@@ -13,15 +13,19 @@ const formats = ["9:16", "16:9", "1:1", "4:3", "3:4", "21:9"];
 
 const RICH_PHOTO_COUNT = 7;
 
-export default function CreateVideoWizard({ template, initialListings, workspaceId, walletBalance, onCreated }: {
+// 1080p and 4K are Pro/Business features; the queue function enforces the same rule.
+const HD_RESOLUTIONS = new Set(["1080p", "4k"]);
+
+export default function CreateVideoWizard({ template, initialListings, workspaceId, walletBalance, canUseHd, onUpgrade, onCreated }: {
   template: TemplateItem; initialListings: WizardListing[]; workspaceId: string; walletBalance: number;
+  canUseHd: boolean; onUpgrade: () => void;
   onCreated: (project: VideoItem) => void;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [picker, setPicker] = useState<"listing" | "format" | "resolution" | null>(null);
   const [search, setSearch] = useState("");
   const [aspectRatio, setAspectRatio] = useState(formats.includes(template.format) ? template.format : "9:16");
-  const [resolution, setResolution] = useState("1080p");
+  const [resolution, setResolution] = useState(canUseHd ? "1080p" : "720p");
   const [prices, setPrices] = useState<Price[]>([]);
   const [priceError, setPriceError] = useState("");
   const [reloadPrice, setReloadPrice] = useState(0);
@@ -131,9 +135,12 @@ export default function CreateVideoWizard({ template, initialListings, workspace
       </> : <div className="creation-options">
         {picker === "format" ? formats.map((format) => <button key={format} className={aspectRatio === format ? "selected" : ""} aria-pressed={aspectRatio === format} onClick={() => choose(() => setAspectRatio(format))}>
           <span className="creation-format-icon" style={{ aspectRatio: format.replace(":", "/") }} aria-hidden="true" /><strong>{format}</strong><small>{format === template.format ? "Recommended" : format === "1:1" ? "Square" : Number(format.split(":")[0]) < Number(format.split(":")[1]) ? "Portrait" : "Landscape"}</small>
-        </button>) : prices.map((price) => <button key={price.resolution} className={resolution === price.resolution ? "selected" : ""} aria-pressed={resolution === price.resolution} onClick={() => choose(() => setResolution(price.resolution))}>
-          <strong>{price.resolution === "4k" ? "4K" : price.resolution}</strong><small>{price.credits_cost} {price.credits_cost === 1 ? "credit" : "credits"}</small>{walletBalance < price.credits_cost && <small>Not enough credits</small>}
-        </button>)}
+        </button>) : prices.map((price) => {
+          const locked = !canUseHd && HD_RESOLUTIONS.has(price.resolution);
+          return <button key={price.resolution} className={`${resolution === price.resolution ? "selected" : ""} ${locked ? "locked" : ""}`} aria-pressed={resolution === price.resolution} onClick={() => locked ? (closePicker(), onUpgrade()) : choose(() => setResolution(price.resolution))}>
+            <strong>{price.resolution === "4k" ? "4K" : price.resolution}</strong><small>{price.credits_cost} {price.credits_cost === 1 ? "credit" : "credits"}</small>{locked ? <small className="creation-plan-lock">Pro plan · Upgrade</small> : walletBalance < price.credits_cost && <small>Not enough credits</small>}
+          </button>;
+        })}
       </div>}
     </dialog>}
   </div>;

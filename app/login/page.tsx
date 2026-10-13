@@ -55,13 +55,13 @@ function LoginForm() {
   }
 
   return (
-    <AuthFrame eyebrow={mode === "login" ? "Welcome back" : "Your first video for $1"}>
+    <AuthFrame eyebrow={mode === "login" ? "Welcome Back" : "Your First Video for $1"}>
           <p className="eyebrow">{mode === "login" ? (
             <>NO ACCOUNT? <button onClick={() => setMode("signup")}>GET STARTED</button></>
           ) : (
             <>HAVE AN ACCOUNT? <button onClick={() => setMode("login")}>LOG IN</button></>
           )}</p>
-          <h2>{mode === "login" ? <>Welcome <i>back</i></> : <>Create your <i>account</i></>}</h2>
+          <h2>{mode === "login" ? <>Welcome <i>Back</i></> : <>Create Your <i>Account</i></>}</h2>
 
           <form className="auth-fields" onSubmit={submit}>
             <input type="email" placeholder="Email address" aria-label="Email address" value={email} onChange={(event) => setEmail(event.target.value)} required />

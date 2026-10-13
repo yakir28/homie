@@ -9,6 +9,8 @@ import { Pricing } from "../components/ui/pricing";
 import "./landing-typography.css";
 import "./landing-glass.css";
 import "./landing-product.css";
+import "./landing-nav.css";
+import { CONSENT_EVENT, hasGlobalPrivacyControl, openCookieSettings, readConsent } from "../lib/consent";
 import "./landing-trial-popup.css";
 import previewAssets from "../lib/template-preview-assets.json";
 import { resolveMediaUrl } from "../lib/media-url";
@@ -29,10 +31,10 @@ const templatePreviews = [
 ];
 
 const pricingTiers = [
-  { slug: "first-video", name: "First Video", monthlyPrice: PUBLIC_PRICES["first-video"], yearlyPrice: null, monthlyVideos: 1, tagline: "Create your first property video for just $1.", features: ["1 watermarked video", "All video templates", "Use your own property photos", "First-video introductory offer"] },
-  { slug: "starter", name: "Starter", monthlyPrice: PUBLIC_PRICES.starter, yearlyPrice: PUBLIC_ANNUAL_PRICES.starter, monthlyVideos: 3, tagline: "For agents starting to publish listing videos.", features: ["3 video generations each month", "Property photo uploads", "All video templates", "Social-ready exports"] },
-  { slug: "pro", name: "Pro", monthlyPrice: PUBLIC_PRICES.pro, yearlyPrice: PUBLIC_ANNUAL_PRICES.pro, monthlyVideos: 10, tagline: "For solo agents publishing consistently.", features: ["10 video generations each month", "Everything in Starter", "Priority generation", "Commercial usage"], highlighted: true },
-  { slug: "business", name: "Business", monthlyPrice: PUBLIC_PRICES.business, yearlyPrice: PUBLIC_ANNUAL_PRICES.business, monthlyVideos: 30, tagline: "For offices that need a shared, consistent workflow.", features: ["30 video generations each month", "10 agent seats", "Shared team workspace", "Priority support"] },
+  { slug: "first-video", name: "First Video", monthlyPrice: PUBLIC_PRICES["first-video"], yearlyPrice: null, monthlyCredits: 30, tagline: "Create your first property video for just $1.", features: ["1 video with the Homie watermark", "Any template, up to 30 seconds", "Use your own property photos", "First-video introductory offer"] },
+  { slug: "starter", name: "Starter", monthlyPrice: PUBLIC_PRICES.starter, yearlyPrice: PUBLIC_ANNUAL_PRICES.starter, monthlyCredits: 150, tagline: "For agents starting to publish property videos.", features: ["150 credits each month", "All video templates", "Property photo uploads", "720p social-ready exports"] },
+  { slug: "pro", name: "Pro", monthlyPrice: PUBLIC_PRICES.pro, yearlyPrice: PUBLIC_ANNUAL_PRICES.pro, monthlyCredits: 400, tagline: "For solo agents publishing consistently.", features: ["400 credits each month", "Everything in Starter", "1080p exports", "Priority generation"], highlighted: true },
+  { slug: "business", name: "Business", monthlyPrice: PUBLIC_PRICES.business, yearlyPrice: PUBLIC_ANNUAL_PRICES.business, monthlyCredits: 1000, tagline: "For offices that need a shared, consistent workflow.", features: ["1,000 credits each month", "10 agent seats", "Shared team workspace", "1080p exports"] },
 ];
 
 
@@ -44,7 +46,7 @@ const faqs = [
   { q: "Can I use photos I already have?", a: "Yes. Upload the listing photos from your phone or computer, arrange them if needed, and reuse them with any available template." },
   { q: "Will the video invent rooms or features the property doesn't have?", a: "Every shot is built from the photos you select, and Homie is built to preserve the real architecture, layout, materials, and lighting rather than imagine new ones. AI video is still probabilistic, which is exactly why no tour is ever final until you watch it and approve it." },
   { q: "Can I use the videos in my listings, ads, and social?", a: "Yes. You keep full ownership of your photos and of the tours you generate, and you can publish them to Reels, TikTok, Stories, listing pages, and paid campaigns. You stay responsible for confirming a tour represents the property accurately and meets your brokerage or MLS rules." },
-  { q: "What if I don't like the result?", a: "Generate another version. You can rerun the same template or switch to a different one; each new version uses one video generation. Only the version you approve becomes the final tour." },
+  { q: "What if I don't like the result?", a: "Generate another version. You can rerun the same template or switch to a different one; each new version uses credits like any other video: one credit per second at 720p. Only the version you approve becomes the final tour." },
   { q: "Will anything publish without my approval?", a: "Never. Every generated video goes into an awaiting-approval state. Nothing is published, downloaded, or shared until you explicitly approve it." },
   { q: "How long does one tour take?", a: "Usually a few minutes, because each shot is generated on its own and then assembled into the final cut. You don't have to keep the page open — Homie keeps working and the tour is waiting for review when it's ready." },
   { q: "Can my whole office work in one account?", a: "Yes. Office plans add a shared workspace with seats for your agents, shared listings and templates, and a record of who created and who approved every tour." },
@@ -219,13 +221,13 @@ function TemplateVideoCard({ title, video, poster, clone = false }: { title: str
   );
 }
 
-const COOKIE_CONSENT_KEY = "homie_cookie_consent";
 const TRIAL_POPUP_DISMISSED_KEY = "homie_trial_popup_dismissed_at";
 const TRIAL_POPUP_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
 
 export default function Marketing() {
   const [announceOpen, setAnnounceOpen] = useState(true);
-  const [cookieOpen, setCookieOpen] = useState(false);
+  // The site-wide consent banner (app/CookieConsent) must be answered before the trial popup appears.
+  const [cookieDecided, setCookieDecided] = useState(false);
   const [trialPopupOpen, setTrialPopupOpen] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
   const [openFaq, setOpenFaq] = useState(0);
@@ -236,21 +238,19 @@ export default function Marketing() {
   const trialPopupRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!localStorage.getItem(COOKIE_CONSENT_KEY)) setCookieOpen(true);
+    const timer = window.setTimeout(() => setCookieDecided(readConsent() !== null || hasGlobalPrivacyControl()), 0);
+    const onConsent = () => setCookieDecided(true);
+    window.addEventListener(CONSENT_EVENT, onConsent);
+    return () => { window.clearTimeout(timer); window.removeEventListener(CONSENT_EVENT, onConsent); };
   }, []);
 
-  function chooseCookieConsent(choice: "accepted" | "declined") {
-    localStorage.setItem(COOKIE_CONSENT_KEY, choice);
-    setCookieOpen(false);
-  }
-
   useEffect(() => {
-    if (cookieOpen) return;
+    if (!cookieDecided) return;
     const dismissedAt = Number(localStorage.getItem(TRIAL_POPUP_DISMISSED_KEY) ?? 0);
     if (Date.now() - dismissedAt < TRIAL_POPUP_COOLDOWN_MS) return;
     const timer = window.setTimeout(() => setTrialPopupOpen(true), 1400);
     return () => window.clearTimeout(timer);
-  }, [cookieOpen]);
+  }, [cookieDecided]);
 
   useEffect(() => {
     if (!trialPopupOpen) return;
@@ -307,8 +307,29 @@ export default function Marketing() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // While the mobile menu is open: lock page scroll, close on Escape, and close
+  // if the viewport grows past the mobile breakpoint.
+  useEffect(() => {
+    if (!navOpen) return;
+    const desktop = window.matchMedia("(min-width: 901px)");
+    const close = () => setNavOpen(false);
+    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") close(); };
+    const onBreakpoint = (event: MediaQueryListEvent) => { if (event.matches) close(); };
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKey);
+    desktop.addEventListener("change", onBreakpoint);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKey);
+      desktop.removeEventListener("change", onBreakpoint);
+    };
+  }, [navOpen]);
+
   function jumpTo(e: React.MouseEvent, id: string) {
     e.preventDefault();
+    // Release the mobile-menu scroll lock first, or the browser cancels the smooth scroll.
+    document.body.style.overflow = "";
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
     history.replaceState(null, "", `#${id}`);
     setNavOpen(false);
@@ -367,19 +388,20 @@ export default function Marketing() {
           <a className="marketing-login" href="/login">Log in</a>
           <a className="marketing-cta" href="/login">Get started <span>→</span></a>
         </div>
-        <button className="marketing-burger" aria-label="Open menu" aria-expanded={navOpen} onClick={() => setNavOpen((v) => !v)}><span /><span /><span /></button>
+        <button className={navOpen ? "marketing-burger open" : "marketing-burger"} aria-label={navOpen ? "Close menu" : "Open menu"} aria-expanded={navOpen} aria-controls="marketing-mobile-menu" onClick={() => setNavOpen((v) => !v)}><span /><span /><span /></button>
+        {/* Lives inside the sticky header so it always opens directly under it, wherever the page is scrolled. */}
+        {navOpen && (
+          <nav className="marketing-mobile-menu" id="marketing-mobile-menu" aria-label="Mobile">
+            {navLinks.map((l) => <a key={l.label} href={l.href} onClick={(e) => jumpTo(e, l.href.slice(1))}>{l.label}</a>)}
+            <a href="/docs">Docs</a>
+            <div className="marketing-mobile-actions">
+              <a href="/login">Log in</a>
+              <a className="marketing-cta" href="/login">Get started <span>→</span></a>
+            </div>
+          </nav>
+        )}
       </header>
-
-      {navOpen && (
-        <div className="marketing-mobile-menu">
-          {navLinks.map((l) => <a key={l.label} href={l.href} onClick={(e) => jumpTo(e, l.href.slice(1))}>{l.label}</a>)}
-          <a href="/docs">Docs</a>
-          <div className="marketing-mobile-actions">
-            <a href="/login">Log in</a>
-            <a className="marketing-cta" href="/login">Get started <span>→</span></a>
-          </div>
-        </div>
-      )}
+      {navOpen && <button className="marketing-menu-backdrop" aria-label="Close menu" tabIndex={-1} onClick={() => setNavOpen(false)} />}
 
       <section className="marketing-hero">
         <div className="hero-layout">
@@ -451,7 +473,7 @@ export default function Marketing() {
               price: annual ? Math.round(tier.yearlyPrice! / 12) : tier.monthlyPrice,
               period: intro ? "first video" : "/ month",
               billing: intro ? "One-time introductory offer" : annual ? `$${tier.yearlyPrice!.toLocaleString("en-US")} billed annually` : "Billed monthly",
-              features: tier.features.map((feature, index) => annual && index === 0 ? `${tier.monthlyVideos * 12} video generations per year` : feature),
+              features: tier.features.map((feature, index) => annual && index === 0 ? `${(tier.monthlyCredits * 12).toLocaleString("en-US")} credits per year` : feature),
               description: tier.tagline,
               action: <a href="/login">{intro ? "Create for $1" : "Get started"}</a>,
             };
@@ -489,16 +511,9 @@ export default function Marketing() {
       <footer className="marketing-footer">
         <div className="marketing-brand"><HomieLogo /></div>
         <p>© 2026 Homie. Listing photos in. Home tours out.</p>
-        <div className="marketing-footer-links"><a href="/docs">Docs</a><a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="/login">Log in</a></div>
+        <div className="marketing-footer-links"><a href="/docs">Docs</a><a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="/cookies">Cookies</a><button type="button" className="marketing-footer-cookie" onClick={openCookieSettings}>Cookie settings</button><a href="/login">Log in</a></div>
       </footer>
 
-      {cookieOpen && (
-        <div className="cookie-banner">
-          <p className="announce-tag">● Cookies</p>
-          <p>We use cookies for authentication and analytics, to keep this studio running.</p>
-          <div><button className="cookie-accept" onClick={() => chooseCookieConsent("accepted")}>Accept</button><button className="cookie-dismiss" onClick={() => chooseCookieConsent("declined")}>Dismiss</button></div>
-        </div>
-      )}
     </main>
   );
 }

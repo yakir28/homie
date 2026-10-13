@@ -73,3 +73,5 @@
   .marketing-page .plan-allowance{min-height:190px}
   .marketing-page .plan-features li{font-size:16px}
 }
+.marketing-page .marketing-footer-cookie{padding:0;border:0;background:none;font:inherit;font-size:14px;line-height:1.6;color:#62695c;cursor:pointer}
+.marketing-page .marketing-footer-cookie:hover{color:var(--ink)}

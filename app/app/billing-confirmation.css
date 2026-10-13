@@ -1,0 +1,6 @@
+.billing-confirmation-backdrop{position:fixed;inset:0;z-index:2000;background:#19201966;display:grid;place-items:center;padding:24px;backdrop-filter:blur(5px)}
+.billing-confirmation{background:#fff;color:#20241c;border:1px solid #dfe5d7;border-radius:24px;padding:36px;max-width:390px;text-align:center;box-shadow:0 20px 80px #0002;animation:billing-appear .3s ease-out}
+.billing-confirmation h2{font-size:25px;margin:20px 0 12px}.billing-confirmation p{color:#656e60;line-height:1.6;font-size:14px}.billing-confirmation button{margin-top:20px;background:#748566;color:#fff;border:0;border-radius:10px;padding:13px 24px;cursor:pointer}.billing-confirmation button:focus-visible{outline:3px solid #253b1a;outline-offset:4px}
+.billing-success-check{width:72px;height:72px;fill:#edf2e8;stroke:#748566;stroke-width:2}.billing-success-check path{fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:50;stroke-dashoffset:0;animation:billing-check .55s ease-out}.billing-confirmation-symbol{font-size:42px;color:#748566}
+@keyframes billing-check{from{stroke-dashoffset:50}to{stroke-dashoffset:0}}@keyframes billing-appear{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.billing-confirmation,.billing-success-check path{animation:none}}

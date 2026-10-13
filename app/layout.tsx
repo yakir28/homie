@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 import "./app-typography.css";
 import SiteLoading from "./SiteLoading";
+import AttributionCapture from "./AttributionCapture";
+import CookieConsent from "./CookieConsent";
 
 export const metadata: Metadata = {
   title: "Homie — AI home tours for real estate",
@@ -32,6 +34,8 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700;800&family=Inter:wght@400;500;600;650;700;750;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
       </head>
       <body className="antialiased">
+        <AttributionCapture />
+        <CookieConsent />
         <SiteLoading>{children}</SiteLoading>
       </body>
     </html>

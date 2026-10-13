@@ -29,3 +29,9 @@
 .crosslink{margin-top:14px}
 .crosslink a{color:var(--muted);font-size:12px}
 @media(max-width:600px){.toc ol{columns:1}.header{padding:22px 6%}}
+.tableWrap{overflow-x:auto;margin:16px 0}
+.table{width:100%;border-collapse:collapse;font-size:13px;line-height:1.5}
+.table th{padding:10px 12px;border-bottom:1px solid var(--line);color:var(--muted);font-weight:500;text-align:left;white-space:nowrap}
+.table td{padding:12px;border-bottom:1px solid var(--line);vertical-align:top}
+.table td:first-child{white-space:nowrap}
+.table code{font:12px var(--mono);background:color-mix(in srgb,var(--sage) 8%,transparent);padding:2px 6px;border-radius:5px}

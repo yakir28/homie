@@ -10,7 +10,7 @@ const collageColumns = [0, 1, 2, 3].map((column) => {
   return { images, duration: [32, 38, 30, 36][column], reverse: column % 2 === 1 };
 });
 
-export default function AuthFrame({ children, eyebrow = "Welcome back" }: { children: ReactNode; eyebrow?: string }) {
+export default function AuthFrame({ children, eyebrow = "Welcome Back" }: { children: ReactNode; eyebrow?: string }) {
   return <main className="auth-page">
       <section className="auth-collage">
         <div className="auth-grid">
@@ -37,6 +37,10 @@ export default function AuthFrame({ children, eyebrow = "Welcome back" }: { chil
         </div>
       </section>
 
-<section className="auth-form-panel"><div className="auth-form">{children}</div></section>
+<section className="auth-form-panel">
+        {/* The collage (and its logo) is hidden on small screens, so the form carries the logo there. */}
+        <a className="auth-mobile-brand" href="/" aria-label="Homie home page"><HomieLogo /></a>
+        <div className="auth-form">{children}</div>
+      </section>
 </main>;
 }
